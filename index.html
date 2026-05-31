@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestor de stock y planificación semanal</title>
+  <style>
+    :root {
+      --bg: #eefaf6;
+      --card: #ffffff;
+      --text: #12302b;
+      --muted: #5d7972;
+      --primary: #0f9f77;
+      --primary-dark: #087057;
+      --secondary: #0ea5c6;
+      --blue: #2563eb;
+      --danger: #c24141;
+      --border: #cfe7df;
+      --soft: #e4f7f1;
+      --soft-blue: #e6f3ff;
+      --ok: #157347;
+      --warning: #b7791f;
+      --shadow: 0 14px 35px rgba(13, 116, 104, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(14, 165, 198, 0.18), transparent 32%),
+        linear-gradient(135deg, #eefaf6 0%, #eaf8ff 100%);
+      color: var(--text);
+      line-height: 1.4;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 32px 20px 74px;
+      background: linear-gradient(135deg, #0f9f77 0%, #0ea5c6 55%, #2563eb 100%);
+      color: white;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      inset: auto -8% -65px -8%;
+      height: 110px;
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 50% 50% 0 0;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      position: relative;
+      z-index: 1;
+    }
+
+    header p {
+      margin: 0;
+      opacity: 0.95;
+      position: relative;
+      z-index: 1;
+    }
+
+    main {
+      width: min(1280px, calc(100% - 28px));
+      margin: -42px auto 50px;
+      display: grid;
+      gap: 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 1.25rem;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: 800;
+      font-size: 0.92rem;
+    }
+
+    input, select, textarea, button {
+      font: inherit;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 11px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: white;
+      color: var(--text);
+      outline-color: var(--secondary);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 13px;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-weight: 800;
+      transition: transform 0.08s ease, filter 0.2s ease;
+    }
+
+    button:hover { filter: brightness(0.94); }
+    button:active { transform: scale(0.98); }
+
+    .secondary { background: linear-gradient(135deg, #64748b, #0ea5c6); }
+    .danger { background: linear-gradient(135deg, var(--danger), #ef4444); }
+    .ghost {
+      background: linear-gradient(135deg, var(--soft), var(--soft-blue));
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .row > * { flex: 1; }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 13px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      padding: 8px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .tab-btn {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+    }
+
+    .tab-btn.active {
+      color: white;
+      background: linear-gradient(135deg, var(--primary), var(--blue));
+      box-shadow: 0 8px 18px rgba(14, 165, 198, 0.22);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .two-columns {
+      display: grid;
+      grid-template-columns: minmax(260px, 380px) 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stock-list, .favorite-list, .config-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .food-item, .favorite-item, .config-item {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      background: linear-gradient(135deg, #ffffff, #f3fffb);
+    }
+
+    .food-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .food-name {
+      font-weight: 900;
+      font-size: 1rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 99px;
+      background: var(--soft);
+      font-weight: 800;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .badge.ok { background: #dff8ea; color: var(--ok); }
+    .badge.warn { background: #fff4d7; color: var(--warning); }
+    .badge.zero { background: #fde4e4; color: var(--danger); }
+    .badge.favorite { background: #e0f2fe; color: #0369a1; }
+    .badge.member { background: #dcfce7; color: #166534; }
+
+    .mini-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .mini-actions button {
+      padding: 7px 9px;
+      font-size: 0.85rem;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .calendar-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .week-title {
+      font-weight: 900;
+      font-size: 1.1rem;
+    }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .day {
+      min-height: 310px;
+      border: 1px solid var(--border);
+      border-radius: 17px;
+      background: linear-gradient(180deg, #ffffff, #f5fffb);
+      padding: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .day h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: var(--primary-dark);
+    }
+
+    .meal-block {
+      border-top: 1px dashed var(--border);
+      padding-top: 9px;
+    }
+
+    .meal-block:first-of-type {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .meal-title {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 900;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .member-slot {
+      margin-top: 6px;
+    }
+
+    .member-slot label {
+      margin: 0 0 3px;
+      font-size: 0.72rem;
+      color: var(--primary-dark);
+    }
+
+    .member-slot select {
+      padding: 8px;
+      border-radius: 10px;
+      font-size: 0.86rem;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .summary-item {
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, #ffffff, #eefaff);
+    }
+
+    .summary-item strong { display: block; }
+
+    .empty {
+      padding: 14px;
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      text-align: center;
+      color: var(--muted);
+      background: #f8fffd;
+    }
+
+    @media (max-width: 1100px) {
+      .calendar { grid-template-columns: repeat(2, 1fr); }
+      .two-columns { grid-template-columns: 1fr; }
+      .tabs { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 620px) {
+      .calendar { grid-template-columns: 1fr; }
+      .row { flex-direction: column; align-items: stretch; }
+      .tabs { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      body { background: white; }
+      header, .tabs, .no-print, #panel-add, #panel-stock, #panel-favorites, #panel-config { display: none !important; }
+      main { width: 100%; margin: 0; }
+      .card { box-shadow: none; border: none; padding: 0; }
+      #panel-calendar { display: block !important; }
+      .calendar { grid-template-columns: repeat(7, 1fr); gap: 6px; }
+      .day { min-height: 190px; break-inside: avoid; }
+      select { border: none; appearance: none; padding: 0; background: transparent; }
+      .member-slot select option { display: none; }
+      .summary { margin-top: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Gestor de comidas y stock</h1>
+    <p>Organiza tus alimentos habituales, controla existencias y planifica la semana por persona.</p>
+  </header>
+
+  <main>
+    <nav class="tabs no-print" aria-label="Secciones principales">
+      <button type="button" class="tab-btn active" data-tab="add">Añadir alimentos</button>
+      <button type="button" class="tab-btn" data-tab="stock">Control de stock</button>
+      <button type="button" class="tab-btn" data-tab="favorites">Favoritos</button>
+      <button type="button" class="tab-btn" data-tab="config">Familia y comidas</button>
+      <button type="button" class="tab-btn" data-tab="calendar">Calendario semanal</button>
+    </nav>
+
+    <section id="panel-add" class="tab-panel active card">
+      <div class="two-columns">
+        <div>
+          <h2>Añadir o editar alimento</h2>
+          <input type="hidden" id="editingId" />
+
+          <label for="foodName">Nombre</label>
+          <input id="foodName" placeholder="Ej. Boloñesa" />
+
+          <div class="row">
+            <div>
+              <label for="foodQty">Cantidad</label>
+              <input id="foodQty" type="number" min="0" step="1" value="1" />
+            </div>
+            <div>
+              <label for="foodUnit">Unidad</label>
+              <input id="foodUnit" placeholder="tuppers, raciones..." value="tuppers" />
+            </div>
+          </div>
+
+          <label for="foodNotes">Notas</label>
+          <textarea id="foodNotes" placeholder="Ej. congelado, para dos personas, caduca pronto..."></textarea>
+
+          <div class="actions">
+            <button id="saveFoodBtn">Añadir alimento</button>
+            <button id="cancelEditBtn" class="secondary" style="display:none">Cancelar edición</button>
+          </div>
+        </div>
+
+        <div>
+          <h2>Añadir desde favoritos</h2>
+          <p class="muted">Guarda tus comidas habituales y añádelas rápidamente al stock cuando las prepares o compres.</p>
+          <label for="favoriteSelect">Favorito</label>
+          <select id="favoriteSelect"></select>
+          <div class="row">
+            <div>
+              <label for="favoriteQtyToAdd">Cantidad</label>
+              <input id="favoriteQtyToAdd" type="number" min="1" step="1" value="1" />
+            </div>
+            <div>
+              <label for="favoriteUnitToAdd">Unidad</label>
+              <input id="favoriteUnitToAdd" placeholder="tuppers, raciones..." />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="addFavoriteToStockBtn">Añadir favorito al stock</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-stock" class="tab-panel card">
+      <h2>Control de stock</h2>
+      <p class="muted">Aquí ves las cantidades iniciales, lo usado en el calendario y lo que queda disponible.</p>
+      <div id="stockList" class="stock-list"></div>
+    </section>
+
+    <section id="panel-favorites" class="tab-panel card">
+      <div class="two-columns">
+        <div>
+          <h2>Nuevo favorito</h2>
+          <label for="favName">Nombre habitual</label>
+          <input id="favName" placeholder="Ej. Crema de calabacín" />
+
+          <label for="favUnit">Unidad habitual</label>
+          <input id="favUnit" placeholder="tuppers, raciones..." value="raciones" />
+
+          <label for="favNotes">Notas</label>
+          <textarea id="favNotes" placeholder="Ej. receta habitual, congelar, comida ligera..."></textarea>
+
+          <div class="actions">
+            <button id="saveFavoriteBtn">Guardar favorito</button>
+          </div>
+        </div>
+
+        <div>
+          <h2>Alimentos favoritos</h2>
+          <div id="favoriteList" class="favorite-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-config" class="tab-panel card">
+      <div class="two-columns">
+        <div>
+          <h2>Miembros del núcleo familiar</h2>
+          <p class="muted">Añade personas para poder asignar comidas distintas dentro del mismo calendario.</p>
+          <label for="memberName">Nombre del miembro</label>
+          <input id="memberName" placeholder="Ej. Virginia, Leo, Mamá..." />
+          <div class="actions">
+            <button id="addMemberBtn">Añadir miembro</button>
+          </div>
+          <div id="memberList" class="config-list"></div>
+        </div>
+
+        <div>
+          <h2>Tipos de comida</h2>
+          <p class="muted">Puedes definir desayuno, comida, cena, merienda o cualquier otro momento.</p>
+          <label for="mealName">Nombre de la comida</label>
+          <input id="mealName" placeholder="Ej. Desayuno, Merienda, Cena..." />
+          <div class="actions">
+            <button id="addMealBtn">Añadir tipo de comida</button>
+          </div>
+          <div id="mealList" class="config-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-calendar" class="tab-panel card">
+      <div class="calendar-toolbar">
+        <div>
+          <div class="week-title">Planificador semanal</div>
+          <div class="muted">Cada selección consume una unidad por miembro. Si dos personas comen lo mismo, se descuentan dos unidades.</div>
+        </div>
+        <div class="actions no-print">
+          <button id="clearPlanBtn" class="ghost">Vaciar planificación</button>
+          <button id="printBtn">Exportar a PDF / imprimir</button>
+        </div>
+      </div>
+
+      <div id="calendar" class="calendar"></div>
+    </section>
+
+    <section class="card">
+      <h2>Resumen de stock restante</h2>
+      <div id="summary" class="summary"></div>
+    </section>
+  </main>
+
+  <script>
+    const days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+    function createId() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+    }
+
+    function loadArray(key, fallback) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key));
+        return Array.isArray(saved) ? saved : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    let foods = loadArray("foods", [
+      { id: createId(), name: "Boloñesa", qty: 5, unit: "tuppers", notes: "Congelado" },
+      { id: createId(), name: "Lentejas", qty: 3, unit: "raciones", notes: "Nevera" }
+    ]);
+
+    let favorites = loadArray("favoriteFoods", [
+      { id: createId(), name: "Boloñesa", unit: "tuppers", notes: "Comida habitual para congelar" },
+      { id: createId(), name: "Lentejas", unit: "raciones", notes: "Ideal para comida de diario" },
+      { id: createId(), name: "Crema de verduras", unit: "raciones", notes: "Cena ligera" }
+    ]);
+
+    let familyMembers = loadArray("familyMembers", [
+      { id: createId(), name: "Todos" }
+    ]);
+
+    let mealTypes = loadArray("mealTypes", [
+      { id: createId(), name: "Comida" },
+      { id: createId(), name: "Cena" }
+    ]);
+
+    let plan = JSON.parse(localStorage.getItem("weeklyPlan")) || {};
+
+    const foodName = document.getElementById("foodName");
+    const foodQty = document.getElementById("foodQty");
+    const foodUnit = document.getElementById("foodUnit");
+    const foodNotes = document.getElementById("foodNotes");
+    const editingId = document.getElementById("editingId");
+    const saveFoodBtn = document.getElementById("saveFoodBtn");
+    const cancelEditBtn = document.getElementById("cancelEditBtn");
+    const stockList = document.getElementById("stockList");
+    const calendar = document.getElementById("calendar");
+    const summary = document.getElementById("summary");
+    const favoriteList = document.getElementById("favoriteList");
+    const favoriteSelect = document.getElementById("favoriteSelect");
+    const favoriteQtyToAdd = document.getElementById("favoriteQtyToAdd");
+    const favoriteUnitToAdd = document.getElementById("favoriteUnitToAdd");
+    const favName = document.getElementById("favName");
+    const favUnit = document.getElementById("favUnit");
+    const favNotes = document.getElementById("favNotes");
+    const memberName = document.getElementById("memberName");
+    const mealName = document.getElementById("mealName");
+    const memberList = document.getElementById("memberList");
+    const mealList = document.getElementById("mealList");
+
+    function saveData() {
+      localStorage.setItem("foods", JSON.stringify(foods));
+      localStorage.setItem("favoriteFoods", JSON.stringify(favorites));
+      localStorage.setItem("familyMembers", JSON.stringify(familyMembers));
+      localStorage.setItem("mealTypes", JSON.stringify(mealTypes));
+      localStorage.setItem("weeklyPlan", JSON.stringify(plan));
+    }
+
+    function makeSlotId(day, mealId, memberId) {
+      return `${day}__${mealId}__${memberId}`;
+    }
+
+    function getUsedCounts() {
+      const counts = {};
+      Object.values(plan).forEach(foodId => {
+        if (!foodId) return;
+        counts[foodId] = (counts[foodId] || 0) + 1;
+      });
+      return counts;
+    }
+
+    function getRemaining(foodId) {
+      const food = foods.find(item => item.id === foodId);
+      if (!food) return 0;
+      const used = getUsedCounts()[foodId] || 0;
+      return food.qty - used;
+    }
+
+    function cleanPlan() {
+      const validFoodIds = new Set(foods.map(food => food.id));
+      const validMealIds = new Set(mealTypes.map(meal => meal.id));
+      const validMemberIds = new Set(familyMembers.map(member => member.id));
+
+      Object.keys(plan).forEach(slot => {
+        const parts = slot.split("__");
+        const mealId = parts[1];
+        const memberId = parts[2];
+        if (!validFoodIds.has(plan[slot]) || !validMealIds.has(mealId) || !validMemberIds.has(memberId)) {
+          delete plan[slot];
+        }
+      });
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === tabName);
+      });
+      document.querySelectorAll(".tab-panel").forEach(panel => {
+        panel.classList.toggle("active", panel.id === `panel-${tabName}`);
+      });
+    }
+
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+    });
+
+    function renderStock() {
+      stockList.innerHTML = "";
+
+      if (foods.length === 0) {
+        stockList.innerHTML = '<div class="empty">Todavía no tienes alimentos en stock.</div>';
+        return;
+      }
+
+      const usedCounts = getUsedCounts();
+
+      foods.forEach(food => {
+        const used = usedCounts[food.id] || 0;
+        const remaining = food.qty - used;
+        const badgeClass = remaining <= 0 ? "zero" : remaining <= 1 ? "warn" : "ok";
+        const isFavorite = favorites.some(fav => fav.name.toLowerCase() === food.name.toLowerCase());
+
+        const div = document.createElement("div");
+        div.className = "food-item";
+        div.innerHTML = `
+          <div class="food-top">
+            <div>
+              <div class="food-name">${escapeHtml(food.name)} ${isFavorite ? '<span class="badge favorite">Favorito</span>' : ''}</div>
+              <div class="muted">Inicial: ${food.qty} ${escapeHtml(food.unit)} · Usado: ${used}</div>
+              ${food.notes ? `<div class="muted">${escapeHtml(food.notes)}</div>` : ""}
+            </div>
+            <span class="badge ${badgeClass}">${remaining} quedan</span>
+          </div>
+          <div class="mini-actions">
+            <button class="ghost" onclick="editFood('${food.id}')">Editar</button>
+            <button class="ghost" onclick="makeFavoriteFromFood('${food.id}')">Guardar como favorito</button>
+            <button class="danger" onclick="deleteFood('${food.id}')">Eliminar</button>
+          </div>
+        `;
+        stockList.appendChild(div);
+      });
+    }
+
+    function renderFavorites() {
+      favoriteList.innerHTML = "";
+      favoriteSelect.innerHTML = "";
+
+      if (favorites.length === 0) {
+        favoriteList.innerHTML = '<div class="empty">Todavía no tienes favoritos.</div>';
+        favoriteSelect.innerHTML = '<option value="">No hay favoritos</option>';
+        return;
+      }
+
+      favorites.forEach(favorite => {
+        const option = document.createElement("option");
+        option.value = favorite.id;
+        option.textContent = favorite.name;
+        favoriteSelect.appendChild(option);
+
+        const div = document.createElement("div");
+        div.className = "favorite-item";
+        div.innerHTML = `
+          <div class="food-top">
+            <div>
+              <div class="food-name">${escapeHtml(favorite.name)}</div>
+              <div class="muted">Unidad habitual: ${escapeHtml(favorite.unit || "unidades")}</div>
+              ${favorite.notes ? `<div class="muted">${escapeHtml(favorite.notes)}</div>` : ""}
+            </div>
+            <span class="badge favorite">Habitual</span>
+          </div>
+          <div class="mini-actions">
+            <button class="ghost" onclick="loadFavoriteIntoForm('${favorite.id}')">Usar para añadir</button>
+            <button class="danger" onclick="deleteFavorite('${favorite.id}')">Eliminar favorito</button>
+          </div>
+        `;
+        favoriteList.appendChild(div);
+      });
+
+      const selectedFavorite = favorites.find(fav => fav.id === favoriteSelect.value) || favorites[0];
+      if (selectedFavorite && !favoriteUnitToAdd.value) {
+        favoriteUnitToAdd.value = selectedFavorite.unit || "unidades";
+      }
+    }
+
+    function renderConfig() {
+      memberList.innerHTML = "";
+      mealList.innerHTML = "";
+
+      familyMembers.forEach(member => {
+        const div = document.createElement("div");
+        div.className = "config-item";
+        div.innerHTML = `
+          <div class="food-top">
+            <div class="food-name">${escapeHtml(member.name)}</div>
+            <span class="badge member">Miembro</span>
+          </div>
+          <div class="mini-actions">
+            <button class="danger" onclick="deleteMember('${member.id}')">Eliminar</button>
+          </div>
+        `;
+        memberList.appendChild(div);
+      });
+
+      mealTypes.forEach(meal => {
+        const div = document.createElement("div");
+        div.className = "config-item";
+        div.innerHTML = `
+          <div class="food-top">
+            <div class="food-name">${escapeHtml(meal.name)}</div>
+            <span class="badge favorite">Comida</span>
+          </div>
+          <div class="mini-actions">
+            <button class="danger" onclick="deleteMeal('${meal.id}')">Eliminar</button>
+          </div>
+        `;
+        mealList.appendChild(div);
+      });
+
+      if (familyMembers.length === 0) {
+        memberList.innerHTML = '<div class="empty">Añade al menos un miembro para usar el calendario.</div>';
+      }
+
+      if (mealTypes.length === 0) {
+        mealList.innerHTML = '<div class="empty">Añade al menos un tipo de comida para usar el calendario.</div>';
+      }
+    }
+
+    function renderCalendar() {
+      calendar.innerHTML = "";
+
+      if (mealTypes.length === 0 || familyMembers.length === 0) {
+        calendar.innerHTML = '<div class="empty">Configura al menos un miembro y un tipo de comida para crear el calendario.</div>';
+        return;
+      }
+
+      days.forEach(day => {
+        const dayDiv = document.createElement("div");
+        dayDiv.className = "day";
+        dayDiv.innerHTML = `<h3>${day}</h3>`;
+
+        mealTypes.forEach(meal => {
+          const mealBlock = document.createElement("div");
+          mealBlock.className = "meal-block";
+          mealBlock.innerHTML = `<span class="meal-title">${escapeHtml(meal.name)}</span>`;
+
+          familyMembers.forEach(member => {
+            const slotId = makeSlotId(day, meal.id, member.id);
+            const selectedFoodId = plan[slotId] || "";
+            const memberSlot = document.createElement("div");
+            memberSlot.className = "member-slot";
+
+            const label = document.createElement("label");
+            label.textContent = member.name;
+            memberSlot.appendChild(label);
+
+            const select = document.createElement("select");
+            select.dataset.slot = slotId;
+            select.innerHTML = `<option value="">Sin asignar</option>`;
+
+            foods.forEach(food => {
+              const remaining = getRemaining(food.id);
+              const isSelectedHere = selectedFoodId === food.id;
+
+              if (remaining > 0 || isSelectedHere) {
+                const option = document.createElement("option");
+                option.value = food.id;
+                option.textContent = `${food.name} (${remaining} disponibles)`;
+                if (isSelectedHere) option.selected = true;
+                select.appendChild(option);
+              }
+            });
+
+            select.addEventListener("change", event => {
+              if (event.target.value) {
+                plan[event.target.dataset.slot] = event.target.value;
+              } else {
+                delete plan[event.target.dataset.slot];
+              }
+              saveData();
+              renderAll();
+            });
+
+            memberSlot.appendChild(select);
+            mealBlock.appendChild(memberSlot);
+          });
+
+          dayDiv.appendChild(mealBlock);
+        });
+
+        calendar.appendChild(dayDiv);
+      });
+    }
+
+    function renderSummary() {
+      summary.innerHTML = "";
+
+      if (foods.length === 0) {
+        summary.innerHTML = '<div class="empty">Añade alimentos para ver el resumen.</div>';
+        return;
+      }
+
+      const usedCounts = getUsedCounts();
+
+      foods.forEach(food => {
+        const used = usedCounts[food.id] || 0;
+        const remaining = food.qty - used;
+        const div = document.createElement("div");
+        div.className = "summary-item";
+        div.innerHTML = `
+          <strong>${escapeHtml(food.name)}</strong>
+          <span>${remaining} de ${food.qty} ${escapeHtml(food.unit)} restantes</span>
+        `;
+        summary.appendChild(div);
+      });
+    }
+
+    function renderAll() {
+      cleanPlan();
+      renderFavorites();
+      renderConfig();
+      renderStock();
+      renderCalendar();
+      renderSummary();
+      saveData();
+    }
+
+    function resetForm() {
+      editingId.value = "";
+      foodName.value = "";
+      foodQty.value = 1;
+      foodUnit.value = "tuppers";
+      foodNotes.value = "";
+      saveFoodBtn.textContent = "Añadir alimento";
+      cancelEditBtn.style.display = "none";
+    }
+
+    saveFoodBtn.addEventListener("click", () => {
+      const name = foodName.value.trim();
+      const qty = Number(foodQty.value);
+      const unit = foodUnit.value.trim() || "unidades";
+      const notes = foodNotes.value.trim();
+
+      if (!name) {
+        alert("Escribe el nombre del alimento.");
+        return;
+      }
+
+      if (Number.isNaN(qty) || qty < 0) {
+        alert("La cantidad debe ser un número igual o mayor que 0.");
+        return;
+      }
+
+      if (editingId.value) {
+        const food = foods.find(item => item.id === editingId.value);
+        if (food) {
+          food.name = name;
+          food.qty = qty;
+          food.unit = unit;
+          food.notes = notes;
+        }
+      } else {
+        foods.push({ id: createId(), name, qty, unit, notes });
+      }
+
+      resetForm();
+      renderAll();
+      switchTab("stock");
+    });
+
+    cancelEditBtn.addEventListener("click", resetForm);
+
+    document.getElementById("saveFavoriteBtn").addEventListener("click", () => {
+      const name = favName.value.trim();
+      const unit = favUnit.value.trim() || "unidades";
+      const notes = favNotes.value.trim();
+
+      if (!name) {
+        alert("Escribe el nombre del favorito.");
+        return;
+      }
+
+      const existing = favorites.find(fav => fav.name.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        existing.unit = unit;
+        existing.notes = notes;
+      } else {
+        favorites.push({ id: createId(), name, unit, notes });
+      }
+
+      favName.value = "";
+      favUnit.value = "raciones";
+      favNotes.value = "";
+      renderAll();
+    });
+
+    favoriteSelect.addEventListener("change", () => {
+      const favorite = favorites.find(fav => fav.id === favoriteSelect.value);
+      favoriteUnitToAdd.value = favorite ? favorite.unit || "unidades" : "";
+    });
+
+    document.getElementById("addFavoriteToStockBtn").addEventListener("click", () => {
+      const favorite = favorites.find(fav => fav.id === favoriteSelect.value);
+      const qty = Number(favoriteQtyToAdd.value);
+      const unit = favoriteUnitToAdd.value.trim() || (favorite ? favorite.unit : "") || "unidades";
+
+      if (!favorite) {
+        alert("Selecciona un favorito.");
+        return;
+      }
+
+      if (Number.isNaN(qty) || qty <= 0) {
+        alert("La cantidad debe ser mayor que 0.");
+        return;
+      }
+
+      foods.push({
+        id: createId(),
+        name: favorite.name,
+        qty,
+        unit,
+        notes: favorite.notes || "Añadido desde favoritos"
+      });
+
+      favoriteQtyToAdd.value = 1;
+      renderAll();
+      switchTab("stock");
+    });
+
+    document.getElementById("addMemberBtn").addEventListener("click", () => {
+      const name = memberName.value.trim();
+      if (!name) {
+        alert("Escribe el nombre del miembro.");
+        return;
+      }
+
+      if (familyMembers.some(member => member.name.toLowerCase() === name.toLowerCase())) {
+        alert("Ese miembro ya existe.");
+        return;
+      }
+
+      familyMembers.push({ id: createId(), name });
+      memberName.value = "";
+      renderAll();
+    });
+
+    document.getElementById("addMealBtn").addEventListener("click", () => {
+      const name = mealName.value.trim();
+      if (!name) {
+        alert("Escribe el nombre del tipo de comida.");
+        return;
+      }
+
+      if (mealTypes.some(meal => meal.name.toLowerCase() === name.toLowerCase())) {
+        alert("Ese tipo de comida ya existe.");
+        return;
+      }
+
+      mealTypes.push({ id: createId(), name });
+      mealName.value = "";
+      renderAll();
+    });
+
+    window.editFood = function(id) {
+      const food = foods.find(item => item.id === id);
+      if (!food) return;
+
+      editingId.value = food.id;
+      foodName.value = food.name;
+      foodQty.value = food.qty;
+      foodUnit.value = food.unit;
+      foodNotes.value = food.notes || "";
+      saveFoodBtn.textContent = "Guardar cambios";
+      cancelEditBtn.style.display = "inline-block";
+      switchTab("add");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    window.deleteFood = function(id) {
+      const food = foods.find(item => item.id === id);
+      if (!food) return;
+
+      if (!confirm(`¿Eliminar "${food.name}" del stock y de la planificación?`)) return;
+
+      foods = foods.filter(item => item.id !== id);
+      Object.keys(plan).forEach(slot => {
+        if (plan[slot] === id) delete plan[slot];
+      });
+      renderAll();
+    };
+
+    window.makeFavoriteFromFood = function(id) {
+      const food = foods.find(item => item.id === id);
+      if (!food) return;
+
+      const existing = favorites.find(fav => fav.name.toLowerCase() === food.name.toLowerCase());
+      if (existing) {
+        existing.unit = food.unit;
+        existing.notes = food.notes || existing.notes;
+      } else {
+        favorites.push({ id: createId(), name: food.name, unit: food.unit, notes: food.notes || "" });
+      }
+
+      renderAll();
+      switchTab("favorites");
+    };
+
+    window.loadFavoriteIntoForm = function(id) {
+      const favorite = favorites.find(fav => fav.id === id);
+      if (!favorite) return;
+
+      resetForm();
+      foodName.value = favorite.name;
+      foodUnit.value = favorite.unit || "unidades";
+      foodNotes.value = favorite.notes || "";
+      switchTab("add");
+    };
+
+    window.deleteFavorite = function(id) {
+      const favorite = favorites.find(fav => fav.id === id);
+      if (!favorite) return;
+
+      if (!confirm(`¿Eliminar "${favorite.name}" de favoritos?`)) return;
+      favorites = favorites.filter(fav => fav.id !== id);
+      renderAll();
+    };
+
+    window.deleteMember = function(id) {
+      const member = familyMembers.find(item => item.id === id);
+      if (!member) return;
+
+      if (familyMembers.length === 1) {
+        alert("Debe quedar al menos un miembro para poder usar el calendario.");
+        return;
+      }
+
+      if (!confirm(`¿Eliminar a "${member.name}" y sus comidas planificadas?`)) return;
+      familyMembers = familyMembers.filter(item => item.id !== id);
+      renderAll();
+    };
+
+    window.deleteMeal = function(id) {
+      const meal = mealTypes.find(item => item.id === id);
+      if (!meal) return;
+
+      if (mealTypes.length === 1) {
+        alert("Debe quedar al menos un tipo de comida para poder usar el calendario.");
+        return;
+      }
+
+      if (!confirm(`¿Eliminar "${meal.name}" y sus comidas planificadas?`)) return;
+      mealTypes = mealTypes.filter(item => item.id !== id);
+      renderAll();
+    };
+
+    document.getElementById("clearPlanBtn").addEventListener("click", () => {
+      if (!confirm("¿Vaciar toda la planificación semanal?")) return;
+      plan = {};
+      renderAll();
+    });
+
+    document.getElementById("printBtn").addEventListener("click", () => {
+      window.print();
+    });
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
