@@ -1,39 +1,271 @@
 {
-  "app": "gestor-comidas",
-  "version": 2,
-  "exportedAt": "2026-06-02T10:03:06.465Z",
-  "ingredientFamilies": [
-    {
-      "id": "763c0492-e7b8-4eb6-80cd-91ed0ff7c265",
-      "name": "Verdura"
-    },
-    {
-      "id": "a8716c99-4595-45b7-9595-ceb68ce1df67",
-      "name": "Fruta"
-    },
-    {
-      "id": "7743481d-0d5a-42ee-b3d2-051f392baa5f",
-      "name": "Lácteos"
-    },
-    {
-      "id": "a6b42f68-17be-4c4c-bd1d-1b64e55f42d6",
-      "name": "Carne y pescado"
-    },
-    {
-      "id": "6e637906-7107-44d1-a560-66e12fabfca5",
-      "name": "Despensa"
-    },
-    {
-      "id": "f505960c-d913-4e6e-a441-6d92a636ead9",
-      "name": "Congelados"
-    },
-    {
-      "id": "8d897525-2510-4423-8bb3-ec08cfef7e7f",
-      "name": "Otros"
-    }
-  ],
-  "ingredients": [
-    {
+"app": "gestor-comidas",
+"type": "dishes-with-ingredients",
+"name": "Pack Vegano Saludable",
+"description": "Una selección variada y nutritiva de platos 100% vegetales, equilibrados y fáciles de preparar para toda la semana.",
+"dishes": [
+{
+"name": "Garbanzos con espinacas",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Legumbres",
+"tags": ["mediterránea", "fácil", "económica", "tradicional"],
+"prepTime": "20 min",
+"difficulty": "Fácil",
+"approxPrice": 1.5,
+"notes": "Puedes usar garbanzos cocidos de bote para ahorrar tiempo. Admite congelación.",
+"ingredients": [
+{ "name": "Garbanzos cocidos", "qty": 200, "unit": "g", "family": "Legumbres", "approxPrice": 0.5 },
+{ "name": "Espinacas frescas", "qty": 100, "unit": "g", "family": "Verdura", "approxPrice": 0.6 },
+{ "name": "Cebolla", "qty": 50, "unit": "g", "family": "Verdura", "approxPrice": 0.1 },
+{ "name": "Diente de ajo", "qty": 3, "unit": "g", "family": "Verdura", "approxPrice": 0.05 },
+{ "name": "Aceite de oliva", "qty": 15, "unit": "ml", "family": "Grasas", "approxPrice": 0.15 },
+{ "name": "Pimentón dulce", "qty": 2, "unit": "g", "family": "Especias", "approxPrice": 0.1 }
+]
+},
+{
+"name": "Crema de calabaza y jengibre",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Verduras",
+"tags": ["fácil", "económica", "caliente"],
+"prepTime": "30 min",
+"difficulty": "Fácil",
+"approxPrice": 1.2,
+"notes": "El jengibre fresco le da un toque picante y digestivo. Conservar en nevera hasta 4 días.",
+"ingredients": [
+{ "name": "Calabaza", "qty": 250, "unit": "g", "family": "Verdura", "approxPrice": 0.5 },
+{ "name": "Patata", "qty": 80, "unit": "g", "family": "Verdura", "approxPrice": 0.15 },
+{ "name": "Cebolla", "qty": 50, "unit": "g", "family": "Verdura", "approxPrice": 0.1 },
+{ "name": "Jengibre fresco", "qty": 5, "unit": "g", "family": "Verdura", "approxPrice": 0.1 },
+{ "name": "Aceite de oliva", "qty": 10, "unit": "ml", "family": "Grasas", "approxPrice": 0.1 },
+{ "name": "Bebida de soja", "qty": 50, "unit": "ml", "family": "Alternativas lácteas", "approxPrice": 0.15 }
+]
+},
+{
+"name": "Lentejas rojas al curry",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Legumbres",
+"tags": ["especiado", "rápido", "nutritivo"],
+"prepTime": "25 min",
+"difficulty": "Fácil",
+"approxPrice": 1.8,
+"notes": "Las lentejas rojas no necesitan remojo previo y se cocinan muy rápido.",
+"ingredients": [
+{ "name": "Lentejas rojas", "qty": 80, "unit": "g", "family": "Legumbres", "approxPrice": 0.4 },
+{ "name": "Tomate triturado", "qty": 100, "unit": "g", "family": "Verdura", "approxPrice": 0.2 },
+{ "name": "Leche de coco en lata", "qty": 100, "unit": "ml", "family": "Grasas", "approxPrice": 0.8 },
+{ "name": "Cebolla", "qty": 50, "unit": "g", "family": "Verdura", "approxPrice": 0.1 },
+{ "name": "Curry en polvo", "qty": 4, "unit": "g", "family": "Especias", "approxPrice": 0.15 },
+{ "name": "Aceite de oliva", "qty": 10, "unit": "ml", "family": "Grasas", "approxPrice": 0.1 }
+]
+},
+{
+"name": "Tofu revuelto con cúrcuma",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Desayunos",
+"tags": ["proteico", "rápido", "desayuno"],
+"prepTime": "10 min",
+"difficulty": "Fácil",
+"approxPrice": 1.6,
+"notes": "Excelente alternativa vegana a los huevos revueltos. Usa sal kala namak si buscas sabor a huevo.",
+"ingredients": [
+{ "name": "Tofu firme", "qty": 150, "unit": "g", "family": "Proteína vegetal", "approxPrice": 1.0 },
+{ "name": "Cebolla", "qty": 30, "unit": "g", "family": "Verdura", "approxPrice": 0.06 },
+{ "name": "Espinacas frescas", "qty": 30, "unit": "g", "family": "Verdura", "approxPrice": 0.18 },
+{ "name": "Cúrcuma en polvo", "qty": 2, "unit": "g", "family": "Especias", "approxPrice": 0.1 },
+{ "name": "Aceite de oliva", "qty": 10, "unit": "ml", "family": "Grasas", "approxPrice": 0.1 },
+{ "name": "Levadura nutricional", "qty": 5, "unit": "g", "family": "Condimentos", "approxPrice": 0.16 }
+]
+},
+{
+"name": "Ensalada de quinoa y aguacate",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Cenas ligeras",
+"tags": ["fresca", "ensalada", "sin cocinar"],
+"prepTime": "15 min",
+"difficulty": "Fácil",
+"approxPrice": 2.4,
+"notes": "Ideal para llevar en tupper. Añade el aguacate justo antes de consumir para que no se oxide.",
+"ingredients": [
+{ "name": "Quinoa", "qty": 60, "unit": "g", "family": "Cereales", "approxPrice": 0.35 },
+{ "name": "Aguacate", "qty": 80, "unit": "g", "family": "Verdura", "approxPrice": 1.0 },
+{ "name": "Tomate", "qty": 100, "unit": "g", "family": "Verdura", "approxPrice": 0.3 },
+{ "name": "Pepino", "qty": 50, "unit": "g", "family": "Verdura", "approxPrice": 0.15 },
+{ "name": "Nueces peladas", "qty": 15, "unit": "g", "family": "Frutos secos", "approxPrice": 0.4 },
+{ "name": "Aceite de oliva", "qty": 15, "unit": "ml", "family": "Grasas", "approxPrice": 0.15 }
+]
+},
+{
+"name": "Chili de bocado de soja",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Carne",
+"tags": ["proteico", "picante", "confort"],
+"prepTime": "35 min",
+"difficulty": "Media",
+"approxPrice": 2.6,
+"notes": "La soja textura gruesa simula perfectamente la textura de la carne. Controla el picante al gusto.",
+"ingredients": [
+{ "name": "Soja texturizada", "qty": 40, "unit": "g", "family": "Proteína vegetal", "approxPrice": 0.4 },
+{ "name": "Alubias rojas cocidas", "qty": 150, "unit": "g", "family": "Legumbres", "approxPrice": 0.45 },
+{ "name": "Tomate triturado", "qty": 150, "unit": "g", "family": "Verdura", "approxPrice": 0.3 },
+{ "name": "Pimiento rojo", "qty": 50, "unit": "g", "family": "Verdura", "approxPrice": 0.2 },
+{ "name": "Cebolla", "qty": 50, "unit": "g", "family": "Verdura", "approxPrice": 0.1 },
+{ "name": "Aceite de oliva", "qty": 15, "unit": "ml", "family": "Grasas", "approxPrice": 0.15 },
+{ "name": "Comino en polvo", "qty": 3, "unit": "g", "family": "Especias", "approxPrice": 0.1 }
+]
+},
+{
+"name": "Arroz salteado con tofu y brócoli",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Cereales",
+"tags": ["asiática", "rápido", "completo"],
+"prepTime": "20 min",
+"difficulty": "Fácil",
+"approxPrice": 2.1,
+"notes": "Usa arroz del día anterior para que quede más suelto al saltearlo.",
+"ingredients": [
+{ "name": "Arroz integral", "qty": 70, "unit": "g", "family": "Cereales", "approxPrice": 0.25 },
+{ "name": "Tofu firme", "qty": 120, "unit": "g", "family": "Proteína vegetal", "approxPrice": 0.8 },
+{ "name": "Brócoli", "qty": 100, "unit": "g", "family": "Verdura", "approxPrice": 0.4 },
+{ "name": "Salsa de soja", "qty": 20, "unit": "ml", "family": "Condimentos", "approxPrice": 0.3 },
+{ "name": "Aceite de oliva", "qty": 10, "unit": "ml", "family": "Grasas", "approxPrice": 0.1 },
+{ "name": "Diente de ajo", "qty": 3, "unit": "g", "family": "Verdura", "approxPrice": 0.05 }
+]
+},
+{
+"name": "Burgers de lentejas y avena",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Cenas ligeras",
+"tags": ["niños", "congelable", "casero"],
+"prepTime": "30 min",
+"difficulty": "Media",
+"approxPrice": 1.3,
+"notes": "Se pueden dar forma y congelar individualmente antes de pasar por la sartén.",
+"ingredients": [
+{ "name": "Lentejas cocidas", "qty": 150, "unit": "g", "family": "Legumbres", "approxPrice": 0.4 },
+{ "name": "Copos de avena", "qty": 40, "unit": "g", "family": "Cereales", "approxPrice": 0.15 },
+{ "name": "Cebolla", "qty": 40, "unit": "g", "family": "Verdura", "approxPrice": 0.08 },
+{ "name": "Zanahoria", "qty": 40, "unit": "g", "family": "Verdura", "approxPrice": 0.1 },
+{ "name": "Aceite de oliva", "qty": 15, "unit": "ml", "family": "Grasas", "approxPrice": 0.15 },
+{ "name": "Pimentón dulce", "qty": 2, "unit": "g", "family": "Especias", "approxPrice": 0.1 }
+]
+},
+{
+"name": "Pasta con boloñesa de lentejas",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Pastas",
+"tags": ["italiana", "familiar", "económica"],
+"prepTime": "25 min",
+"difficulty": "Fácil",
+"approxPrice": 1.6,
+"notes": "Una forma fantástica de introducir legumbres a quienes les cuesta comerlas enteras.",
+"ingredients": [
+{ "name": "Pasta integral", "qty": 80, "unit": "g", "family": "Cereales", "approxPrice": 0.25 },
+{ "name": "Lentejas cocidas", "qty": 100, "unit": "g", "family": "Legumbres", "approxPrice": 0.26 },
+{ "name": "Tomate triturado", "qty": 150, "unit": "g", "family": "Verdura", "approxPrice": 0.3 },
+{ "name": "Cebolla", "qty": 40, "unit": "g", "family": "Verdura", "approxPrice": 0.08 },
+{ "name": "Zanahoria", "qty": 40, "unit": "g", "family": "Verdura", "approxPrice": 0.1 },
+{ "name": "Aceite de oliva", "qty": 15, "unit": "ml", "family": "Grasas", "approxPrice": 0.15 },
+{ "name": "Levadura nutricional", "qty": 5, "unit": "g", "family": "Condimentos", "approxPrice": 0.16 }
+]
+},
+{
+"name": "Porridge de avena y frutos rojos",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Desayunos",
+"tags": ["dulce", "saludable", "enérgico"],
+"prepTime": "10 min",
+"difficulty": "Fácil",
+"approxPrice": 1.9,
+"notes": "Cocina a fuego lento removiendo constantemente para lograr la máxima cremosidad.",
+"ingredients": [
+{ "name": "Copos de avena", "qty": 50, "unit": "g", "family": "Cereales", "approxPrice": 0.18 },
+{ "name": "Bebida de soja", "qty": 200, "unit": "ml", "family": "Alternativas lácteas", "approxPrice": 0.6 },
+{ "name": "Frutos rojos", "qty": 60, "unit": "g", "family": "Fruta", "approxPrice": 0.8 },
+{ "name": "Nueces peladas", "qty": 15, "unit": "g", "family": "Frutos secos", "approxPrice": 0.4 }
+]
+},
+{
+"name": "Hummus clásico con crudités",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Cenas ligeras",
+"tags": ["pica-pica", "oriente medio", "frío"],
+"prepTime": "15 min",
+"difficulty": "Fácil",
+"approxPrice": 1.4,
+"notes": "Acompaña con bastoncitos de zanahoria y pepino para un extra de fibra y frescura.",
+"ingredients": [
+{ "name": "Garbanzos cocidos", "qty": 150, "unit": "g", "family": "Legumbres", "approxPrice": 0.38 },
+{ "name": "Tahini", "qty": 15, "unit": "g", "family": "Grasas", "approxPrice": 0.3 },
+{ "name": "Aceite de oliva", "qty": 15, "unit": "ml", "family": "Grasas", "approxPrice": 0.15 },
+{ "name": "Zanahoria", "qty": 80, "unit": "g", "family": "Verdura", "approxPrice": 0.2 },
+{ "name": "Pepino", "qty": 80, "unit": "g", "family": "Verdura", "approxPrice": 0.24 },
+{ "name": "Diente de ajo", "qty": 2, "unit": "g", "family": "Verdura", "approxPrice": 0.03 }
+]
+},
+{
+"name": "Berenjenas rellenas de soja texturizada",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Verduras",
+"tags": ["horno", "completo", "vistoso"],
+"prepTime": "45 min",
+"difficulty": "Media",
+"approxPrice": 2.5,
+"notes": "Gratina con levadura nutricional mezclada con un poco de polvo de almendra para un efecto queso.",
+"ingredients": [
+{ "name": "Berenjena", "qty": 250, "unit": "g", "family": "Verdura", "approxPrice": 0.75 },
+{ "name": "Soja texturizada", "qty": 30, "unit": "g", "family": "Proteína vegetal", "approxPrice": 0.3 },
+{ "name": "Tomate triturado", "qty": 100, "unit": "g", "family": "Verdura", "approxPrice": 0.2 },
+{ "name": "Cebolla", "qty": 50, "unit": "g", "family": "Verdura", "approxPrice": 0.1 },
+{ "name": "Aceite de oliva", "qty": 15, "unit": "ml", "family": "Grasas", "approxPrice": 0.15 },
+{ "name": "Levadura nutricional", "qty": 5, "unit": "g", "family": "Condimentos", "approxPrice": 0.16 },
+{ "name": "Diente de ajo", "qty": 3, "unit": "g", "family": "Verdura", "approxPrice": 0.05 }
+]
+},
+{
+"name": "Salteado de alubias con brócoli",
+"qty": 1,
+"unit": "raciones",
+"pack": "Pack Vegano Saludable",
+"category": "Legumbres",
+"tags": ["rápido", "fit", "cena"],
+"prepTime": "15 min",
+"difficulty": "Fácil",
+"approxPrice": 1.7,
+"notes": "Corta el brócoli en ramilletes pequeños para que se cocine rápido en el salteado.",
+"ingredients": [
+{ "name": "Alubias rojas cocidas", "qty": 200, "unit": "g", "family": "Legumbres", "approxPrice": 0.6 },
+{ "name": "Brócoli", "qty": 150, "unit": "g", "family": "Verdura", "approxPrice": 0.6 },
+{ "name": "Aceite de oliva", "qty": 15, "unit": "ml", "family": "Grasas", "approxPrice": 0.15 },
+{ "name": "Diente de ajo", "qty": 5, "unit": "g", "family": "Verdura", "approxPrice": 0.08 },
+{ "name": "Salsa de soja", "qty": 15, "unit": "ml", "family": "Condimentos", "approxPrice": 0.23 }
+]
+}
+]
+}
       "id": "f92e245e-35ab-4e0a-b687-f218f5880253",
       "name": "Salmorejo",
       "qty": 1,
