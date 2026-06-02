@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gestor de stock y planificación semanal</title>
+  <title>Gestor de comidas, ingredientes, semanas y compra</title>
   <style>
     :root {
       --bg: #eefaf6;
@@ -54,22 +54,12 @@
       border-radius: 50% 50% 0 0;
     }
 
-    header h1 {
-      margin: 0 0 8px;
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      position: relative;
-      z-index: 1;
-    }
-
-    header p {
-      margin: 0;
-      opacity: 0.95;
-      position: relative;
-      z-index: 1;
-    }
+    header h1, header p { position: relative; z-index: 1; }
+    header h1 { margin: 0 0 8px; font-size: clamp(1.8rem, 4vw, 2.8rem); }
+    header p { margin: 0; opacity: 0.95; }
 
     main {
-      width: min(1280px, calc(100% - 28px));
+      width: min(1380px, calc(100% - 28px));
       margin: -42px auto 50px;
       display: grid;
       gap: 20px;
@@ -86,14 +76,8 @@
       backdrop-filter: blur(10px);
     }
 
-    h2 {
-      margin: 0 0 14px;
-      font-size: 1.25rem;
-    }
-
-    h3 {
-      margin: 0 0 8px;
-    }
+    h2 { margin: 0 0 14px; font-size: 1.25rem; }
+    h3 { margin: 0 0 8px; }
 
     label {
       display: block;
@@ -102,9 +86,7 @@
       font-size: 0.92rem;
     }
 
-    input, select, textarea, button {
-      font: inherit;
-    }
+    input, select, textarea, button { font: inherit; }
 
     input, select, textarea {
       width: 100%;
@@ -116,10 +98,8 @@
       outline-color: var(--secondary);
     }
 
-    textarea {
-      resize: vertical;
-      min-height: 72px;
-    }
+    input[type="checkbox"] { width: auto; transform: scale(1.15); }
+    textarea { resize: vertical; min-height: 78px; }
 
     button {
       border: none;
@@ -143,24 +123,15 @@
       border: 1px solid var(--border);
     }
 
-    .row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
+    .row { display: flex; gap: 8px; align-items: center; }
     .row > * { flex: 1; }
+    .check-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-weight: 800; }
 
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 13px;
-    }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
 
     .tabs {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: 8px;
       padding: 8px;
       background: rgba(255,255,255,0.7);
@@ -169,12 +140,7 @@
       box-shadow: var(--shadow);
     }
 
-    .tab-btn {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid transparent;
-    }
-
+    .tab-btn { background: transparent; color: var(--muted); border: 1px solid transparent; }
     .tab-btn.active {
       color: white;
       background: linear-gradient(135deg, var(--primary), var(--blue));
@@ -186,35 +152,22 @@
 
     .two-columns {
       display: grid;
-      grid-template-columns: minmax(260px, 380px) 1fr;
+      grid-template-columns: minmax(280px, 430px) 1fr;
       gap: 18px;
       align-items: start;
     }
 
-    .stock-list, .favorite-list, .config-list {
-      display: grid;
-      gap: 10px;
-      margin-top: 15px;
-    }
+    .list { display: grid; gap: 10px; margin-top: 15px; }
 
-    .food-item, .favorite-item, .config-item {
+    .item {
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 12px;
       background: linear-gradient(135deg, #ffffff, #f3fffb);
     }
 
-    .food-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      align-items: start;
-    }
-
-    .food-name {
-      font-weight: 900;
-      font-size: 1rem;
-    }
+    .item-top { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+    .item-name { font-weight: 900; font-size: 1rem; }
 
     .badge {
       display: inline-block;
@@ -231,22 +184,35 @@
     .badge.zero { background: #fde4e4; color: var(--danger); }
     .badge.favorite { background: #e0f2fe; color: #0369a1; }
     .badge.member { background: #dcfce7; color: #166534; }
+    .badge.missing { background: #fee2e2; color: #991b1b; }
 
-    .mini-actions {
+
+    .tag-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 10px;
+      gap: 5px;
+      margin-top: 6px;
     }
 
-    .mini-actions button {
-      padding: 7px 9px;
-      font-size: 0.85rem;
-    }
+    .mini-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .mini-actions button { padding: 7px 9px; font-size: 0.85rem; }
 
-    .muted {
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    .help { margin-top: 6px; color: var(--muted); font-size: 0.84rem; }
+
+    .recipe-list {
+      margin: 10px 0 0;
+      padding-left: 18px;
       color: var(--muted);
       font-size: 0.9rem;
+    }
+
+    .recipe-builder {
+      padding: 12px;
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      background: #f8fffd;
+      margin-top: 12px;
     }
 
     .calendar-toolbar {
@@ -258,9 +224,18 @@
       margin-bottom: 14px;
     }
 
-    .week-title {
-      font-weight: 900;
-      font-size: 1.1rem;
+    .week-title { font-weight: 900; font-size: 1.1rem; }
+
+    .week-selector {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(140px, 180px));
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 14px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #f8fffd;
     }
 
     .calendar {
@@ -280,21 +255,9 @@
       gap: 10px;
     }
 
-    .day h3 {
-      margin: 0;
-      font-size: 1rem;
-      color: var(--primary-dark);
-    }
-
-    .meal-block {
-      border-top: 1px dashed var(--border);
-      padding-top: 9px;
-    }
-
-    .meal-block:first-of-type {
-      border-top: 0;
-      padding-top: 0;
-    }
+    .day h3 { margin: 0; font-size: 1rem; color: var(--primary-dark); }
+    .meal-block { border-top: 1px dashed var(--border); padding-top: 9px; }
+    .meal-block:first-of-type { border-top: 0; padding-top: 0; }
 
     .meal-title {
       display: block;
@@ -306,27 +269,51 @@
       letter-spacing: 0.03em;
     }
 
-    .member-slot {
+    .member-slot { margin-top: 6px; }
+    .member-slot label { margin: 0 0 3px; font-size: 0.72rem; color: var(--primary-dark); }
+    .member-slot select { padding: 8px; border-radius: 10px; font-size: 0.86rem; }
+
+    .search-box {
+      margin: 10px 0 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #f8fffd;
+    }
+
+    .search-meta {
       margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.84rem;
     }
 
-    .member-slot label {
-      margin: 0 0 3px;
-      font-size: 0.72rem;
-      color: var(--primary-dark);
-    }
 
-    .member-slot select {
-      padding: 8px;
-      border-radius: 10px;
-      font-size: 0.86rem;
-    }
-
-    .summary {
+    .selected-dishes {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 10px;
+      gap: 4px;
+      margin-bottom: 6px;
     }
+
+    .selected-dish-row {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .selected-dish-row .badge {
+      white-space: normal;
+      line-height: 1.25;
+      flex: 1;
+    }
+
+    .selected-dish-row button {
+      padding: 4px 7px;
+      font-size: 0.75rem;
+      flex: 0 0 auto;
+    }
+
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
 
     .summary-item {
       padding: 12px;
@@ -337,6 +324,16 @@
 
     .summary-item strong { display: block; }
 
+    .shopping-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .shopping-item input { width: auto; margin-top: 4px; }
+    .shopping-item small { color: var(--muted); display: block; margin-top: 3px; }
+
     .empty {
       padding: 14px;
       border: 1px dashed var(--border);
@@ -346,151 +343,423 @@
       background: #f8fffd;
     }
 
-    @media (max-width: 1100px) {
+
+    .scanner-box {
+      padding: 12px;
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      background: #f8fffd;
+      margin-top: 12px;
+    }
+
+    .scanner-video {
+      width: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      display: none;
+      margin-top: 10px;
+    }
+
+    .budget-box {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .budget-card {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: linear-gradient(135deg, #ffffff, #e6f3ff);
+    }
+
+    .budget-card strong {
+      display: block;
+      font-size: 1.25rem;
+      color: var(--primary-dark);
+    }
+
+    @media (max-width: 1120px) {
       .calendar { grid-template-columns: repeat(2, 1fr); }
       .two-columns { grid-template-columns: 1fr; }
       .tabs { grid-template-columns: repeat(2, 1fr); }
+      .week-selector { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 620px) {
       .calendar { grid-template-columns: 1fr; }
       .row { flex-direction: column; align-items: stretch; }
       .tabs { grid-template-columns: 1fr; }
+      .shopping-item { grid-template-columns: auto 1fr; }
+      .shopping-item .badge { grid-column: 2; width: fit-content; }
     }
 
     @media print {
       body { background: white; }
-      header, .tabs, .no-print, #panel-add, #panel-stock, #panel-favorites, #panel-config { display: none !important; }
+      header, .tabs, .no-print { display: none !important; }
       main { width: 100%; margin: 0; }
       .card { box-shadow: none; border: none; padding: 0; }
-      #panel-calendar { display: block !important; }
+      main > section { display: none !important; }
+      body.print-calendar #panel-calendar,
+      body.print-calendar #summary-card { display: block !important; }
+      body.print-shopping #panel-shopping { display: block !important; }
       .calendar { grid-template-columns: repeat(7, 1fr); gap: 6px; }
       .day { min-height: 190px; break-inside: avoid; }
       select { border: none; appearance: none; padding: 0; background: transparent; }
       .member-slot select option { display: none; }
-      .summary { margin-top: 12px; }
+      .shopping-item, .item { break-inside: avoid; }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Gestor de comidas y stock</h1>
-    <p>Organiza tus alimentos habituales, controla existencias y planifica la semana por persona.</p>
+    <h1>Gestor de comidas, ingredientes y compra</h1>
+    <p>Crea ingredientes, guarda códigos de barras, calcula presupuesto y planifica varias semanas.</p>
   </header>
 
   <main>
     <nav class="tabs no-print" aria-label="Secciones principales">
-      <button type="button" class="tab-btn active" data-tab="add">Añadir alimentos</button>
-      <button type="button" class="tab-btn" data-tab="stock">Control de stock</button>
+      <button type="button" class="tab-btn active" data-tab="ingredients">Ingredientes</button>
+      <button type="button" class="tab-btn" data-tab="families">Familias</button>
+      <button type="button" class="tab-btn" data-tab="scanner">Escáner/Stock</button>
+      <button type="button" class="tab-btn" data-tab="packs">Packs</button>
+      <button type="button" class="tab-btn" data-tab="dishes">Platos</button>
+      <button type="button" class="tab-btn" data-tab="weeks">Semanas</button>
       <button type="button" class="tab-btn" data-tab="favorites">Favoritos</button>
       <button type="button" class="tab-btn" data-tab="config">Familia y comidas</button>
-      <button type="button" class="tab-btn" data-tab="calendar">Calendario semanal</button>
+      <button type="button" class="tab-btn" data-tab="calendar">Calendario</button>
+      <button type="button" class="tab-btn" data-tab="shopping">Compra</button>
+      <button type="button" class="tab-btn" data-tab="backup">Importar/Exportar</button>
     </nav>
 
-    <section id="panel-add" class="tab-panel active card">
+    <section id="startup-error" class="card" style="display:none;border-color:#fecaca;background:#fff7f7">
+      <h2>La app ha detectado un error al cargar</h2>
+      <p id="startup-error-message" class="muted"></p>
+      <div class="actions">
+        <button id="exportEmergencyBtn" class="ghost">Exportar copia de emergencia</button>
+        <button id="clearEmergencyBtn" class="danger">Borrar datos locales y recargar</button>
+      </div>
+    </section>
+
+    <section id="panel-ingredients" class="tab-panel active card">
       <div class="two-columns">
         <div>
-          <h2>Añadir o editar alimento</h2>
-          <input type="hidden" id="editingId" />
+          <h2>Inventario de ingredientes</h2>
+          <input type="hidden" id="editingIngredientId" />
 
-          <label for="foodName">Nombre</label>
-          <input id="foodName" placeholder="Ej. Boloñesa" />
+          <label for="ingredientName">Ingrediente</label>
+          <input id="ingredientName" placeholder="Ej. Salmorejo, huevo cocido, jamón en tacos, pasta..." />
 
           <div class="row">
             <div>
-              <label for="foodQty">Cantidad</label>
-              <input id="foodQty" type="number" min="0" step="1" value="1" />
+              <label for="ingredientQty">Cantidad que tengo</label>
+              <input id="ingredientQty" type="number" min="0" step="0.01" value="0" />
             </div>
             <div>
-              <label for="foodUnit">Unidad</label>
-              <input id="foodUnit" placeholder="tuppers, raciones..." value="tuppers" />
+              <label for="ingredientUnit">Unidad</label>
+              <input id="ingredientUnit" placeholder="g, ml, unidades..." value="unidades" />
             </div>
           </div>
 
-          <label for="foodNotes">Notas</label>
-          <textarea id="foodNotes" placeholder="Ej. congelado, para dos personas, caduca pronto..."></textarea>
+          <label for="ingredientFamilySelect">Familia</label>
+          <select id="ingredientFamilySelect"></select>
+
+          <label for="ingredientApproxPrice">Precio aprox. de referencia</label>
+          <input id="ingredientApproxPrice" type="number" min="0" step="0.01" placeholder="Ej. 1.99" />
+          <div class="help">Puedes usarlo como precio aproximado por la cantidad indicada o como referencia manual. El presupuesto seguirá usando el mejor precio de códigos de barras cuando exista.</div>
+
+          <div class="scanner-box">
+            <h3>Códigos de barras y precio</h3>
+            <p class="help">Puedes guardar varios códigos para el mismo ingrediente si lo compras de distintas marcas. También puedes dejarlo vacío para alimentos a granel.</p>
+            <label for="ingredientProducts">Productos asociados</label>
+            <textarea id="ingredientProducts" placeholder="Código | marca | cantidad envase | unidad | precio&#10;8412345678901 | Marca A | 500 | g | 1.35"></textarea>
+            <div class="help">Formato: código | marca | cantidad del envase | unidad | precio. Un producto por línea.</div>
+          </div>
+
+          <label class="check-row">
+            <input id="ingredientAvailable" type="checkbox" checked />
+            Lo tengo en casa
+          </label>
 
           <div class="actions">
-            <button id="saveFoodBtn">Añadir alimento</button>
-            <button id="cancelEditBtn" class="secondary" style="display:none">Cancelar edición</button>
+            <button id="saveIngredientBtn">Añadir ingrediente</button>
+            <button id="cancelIngredientEditBtn" class="secondary" style="display:none">Cancelar edición</button>
           </div>
         </div>
 
         <div>
-          <h2>Añadir desde favoritos</h2>
-          <p class="muted">Guarda tus comidas habituales y añádelas rápidamente al stock cuando las prepares o compres.</p>
-          <label for="favoriteSelect">Favorito</label>
-          <select id="favoriteSelect"></select>
-          <div class="row">
-            <div>
-              <label for="favoriteQtyToAdd">Cantidad</label>
-              <input id="favoriteQtyToAdd" type="number" min="1" step="1" value="1" />
-            </div>
-            <div>
-              <label for="favoriteUnitToAdd">Unidad</label>
-              <input id="favoriteUnitToAdd" placeholder="tuppers, raciones..." />
-            </div>
+          <h2>Ingredientes disponibles</h2>
+          <p class="muted">Los platos consumen estos ingredientes según su receta. Lo que no llegue se añade a la compra.</p>
+          <div class="search-box">
+            <label for="ingredientSearchInput">Buscar ingrediente</label>
+            <input id="ingredientSearchInput" placeholder="Ej. tomate, pasta, fruta, verdura..." />
+            <div id="ingredientSearchMeta" class="search-meta"></div>
           </div>
-          <div class="actions">
-            <button id="addFavoriteToStockBtn">Añadir favorito al stock</button>
-          </div>
+          <div id="ingredientList" class="list"></div>
         </div>
       </div>
     </section>
 
-    <section id="panel-stock" class="tab-panel card">
-      <h2>Control de stock</h2>
-      <p class="muted">Aquí ves las cantidades iniciales, lo usado en el calendario y lo que queda disponible.</p>
-      <div id="stockList" class="stock-list"></div>
+    <section id="panel-families" class="tab-panel card">
+      <div class="two-columns">
+        <div>
+          <h2>Familias de ingredientes</h2>
+          <p class="muted">Clasifica ingredientes por familias: verdura, fruta, lácteos, legumbres, despensa, congelados...</p>
+          <input type="hidden" id="editingFamilyId" />
+
+          <label for="familyName">Nombre de la familia</label>
+          <input id="familyName" placeholder="Ej. Verdura, Fruta, Lácteos..." />
+
+          <div class="actions">
+            <button id="saveFamilyBtn">Añadir familia</button>
+            <button id="cancelFamilyEditBtn" class="secondary" style="display:none">Cancelar edición</button>
+          </div>
+        </div>
+
+        <div>
+          <h2>Listado de familias</h2>
+          <div id="familyList" class="list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-scanner" class="tab-panel card">
+      <div class="two-columns">
+        <div>
+          <h2>Actualizar stock rápido</h2>
+          <p class="muted">Escanea o escribe un código de barras. Si ya está asociado a un ingrediente, se detecta automáticamente. Para alimentos a granel, usa la selección manual.</p>
+
+          <div class="scanner-box">
+            <label for="scanBarcodeInput">Código de barras</label>
+            <input id="scanBarcodeInput" placeholder="Escanea o escribe el código" inputmode="numeric" />
+            <div class="actions">
+              <button id="findBarcodeBtn" class="ghost">Buscar código</button>
+              <button id="startScannerBtn">Usar cámara</button>
+              <button id="stopScannerBtn" class="secondary">Detener cámara</button>
+            </div>
+            <video id="scannerVideo" class="scanner-video" muted playsinline></video>
+            <div id="scannerStatus" class="help">La cámara necesita permiso del navegador y normalmente requiere abrir la página desde HTTPS o localhost. Si no funciona, usa la entrada manual.</div>
+            <div class="help">
+              Para activar cámara en ordenador: abre una terminal en la carpeta del archivo y ejecuta
+              <strong>python -m http.server 8000</strong>. Después entra en
+              <strong>http://localhost:8000/gestor_comidas_semanas_codigos.html</strong>.
+            </div>
+          </div>
+
+          <label for="quickIngredientSelect">Ingrediente</label>
+          <select id="quickIngredientSelect"></select>
+
+          <div class="row">
+            <div>
+              <label for="quickBrand">Marca / variante</label>
+              <input id="quickBrand" placeholder="Ej. Hacendado, Gallo, a granel..." />
+            </div>
+            <div>
+              <label for="quickPackages">Unidades compradas</label>
+              <input id="quickPackages" type="number" min="1" step="1" value="1" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="quickPackageQty">Cantidad por envase</label>
+              <input id="quickPackageQty" type="number" min="0" step="0.01" value="1" />
+            </div>
+            <div>
+              <label for="quickPackageUnit">Unidad</label>
+              <input id="quickPackageUnit" placeholder="g, ml, unidades..." />
+            </div>
+          </div>
+
+          <label for="quickPrice">Precio por envase</label>
+          <input id="quickPrice" type="number" min="0" step="0.01" placeholder="Ej. 1.35" />
+
+          <div class="actions">
+            <button id="quickUpdateStockBtn">Sumar al stock</button>
+            <button id="saveBarcodeBtn" class="ghost">Guardar código en ingrediente</button>
+          </div>
+        </div>
+
+        <div>
+          <h2>Códigos guardados</h2>
+          <p class="muted">Un mismo ingrediente puede tener productos de diferentes marcas, formatos o precios.</p>
+          <div id="barcodeList" class="list"></div>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="panel-packs" class="tab-panel card">
+      <div class="two-columns">
+        <div>
+          <h2>Packs de platos</h2>
+          <p class="muted">Clasifica los platos por colecciones: dieta mediterránea, vegano, diabetes, cenas ligeras, básicos diarios...</p>
+
+          <input type="hidden" id="editingPackId" />
+
+          <label for="packName">Nombre del pack</label>
+          <input id="packName" placeholder="Ej. Mediterránea semanal, Vegano, Cenas rápidas..." />
+
+          <div class="actions">
+            <button id="savePackBtn">Añadir pack</button>
+            <button id="cancelPackEditBtn" class="secondary" style="display:none">Cancelar edición</button>
+          </div>
+        </div>
+
+        <div>
+          <h2>Packs guardados</h2>
+          <div id="packList" class="list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-dishes" class="tab-panel card">
+      <div class="two-columns">
+        <div>
+          <h2>Añadir o editar plato</h2>
+          <input type="hidden" id="editingDishId" />
+
+          <label for="dishName">Nombre del plato</label>
+          <input id="dishName" placeholder="Ej. Salmorejo completo" />
+
+          <div class="row">
+            <div>
+              <label for="dishQty">Raciones preparadas</label>
+              <input id="dishQty" type="number" min="0" step="1" value="0" />
+            </div>
+            <div>
+              <label for="dishUnit">Unidad</label>
+              <input id="dishUnit" placeholder="raciones, tuppers..." value="raciones" />
+            </div>
+          </div>
+
+          <label for="dishPackSelect">Pack / colección</label>
+          <select id="dishPackSelect"></select>
+
+          <div class="row">
+            <div>
+              <label for="dishCategory">Categoría</label>
+              <input id="dishCategory" placeholder="Ej. Legumbres, pescado, cena ligera..." />
+            </div>
+            <div>
+              <label for="dishDietTags">Etiquetas</label>
+              <input id="dishDietTags" placeholder="Ej. vegano, diabetes, mediterránea" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="dishPrepTime">Tiempo aprox.</label>
+              <input id="dishPrepTime" placeholder="Ej. 25 min" />
+            </div>
+            <div>
+              <label for="dishDifficulty">Dificultad</label>
+              <input id="dishDifficulty" placeholder="Fácil, media..." />
+            </div>
+          </div>
+
+          <label for="dishApproxPrice">Precio aprox. por ración</label>
+          <input id="dishApproxPrice" type="number" min="0" step="0.01" placeholder="Ej. 2.50" />
+
+          <div class="recipe-builder">
+            <h3>Ingredientes del plato</h3>
+            <div class="row">
+              <div>
+                <label for="recipeIngredientSelect">Ingrediente</label>
+                <select id="recipeIngredientSelect"></select>
+              </div>
+              <div>
+                <label for="recipeIngredientQty">Cantidad por ración</label>
+                <input id="recipeIngredientQty" type="number" min="0" step="0.01" value="1" />
+              </div>
+            </div>
+            <div class="actions">
+              <button id="addRecipeIngredientBtn" class="ghost">Añadir ingrediente al plato</button>
+            </div>
+            <ul id="currentRecipeList" class="recipe-list"></ul>
+          </div>
+
+          <label for="dishNotes">Notas</label>
+          <textarea id="dishNotes" placeholder="Ej. el plato lleva salmorejo, huevo cocido y jamón en tacos..."></textarea>
+
+          <div class="actions">
+            <button id="saveDishBtn">Añadir plato</button>
+            <button id="cancelDishEditBtn" class="secondary" style="display:none">Cancelar edición</button>
+          </div>
+        </div>
+
+        <div>
+          <h2>Lista de platos</h2>
+          <div class="search-box">
+            <label for="dishSearchInput">Buscar plato</label>
+            <input id="dishSearchInput" placeholder="Ej. salmorejo, pollo, fruta..." />
+
+            <label for="dishPackFilterSelect">Filtrar por pack</label>
+            <select id="dishPackFilterSelect"></select>
+
+            <div id="dishSearchMeta" class="search-meta"></div>
+          </div>
+          <div id="dishList" class="list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-weeks" class="tab-panel card">
+      <div class="two-columns">
+        <div>
+          <h2>Crear o duplicar semana</h2>
+          <label for="newWeekName">Nombre de la semana</label>
+          <input id="newWeekName" placeholder="Ej. Semana 1 junio, Semana vegetariana, Semana tipo cole..." />
+
+          <div class="actions">
+            <button id="createWeekBtn">Crear semana vacía</button>
+            <button id="duplicateWeekBtn" class="ghost">Duplicar semana actual</button>
+            <button id="makeTypicalWeekBtn" class="secondary">Guardar como semana tipo</button>
+          </div>
+
+          <p class="help">La semana tipo es una plantilla reutilizable. Puedes aplicarla a una semana nueva y después modificarla.</p>
+
+          <label for="applyTypicalName">Crear semana desde semana tipo</label>
+          <input id="applyTypicalName" placeholder="Ej. Semana del 10 al 16 de junio" />
+          <div class="actions">
+            <button id="applyTypicalWeekBtn">Crear desde semana tipo</button>
+          </div>
+        </div>
+
+        <div>
+          <h2>Semanas guardadas</h2>
+          <p class="muted">Selecciona una semana para editarla en el calendario. Cada semana conserva su propia planificación.</p>
+          <div id="weekList" class="list"></div>
+        </div>
+      </div>
     </section>
 
     <section id="panel-favorites" class="tab-panel card">
-      <div class="two-columns">
-        <div>
-          <h2>Nuevo favorito</h2>
-          <label for="favName">Nombre habitual</label>
-          <input id="favName" placeholder="Ej. Crema de calabacín" />
-
-          <label for="favUnit">Unidad habitual</label>
-          <input id="favUnit" placeholder="tuppers, raciones..." value="raciones" />
-
-          <label for="favNotes">Notas</label>
-          <textarea id="favNotes" placeholder="Ej. receta habitual, congelar, comida ligera..."></textarea>
-
-          <div class="actions">
-            <button id="saveFavoriteBtn">Guardar favorito</button>
-          </div>
-        </div>
-
-        <div>
-          <h2>Alimentos favoritos</h2>
-          <div id="favoriteList" class="favorite-list"></div>
-        </div>
-      </div>
+      <h2>Favoritos</h2>
+      <p class="muted">Guarda platos habituales como favoritos para localizarlos rápido. Los favoritos conservan la receta del plato.</p>
+      <div id="favoriteList" class="list"></div>
     </section>
 
     <section id="panel-config" class="tab-panel card">
       <div class="two-columns">
         <div>
           <h2>Miembros del núcleo familiar</h2>
-          <p class="muted">Añade personas para poder asignar comidas distintas dentro del mismo calendario.</p>
           <label for="memberName">Nombre del miembro</label>
           <input id="memberName" placeholder="Ej. Virginia, Leo, Mamá..." />
-          <div class="actions">
-            <button id="addMemberBtn">Añadir miembro</button>
-          </div>
-          <div id="memberList" class="config-list"></div>
+          <div class="actions"><button id="addMemberBtn">Añadir miembro</button></div>
+          <div id="memberList" class="list"></div>
         </div>
 
         <div>
           <h2>Tipos de comida</h2>
-          <p class="muted">Puedes definir desayuno, comida, cena, merienda o cualquier otro momento.</p>
           <label for="mealName">Nombre de la comida</label>
           <input id="mealName" placeholder="Ej. Desayuno, Merienda, Cena..." />
-          <div class="actions">
-            <button id="addMealBtn">Añadir tipo de comida</button>
-          </div>
-          <div id="mealList" class="config-list"></div>
+          <div class="actions"><button id="addMealBtn">Añadir tipo de comida</button></div>
+          <div id="mealList" class="list"></div>
         </div>
       </div>
     </section>
@@ -499,19 +768,155 @@
       <div class="calendar-toolbar">
         <div>
           <div class="week-title">Planificador semanal</div>
-          <div class="muted">Cada selección consume una unidad por miembro. Si dos personas comen lo mismo, se descuentan dos unidades.</div>
+          <div id="activeWeekInfo" class="muted"></div>
         </div>
         <div class="actions no-print">
-          <button id="clearPlanBtn" class="ghost">Vaciar planificación</button>
-          <button id="printBtn">Exportar a PDF / imprimir</button>
+          <button id="clearPlanBtn" class="ghost">Vaciar esta semana</button>
+          <button id="printCalendarBtn">Exportar calendario a PDF</button>
         </div>
+      </div>
+
+      <div class="week-selector no-print">
+        <div>
+          <label for="activeWeekSelect">Semana activa</label>
+          <select id="activeWeekSelect"></select>
+        </div>
+        <div>
+          <label for="renameWeekInput">Renombrar</label>
+          <input id="renameWeekInput" placeholder="Nuevo nombre" />
+        </div>
+        <div class="actions">
+          <button id="renameWeekBtn" class="ghost">Guardar nombre</button>
+        </div>
+      </div>
+
+      <div class="search-box no-print">
+        <label for="calendarDishSearchInput">Filtrar platos al planificar</label>
+        <input id="calendarDishSearchInput" placeholder="Ej. pollo, fruta, salmorejo..." />
+
+        <label for="calendarPackFilterSelect">Filtrar por pack</label>
+        <select id="calendarPackFilterSelect"></select>
+
+        <div id="calendarDishSearchMeta" class="search-meta">Este filtro reduce los platos que aparecen en los desplegables del calendario.</div>
       </div>
 
       <div id="calendar" class="calendar"></div>
     </section>
 
-    <section class="card">
-      <h2>Resumen de stock restante</h2>
+    <section id="panel-shopping" class="tab-panel card">
+      <div class="calendar-toolbar">
+        <div>
+          <div class="week-title">Lista de la compra</div>
+          <div id="shoppingWeekInfo" class="muted"></div>
+        </div>
+        <div class="actions no-print">
+          <button id="copyShoppingBtn" class="ghost">Copiar lista</button>
+          <button id="shareShoppingBtn" class="ghost">Compartir / enviar a Tasks</button>
+          <button id="printShoppingBtn">Exportar compra a PDF</button>
+        </div>
+      </div>
+      <div id="budgetSummary" class="budget-box"></div>
+      <div id="shoppingList" class="list"></div>
+    </section>
+
+    <section id="panel-backup" class="tab-panel card">
+      <div class="two-columns">
+        <div>
+          <h2>Exportar datos en JSON</h2>
+          <p class="muted">Guarda una copia de seguridad con ingredientes, familias, platos, códigos de barras, precios, semanas y configuración.</p>
+          <div class="actions">
+            <button id="exportJsonBtn">Descargar copia JSON</button>
+            <button id="copyJsonBtn" class="ghost">Copiar JSON</button>
+          </div>
+
+          <label for="exportPreview">Vista previa del JSON</label>
+          <textarea id="exportPreview" readonly placeholder="Aquí aparecerá la copia de seguridad."></textarea>
+        </div>
+
+        <div>
+          <h2>Importar datos desde JSON</h2>
+          <p class="muted">Restaura una copia anterior o mueve tus datos a otro dispositivo. La importación reemplaza los datos actuales.</p>
+
+          <label for="importJsonFile">Archivo JSON completo</label>
+          <input id="importJsonFile" type="file" accept="application/json,.json" />
+
+          <label for="importJsonText">O pega aquí el JSON completo</label>
+          <textarea id="importJsonText" placeholder="Pega aquí una copia JSON completa exportada desde esta app."></textarea>
+
+          <div class="actions">
+            <button id="importJsonBtn" class="secondary">Importar JSON completo</button>
+            <button id="clearAllDataBtn" class="danger">Borrar todos los datos</button>
+          </div>
+
+          <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+
+          <h2>Importar solo ingredientes</h2>
+          <p class="muted">Esta opción añade o actualiza ingredientes sin tocar platos, semanas, miembros ni recetas. Sirve para importar una lista parcial.</p>
+
+          <label for="importIngredientsFile">Archivo JSON de ingredientes</label>
+          <input id="importIngredientsFile" type="file" accept="application/json,.json" />
+
+          <label for="importIngredientsText">O pega aquí ingredientes en JSON</label>
+          <textarea id="importIngredientsText" placeholder='Ejemplo:
+[
+  {
+    "name": "Tomate",
+    "qty": 4,
+    "unit": "unidades",
+    "family": "Verdura",
+    "available": true
+  }
+]'></textarea>
+
+          <label class="check-row">
+            <input id="mergeIngredientsByName" type="checkbox" checked />
+            Fusionar por nombre si ya existe
+          </label>
+
+          <div class="actions">
+            <button id="importIngredientsBtn">Importar solo ingredientes</button>
+            <button id="exportIngredientsBtn" class="ghost">Exportar solo ingredientes</button>
+          </div>
+
+          <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+
+          <h2>Importar platos con ingredientes</h2>
+          <p class="muted">Importa platos completos. Si algún ingrediente de la receta no existe, se crea automáticamente.</p>
+
+          <label for="importDishesFile">Archivo JSON de platos</label>
+          <input id="importDishesFile" type="file" accept="application/json,.json" />
+
+          <label for="importDishesText">O pega aquí platos en JSON</label>
+          <textarea id="importDishesText" placeholder='Ejemplo:
+[
+  {
+    "name": "Salmorejo completo",
+    "qty": 0,
+    "unit": "raciones",
+    "notes": "Salmorejo con huevo y jamón",
+    "ingredients": [
+      { "name": "Salmorejo", "qty": 1, "unit": "ración", "family": "Verdura" },
+      { "name": "Huevo cocido", "qty": 1, "unit": "unidad", "family": "Huevos" },
+      { "name": "Jamón en tacos", "qty": 40, "unit": "g", "family": "Carne y pescado" }
+    ]
+  }
+]'></textarea>
+
+          <label class="check-row">
+            <input id="mergeDishesByName" type="checkbox" checked />
+            Fusionar platos por nombre si ya existen
+          </label>
+
+          <div class="actions">
+            <button id="importDishesBtn">Importar platos con ingredientes</button>
+            <button id="exportDishesBtn" class="ghost">Exportar solo platos</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="summary-card" class="card">
+      <h2>Resumen de la semana activa</h2>
       <div id="summary" class="summary"></div>
     </section>
   </main>
@@ -520,9 +925,7 @@
     const days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
     function createId() {
-      if (window.crypto && typeof window.crypto.randomUUID === "function") {
-        return window.crypto.randomUUID();
-      }
+      if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
       return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
     }
 
@@ -535,233 +938,890 @@
       }
     }
 
-    let foods = loadArray("foods", [
-      { id: createId(), name: "Boloñesa", qty: 5, unit: "tuppers", notes: "Congelado" },
-      { id: createId(), name: "Lentejas", qty: 3, unit: "raciones", notes: "Nevera" }
-    ]);
+    function loadObject(key, fallback) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key));
+        return saved && typeof saved === "object" && !Array.isArray(saved) ? saved : fallback;
+      } catch {
+        return fallback;
+      }
+    }
 
-    let favorites = loadArray("favoriteFoods", [
-      { id: createId(), name: "Boloñesa", unit: "tuppers", notes: "Comida habitual para congelar" },
-      { id: createId(), name: "Lentejas", unit: "raciones", notes: "Ideal para comida de diario" },
-      { id: createId(), name: "Crema de verduras", unit: "raciones", notes: "Cena ligera" }
-    ]);
+    function migrateOldPlanToWeeks() {
+      const oldPlan = loadObject("weeklyPlan", {});
+      const defaultWeek = {
+        id: createId(),
+        name: "Semana actual",
+        plan: oldPlan,
+        createdAt: new Date().toISOString(),
+        isTypical: false
+      };
+      return [defaultWeek];
+    }
 
-    let familyMembers = loadArray("familyMembers", [
-      { id: createId(), name: "Todos" }
-    ]);
+    let ingredientFamilies = loadArray("ingredientFamilies", [
+      { id: createId(), name: "Verdura" },
+      { id: createId(), name: "Fruta" },
+      { id: createId(), name: "Lácteos" },
+      { id: createId(), name: "Carne y pescado" },
+      { id: createId(), name: "Despensa" },
+      { id: createId(), name: "Congelados" },
+      { id: createId(), name: "Otros" }
+    ]).map(normalizeFamily);
 
-    let mealTypes = loadArray("mealTypes", [
-      { id: createId(), name: "Comida" },
-      { id: createId(), name: "Cena" }
-    ]);
+    let ingredients = loadArray("ingredients", [
+      { id: createId(), name: "Salmorejo", qty: 1, unit: "ración", available: true, products: [] },
+      { id: createId(), name: "Huevo cocido", qty: 2, unit: "unidades", available: true, products: [] },
+      { id: createId(), name: "Jamón en tacos", qty: 80, unit: "g", available: true, products: [] },
+      { id: createId(), name: "Pasta", qty: 0, unit: "g", available: false, products: [{ barcode: "", brand: "A granel", packageQty: 1000, packageUnit: "g", price: 1.50 }] }
+    ]).map(normalizeIngredient);
 
-    let plan = JSON.parse(localStorage.getItem("weeklyPlan")) || {};
+    let dishPacks = loadArray("dishPacks", [
+      { id: createId(), name: "Sin clasificar" },
+      { id: createId(), name: "Dieta mediterránea" },
+      { id: createId(), name: "Vegano" },
+      { id: createId(), name: "Diabetes" },
+      { id: createId(), name: "Cenas ligeras" }
+    ]).map(normalizePack);
 
-    const foodName = document.getElementById("foodName");
-    const foodQty = document.getElementById("foodQty");
-    const foodUnit = document.getElementById("foodUnit");
-    const foodNotes = document.getElementById("foodNotes");
-    const editingId = document.getElementById("editingId");
-    const saveFoodBtn = document.getElementById("saveFoodBtn");
-    const cancelEditBtn = document.getElementById("cancelEditBtn");
-    const stockList = document.getElementById("stockList");
-    const calendar = document.getElementById("calendar");
-    const summary = document.getElementById("summary");
+    let dishes = loadArray("dishes", []).map(normalizeDish);
+    if (dishes.length === 0) {
+      const salmorejo = ingredients.find(i => i.name === "Salmorejo");
+      const huevo = ingredients.find(i => i.name === "Huevo cocido");
+      const jamon = ingredients.find(i => i.name === "Jamón en tacos");
+      dishes = [{
+        id: createId(),
+        name: "Salmorejo completo",
+        qty: 0,
+        unit: "raciones",
+        notes: "Compuesto por salmorejo, huevo cocido y jamón en tacos.",
+        recipe: [
+          { ingredientId: salmorejo.id, qty: 1 },
+          { ingredientId: huevo.id, qty: 1 },
+          { ingredientId: jamon.id, qty: 40 }
+        ]
+      }];
+    }
+
+    let weeks = loadArray("savedWeeks", migrateOldPlanToWeeks()).map(normalizeWeek);
+    let activeWeekId = localStorage.getItem("activeWeekId") || (weeks[0] ? weeks[0].id : "");
+    if (!weeks.some(week => week.id === activeWeekId)) activeWeekId = weeks[0]?.id || "";
+    let typicalWeekPlan = loadObject("typicalWeekPlan", null);
+
+    let favoriteIds = loadArray("favoriteDishIds", []);
+    let familyMembers = loadArray("familyMembers", [{ id: createId(), name: "Todos" }]);
+    let mealTypes = loadArray("mealTypes", [{ id: createId(), name: "Comida" }, { id: createId(), name: "Cena" }]);
+    let currentRecipe = [];
+
+    const editingIngredientId = document.getElementById("editingIngredientId");
+    const ingredientName = document.getElementById("ingredientName");
+    const ingredientQty = document.getElementById("ingredientQty");
+    const ingredientUnit = document.getElementById("ingredientUnit");
+    const ingredientProducts = document.getElementById("ingredientProducts");
+    const ingredientAvailable = document.getElementById("ingredientAvailable");
+    const saveIngredientBtn = document.getElementById("saveIngredientBtn");
+    const cancelIngredientEditBtn = document.getElementById("cancelIngredientEditBtn");
+    const ingredientList = document.getElementById("ingredientList");
+    const ingredientSearchInput = document.getElementById("ingredientSearchInput");
+    const ingredientSearchMeta = document.getElementById("ingredientSearchMeta");
+    const ingredientFamilySelect = document.getElementById("ingredientFamilySelect");
+    const ingredientApproxPrice = document.getElementById("ingredientApproxPrice");
+    const editingFamilyId = document.getElementById("editingFamilyId");
+    const familyName = document.getElementById("familyName");
+    const saveFamilyBtn = document.getElementById("saveFamilyBtn");
+    const cancelFamilyEditBtn = document.getElementById("cancelFamilyEditBtn");
+    const familyList = document.getElementById("familyList");
+
+    const editingPackId = document.getElementById("editingPackId");
+    const packName = document.getElementById("packName");
+    const savePackBtn = document.getElementById("savePackBtn");
+    const cancelPackEditBtn = document.getElementById("cancelPackEditBtn");
+    const packList = document.getElementById("packList");
+
+    const editingDishId = document.getElementById("editingDishId");
+    const dishName = document.getElementById("dishName");
+    const dishQty = document.getElementById("dishQty");
+    const dishUnit = document.getElementById("dishUnit");
+    const dishPackSelect = document.getElementById("dishPackSelect");
+    const dishCategory = document.getElementById("dishCategory");
+    const dishDietTags = document.getElementById("dishDietTags");
+    const dishPrepTime = document.getElementById("dishPrepTime");
+    const dishDifficulty = document.getElementById("dishDifficulty");
+    const dishApproxPrice = document.getElementById("dishApproxPrice");
+    const dishNotes = document.getElementById("dishNotes");
+    const recipeIngredientSelect = document.getElementById("recipeIngredientSelect");
+    const recipeIngredientQty = document.getElementById("recipeIngredientQty");
+    const currentRecipeList = document.getElementById("currentRecipeList");
+    const saveDishBtn = document.getElementById("saveDishBtn");
+    const cancelDishEditBtn = document.getElementById("cancelDishEditBtn");
+    const dishList = document.getElementById("dishList");
+    const dishSearchInput = document.getElementById("dishSearchInput");
+    const dishSearchMeta = document.getElementById("dishSearchMeta");
+    const dishPackFilterSelect = document.getElementById("dishPackFilterSelect");
+    const calendarDishSearchInput = document.getElementById("calendarDishSearchInput");
+    const calendarDishSearchMeta = document.getElementById("calendarDishSearchMeta");
+    const calendarPackFilterSelect = document.getElementById("calendarPackFilterSelect");
     const favoriteList = document.getElementById("favoriteList");
-    const favoriteSelect = document.getElementById("favoriteSelect");
-    const favoriteQtyToAdd = document.getElementById("favoriteQtyToAdd");
-    const favoriteUnitToAdd = document.getElementById("favoriteUnitToAdd");
-    const favName = document.getElementById("favName");
-    const favUnit = document.getElementById("favUnit");
-    const favNotes = document.getElementById("favNotes");
+
     const memberName = document.getElementById("memberName");
     const mealName = document.getElementById("mealName");
     const memberList = document.getElementById("memberList");
     const mealList = document.getElementById("mealList");
+    const calendar = document.getElementById("calendar");
+    const shoppingList = document.getElementById("shoppingList");
+    const summary = document.getElementById("summary");
+    const quickIngredientSelect = document.getElementById("quickIngredientSelect");
+    const scanBarcodeInput = document.getElementById("scanBarcodeInput");
+    const quickBrand = document.getElementById("quickBrand");
+    const quickPackages = document.getElementById("quickPackages");
+    const quickPackageQty = document.getElementById("quickPackageQty");
+    const quickPackageUnit = document.getElementById("quickPackageUnit");
+    const quickPrice = document.getElementById("quickPrice");
+    const barcodeList = document.getElementById("barcodeList");
+    const scannerVideo = document.getElementById("scannerVideo");
+    const scannerStatus = document.getElementById("scannerStatus");
+    const budgetSummary = document.getElementById("budgetSummary");
+    let scannerStream = null;
+    let scannerTimer = null;
+
+    const newWeekName = document.getElementById("newWeekName");
+    const applyTypicalName = document.getElementById("applyTypicalName");
+    const weekList = document.getElementById("weekList");
+    const activeWeekSelect = document.getElementById("activeWeekSelect");
+    const renameWeekInput = document.getElementById("renameWeekInput");
+    const activeWeekInfo = document.getElementById("activeWeekInfo");
+    const shoppingWeekInfo = document.getElementById("shoppingWeekInfo");
+
+    function normalizeFamily(item) {
+      return {
+        id: item.id || createId(),
+        name: item.name || "Familia"
+      };
+    }
+
+
+    function normalizeTags(value) {
+      if (!value) return [];
+      if (Array.isArray(value)) return value.map(tag => String(tag).trim()).filter(Boolean);
+      return String(value)
+        .split(/[;,|]/)
+        .map(tag => tag.trim())
+        .filter(Boolean);
+    }
+
+    function inferDishTags(item) {
+      const text = normalizeSearch([
+        item.name,
+        item.nombre,
+        item.notes,
+        item.notas,
+        item.pack,
+        item.packName,
+        item.collection,
+        item.coleccion,
+        item.description,
+        item.descripcion
+      ].join(" "));
+
+      const tags = [];
+      if (text.includes("vegano") || text.includes("vegan")) tags.push("vegano");
+      if (text.includes("vegetariano")) tags.push("vegetariano");
+      if (text.includes("diabet")) tags.push("diabetes");
+      if (text.includes("mediterr")) tags.push("mediterránea");
+      if (text.includes("huelva") || text.includes("onubense")) tags.push("Huelva");
+      if (text.includes("cena")) tags.push("cena ligera");
+      if (text.includes("sin gluten")) tags.push("sin gluten");
+      if (text.includes("legumbre")) tags.push("legumbres");
+      if (text.includes("pescado") || text.includes("mar")) tags.push("pescado");
+      return tags;
+    }
+
+    function inferDishCategory(item) {
+      const text = normalizeSearch([
+        item.name,
+        item.nombre,
+        item.notes,
+        item.notas,
+        item.pack,
+        item.packName,
+        item.collection,
+        item.coleccion,
+        item.description,
+        item.descripcion
+      ].join(" "));
+
+      if (text.includes("legumbre") || text.includes("lenteja") || text.includes("garbanzo") || text.includes("alubia")) return "Legumbres";
+      if (text.includes("pescado") || text.includes("sardina") || text.includes("caballa") || text.includes("atun") || text.includes("merluza") || text.includes("choco") || text.includes("mar")) return "Pescado y mar";
+      if (text.includes("verdura") || text.includes("crema") || text.includes("ensalada") || text.includes("pisto")) return "Verduras";
+      if (text.includes("desayuno") || text.includes("tostada")) return "Desayunos";
+      if (text.includes("cena")) return "Cenas ligeras";
+      if (text.includes("pollo") || text.includes("carne")) return "Carne";
+      return "";
+    }
+
+    function tagsHtml(tags) {
+      const cleanTags = normalizeTags(tags);
+      if (!cleanTags.length) return "";
+      return `<div class="tag-list">${cleanTags.map(tag => `<span class="badge favorite">${escapeHtml(tag)}</span>`).join("")}</div>`;
+    }
+
+    function normalizeIngredient(item) {
+      const familyName = item.family || item.familia || item.familyName || "";
+      let familyId = item.familyId || "";
+
+      if (!familyId && familyName && typeof ingredientFamilies !== "undefined") {
+        let family = ingredientFamilies.find(existing => normalizeSearch(existing.name) === normalizeSearch(familyName));
+        if (!family) {
+          family = { id: createId(), name: familyName };
+          ingredientFamilies.push(family);
+        }
+        familyId = family.id;
+      }
+
+      return {
+        id: item.id || createId(),
+        name: item.name || item.nombre || "Ingrediente",
+        qty: Number(item.qty ?? item.cantidad ?? 0) || 0,
+        unit: item.unit || item.unidad || "unidades",
+        available: item.available !== false && item.disponible !== false,
+        familyId,
+        approxPrice: Number(item.approxPrice ?? item.priceApprox ?? item.precioAproximado ?? item.price ?? 0) || 0,
+        products: Array.isArray(item.products) ? item.products.map(normalizeProduct).filter(Boolean) : []
+      };
+    }
+
+    function normalizeProduct(product) {
+      if (!product || typeof product !== "object") return null;
+      return {
+        barcode: String(product.barcode || "").trim(),
+        brand: product.brand || "",
+        packageQty: Number(product.packageQty) || 0,
+        packageUnit: product.packageUnit || "unidades",
+        price: Number(product.price) || 0
+      };
+    }
+
+    function parseProducts(text) {
+      return text.split("\n")
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+          const parts = line.split("|").map(part => part.trim());
+          return normalizeProduct({
+            barcode: parts[0] || "",
+            brand: parts[1] || "",
+            packageQty: Number(String(parts[2] || "0").replace(",", ".")) || 0,
+            packageUnit: parts[3] || "unidades",
+            price: Number(String(parts[4] || "0").replace(",", ".")) || 0
+          });
+        })
+        .filter(product => product && (product.barcode || product.brand || product.packageQty || product.price));
+    }
+
+    function stringifyProducts(products) {
+      return (products || []).map(product => `${product.barcode || ""} | ${product.brand || ""} | ${product.packageQty || 0} | ${product.packageUnit || "unidades"} | ${product.price || 0}`).join("\n");
+    }
+
+    function findBarcode(barcode) {
+      const normalized = String(barcode || "").trim();
+      if (!normalized) return null;
+      for (const ingredient of ingredients) {
+        const product = (ingredient.products || []).find(item => item.barcode === normalized);
+        if (product) return { ingredient, product };
+      }
+      return null;
+    }
+
+    function sameUnit(a, b) {
+      return String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+    }
+
+    function bestProductForIngredient(ingredient) {
+      const products = (ingredient.products || []).filter(product => product.price > 0 && product.packageQty > 0 && sameUnit(product.packageUnit, ingredient.unit));
+      if (!products.length) return null;
+      return products.slice().sort((a, b) => (a.price / a.packageQty) - (b.price / b.packageQty))[0];
+    }
+
+
+    function normalizePack(item) {
+      return {
+        id: item.id || createId(),
+        name: item.name || "Pack"
+      };
+    }
+
+    function normalizeDish(item) {
+      const packName = item.pack || item.packName || item.collection || item.coleccion || "";
+      let packId = item.packId || "";
+
+      if (!packId && packName && typeof dishPacks !== "undefined") {
+        packId = findOrCreatePackByName(packName);
+      }
+
+      return {
+        id: item.id || createId(),
+        name: item.name || item.nombre || "Plato",
+        qty: Number(item.qty ?? item.racionesPreparadas ?? item.stock ?? 0) || 0,
+        unit: item.unit || item.unidad || "raciones",
+        notes: item.notes || item.notas || "",
+        packId,
+        category: item.category || item.categoria || inferDishCategory(item) || "",
+        tags: normalizeTags(item.tags || item.etiquetas || item.dietTags || item.dietaryTags || item.tipo || inferDishTags(item)),
+        prepTime: item.prepTime || item.tiempo || item.time || "",
+        difficulty: item.difficulty || item.dificultad || "",
+        approxPrice: Number(item.approxPrice ?? item.priceApprox ?? item.precioAproximado ?? item.price ?? 0) || 0,
+        recipe: Array.isArray(item.recipe) ? item.recipe : []
+      };
+    }
+
+    function normalizeWeek(item) {
+      return {
+        id: item.id || createId(),
+        name: item.name || "Semana sin nombre",
+        plan: item.plan && typeof item.plan === "object" ? item.plan : {},
+        createdAt: item.createdAt || new Date().toISOString(),
+        isTypical: item.isTypical === true
+      };
+    }
+
+    function getActiveWeek() {
+      if (!weeks.length) {
+        const week = normalizeWeek({ name: "Semana actual", plan: {} });
+        weeks.push(week);
+        activeWeekId = week.id;
+      }
+      let week = weeks.find(item => item.id === activeWeekId);
+      if (!week) {
+        week = weeks[0];
+        activeWeekId = week.id;
+      }
+      return week;
+    }
+
+    function getPlan() {
+      return getActiveWeek().plan;
+    }
+
+    function setPlan(plan) {
+      getActiveWeek().plan = plan;
+    }
 
     function saveData() {
-      localStorage.setItem("foods", JSON.stringify(foods));
-      localStorage.setItem("favoriteFoods", JSON.stringify(favorites));
+      localStorage.setItem("ingredientFamilies", JSON.stringify(ingredientFamilies));
+      localStorage.setItem("ingredients", JSON.stringify(ingredients));
+      localStorage.setItem("dishPacks", JSON.stringify(dishPacks));
+      localStorage.setItem("dishes", JSON.stringify(dishes));
+      localStorage.setItem("favoriteDishIds", JSON.stringify(favoriteIds));
       localStorage.setItem("familyMembers", JSON.stringify(familyMembers));
       localStorage.setItem("mealTypes", JSON.stringify(mealTypes));
-      localStorage.setItem("weeklyPlan", JSON.stringify(plan));
+      localStorage.setItem("savedWeeks", JSON.stringify(weeks));
+      localStorage.setItem("activeWeekId", activeWeekId);
+      localStorage.setItem("typicalWeekPlan", JSON.stringify(typicalWeekPlan));
     }
 
-    function makeSlotId(day, mealId, memberId) {
-      return `${day}__${mealId}__${memberId}`;
-    }
+    function makeSlotId(day, mealId, memberId) { return `${day}__${mealId}__${memberId}`; }
 
-    function getUsedCounts() {
+    function getPlannedDishCounts(plan = getPlan()) {
       const counts = {};
-      Object.values(plan).forEach(foodId => {
-        if (!foodId) return;
-        counts[foodId] = (counts[foodId] || 0) + 1;
+      Object.values(plan).forEach(value => {
+        const dishIds = Array.isArray(value) ? value : (value ? [value] : []);
+        dishIds.forEach(dishId => {
+          if (!dishId) return;
+          counts[dishId] = (counts[dishId] || 0) + 1;
+        });
       });
       return counts;
     }
 
-    function getRemaining(foodId) {
-      const food = foods.find(item => item.id === foodId);
-      if (!food) return 0;
-      const used = getUsedCounts()[foodId] || 0;
-      return food.qty - used;
+    function getDishRemaining(dishId) {
+      const dish = dishes.find(item => item.id === dishId);
+      if (!dish) return 0;
+      return dish.qty - (getPlannedDishCounts()[dishId] || 0);
+    }
+
+    function getIngredientRequiredFromPlan(plan = getPlan()) {
+      const planned = getPlannedDishCounts(plan);
+      const required = {};
+      dishes.forEach(dish => {
+        const used = planned[dish.id] || 0;
+        if (used <= 0) return;
+        const servingsToCook = Math.max(0, used - dish.qty);
+        if (servingsToCook <= 0) return;
+        dish.recipe.forEach(row => {
+          const ingredient = ingredients.find(item => item.id === row.ingredientId);
+          if (!ingredient) return;
+          const key = ingredient.id;
+          if (!required[key]) required[key] = { ingredient, qty: 0, dishDetails: [] };
+          const amount = servingsToCook * (Number(row.qty) || 0);
+          required[key].qty += amount;
+          required[key].dishDetails.push(`${dish.name}: ${formatNumber(amount)} ${ingredient.unit}`);
+        });
+      });
+      return required;
     }
 
     function cleanPlan() {
-      const validFoodIds = new Set(foods.map(food => food.id));
+      const validDishIds = new Set(dishes.map(dish => dish.id));
       const validMealIds = new Set(mealTypes.map(meal => meal.id));
       const validMemberIds = new Set(familyMembers.map(member => member.id));
 
-      Object.keys(plan).forEach(slot => {
-        const parts = slot.split("__");
-        const mealId = parts[1];
-        const memberId = parts[2];
-        if (!validFoodIds.has(plan[slot]) || !validMealIds.has(mealId) || !validMemberIds.has(memberId)) {
-          delete plan[slot];
-        }
+      weeks.forEach(week => {
+        Object.keys(week.plan).forEach(slot => {
+          const parts = slot.split("__");
+          const mealId = parts[1];
+          const memberId = parts[2];
+
+          if (!validMealIds.has(mealId) || !validMemberIds.has(memberId)) {
+            delete week.plan[slot];
+            return;
+          }
+
+          const currentValue = week.plan[slot];
+          const dishIds = Array.isArray(currentValue) ? currentValue : (currentValue ? [currentValue] : []);
+          const cleaned = dishIds.filter(dishId => validDishIds.has(dishId));
+
+          if (cleaned.length > 0) week.plan[slot] = cleaned;
+          else delete week.plan[slot];
+        });
       });
     }
 
     function switchTab(tabName) {
-      document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.tab === tabName);
+      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tabName));
+      document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.toggle("active", panel.id === `panel-${tabName}`));
+    }
+
+    document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+
+    function renderWeekControls() {
+      const active = getActiveWeek();
+      activeWeekInfo.textContent = `Editando: ${active.name}${active.isTypical ? " · Semana tipo" : ""}`;
+      shoppingWeekInfo.textContent = `Compra calculada para: ${active.name}`;
+      activeWeekSelect.innerHTML = "";
+      weeks.forEach(week => {
+        const option = document.createElement("option");
+        option.value = week.id;
+        option.textContent = `${week.name}${week.isTypical ? " · semana tipo" : ""}`;
+        if (week.id === activeWeekId) option.selected = true;
+        activeWeekSelect.appendChild(option);
       });
-      document.querySelectorAll(".tab-panel").forEach(panel => {
-        panel.classList.toggle("active", panel.id === `panel-${tabName}`);
+      renameWeekInput.value = active.name;
+
+      weekList.innerHTML = "";
+      weeks.forEach(week => {
+        const div = document.createElement("div");
+        div.className = "item";
+        const plannedCount = Object.values(week.plan).reduce((total, value) => total + (Array.isArray(value) ? value.length : (value ? 1 : 0)), 0);
+        div.innerHTML = `
+          <div class="item-top">
+            <div>
+              <div class="item-name">${escapeHtml(week.name)} ${week.isTypical ? '<span class="badge favorite">Semana tipo</span>' : ""}</div>
+              <div class="muted">${plannedCount} comidas planificadas</div>
+            </div>
+            <span class="badge ${week.id === activeWeekId ? "ok" : "favorite"}">${week.id === activeWeekId ? "Activa" : "Guardada"}</span>
+          </div>
+          <div class="mini-actions">
+            <button class="ghost" onclick="selectWeek('${week.id}')">Editar</button>
+            <button class="ghost" onclick="duplicateWeek('${week.id}')">Duplicar</button>
+            <button class="secondary" onclick="markTypicalWeek('${week.id}')">Marcar como tipo</button>
+            <button class="danger" onclick="deleteWeek('${week.id}')">Eliminar</button>
+          </div>`;
+        weekList.appendChild(div);
       });
     }
 
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
-    });
+    function getFamilyName(familyId) {
+      const family = ingredientFamilies.find(item => item.id === familyId);
+      return family ? family.name : "Sin familia";
+    }
 
-    function renderStock() {
-      stockList.innerHTML = "";
+    function renderFamilySelect() {
+      ingredientFamilySelect.innerHTML = '<option value="">Sin familia</option>';
+      ingredientFamilies
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, "es"))
+        .forEach(family => {
+          const option = document.createElement("option");
+          option.value = family.id;
+          option.textContent = family.name;
+          ingredientFamilySelect.appendChild(option);
+        });
+    }
 
-      if (foods.length === 0) {
-        stockList.innerHTML = '<div class="empty">Todavía no tienes alimentos en stock.</div>';
+    function renderFamilies() {
+      familyList.innerHTML = "";
+      if (ingredientFamilies.length === 0) {
+        familyList.innerHTML = '<div class="empty">Todavía no hay familias creadas.</div>';
+        return;
+      }
+      ingredientFamilies
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, "es"))
+        .forEach(family => {
+          const count = ingredients.filter(ingredient => ingredient.familyId === family.id).length;
+          const div = document.createElement("div");
+          div.className = "item";
+          div.innerHTML = `
+            <div class="item-top">
+              <div>
+                <div class="item-name">${escapeHtml(family.name)}</div>
+                <div class="muted">${count} ingrediente/s clasificados aquí</div>
+              </div>
+              <span class="badge favorite">Familia</span>
+            </div>
+            <div class="mini-actions">
+              <button class="ghost" onclick="editFamily('${family.id}')">Editar</button>
+              <button class="danger" onclick="deleteFamily('${family.id}')">Eliminar</button>
+            </div>`;
+          familyList.appendChild(div);
+        });
+    }
+
+
+    function findPackIdByName(name) {
+      const cleanName = String(name || "").trim();
+      if (!cleanName) return "";
+      const pack = dishPacks.find(item => normalizeSearch(item.name) === normalizeSearch(cleanName));
+      return pack ? pack.id : "";
+    }
+
+    function findOrCreatePackByName(name) {
+      const cleanName = String(name || "").trim() || "Sin clasificar";
+      let pack = dishPacks.find(item => normalizeSearch(item.name) === normalizeSearch(cleanName));
+      if (!pack) {
+        pack = { id: createId(), name: cleanName };
+        dishPacks.push(pack);
+      }
+      return pack.id;
+    }
+
+    function getPackName(packId) {
+      const pack = dishPacks.find(item => item.id === packId);
+      return pack ? pack.name : "Sin clasificar";
+    }
+
+    function renderPackSelects() {
+      const sortedPacks = dishPacks.slice().sort((a, b) => a.name.localeCompare(b.name, "es"));
+
+      if (dishPackSelect) {
+        const current = dishPackSelect.value;
+        dishPackSelect.innerHTML = '<option value="">Sin clasificar</option>';
+        sortedPacks.forEach(pack => {
+          const option = document.createElement("option");
+          option.value = pack.id;
+          option.textContent = pack.name;
+          dishPackSelect.appendChild(option);
+        });
+        dishPackSelect.value = current;
+      }
+
+      [dishPackFilterSelect, calendarPackFilterSelect].forEach(select => {
+        if (!select) return;
+        const current = select.value;
+        select.innerHTML = '<option value="">Todos los packs</option>';
+        sortedPacks.forEach(pack => {
+          const option = document.createElement("option");
+          option.value = pack.id;
+          option.textContent = pack.name;
+          select.appendChild(option);
+        });
+        select.value = current;
+      });
+    }
+
+    function renderPacks() {
+      if (!packList) return;
+      packList.innerHTML = "";
+      if (dishPacks.length === 0) {
+        packList.innerHTML = '<div class="empty">Todavía no hay packs creados.</div>';
         return;
       }
 
-      const usedCounts = getUsedCounts();
-
-      foods.forEach(food => {
-        const used = usedCounts[food.id] || 0;
-        const remaining = food.qty - used;
-        const badgeClass = remaining <= 0 ? "zero" : remaining <= 1 ? "warn" : "ok";
-        const isFavorite = favorites.some(fav => fav.name.toLowerCase() === food.name.toLowerCase());
-
-        const div = document.createElement("div");
-        div.className = "food-item";
-        div.innerHTML = `
-          <div class="food-top">
-            <div>
-              <div class="food-name">${escapeHtml(food.name)} ${isFavorite ? '<span class="badge favorite">Favorito</span>' : ''}</div>
-              <div class="muted">Inicial: ${food.qty} ${escapeHtml(food.unit)} · Usado: ${used}</div>
-              ${food.notes ? `<div class="muted">${escapeHtml(food.notes)}</div>` : ""}
+      dishPacks
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, "es"))
+        .forEach(pack => {
+          const count = dishes.filter(dish => dish.packId === pack.id).length;
+          const div = document.createElement("div");
+          div.className = "item";
+          div.innerHTML = `
+            <div class="item-top">
+              <div>
+                <div class="item-name">${escapeHtml(pack.name)}</div>
+                <div class="muted">${count} plato/s clasificados aquí</div>
+              </div>
+              <span class="badge favorite">Pack</span>
             </div>
-            <span class="badge ${badgeClass}">${remaining} quedan</span>
+            <div class="mini-actions">
+              <button class="ghost" onclick="editPack('${pack.id}')">Editar</button>
+              <button class="danger" onclick="deletePack('${pack.id}')">Eliminar</button>
+            </div>`;
+          packList.appendChild(div);
+        });
+    }
+
+    function renderIngredientSelect() {
+      recipeIngredientSelect.innerHTML = "";
+      quickIngredientSelect.innerHTML = "";
+      if (ingredients.length === 0) {
+        recipeIngredientSelect.innerHTML = '<option value="">Añade ingredientes primero</option>';
+        quickIngredientSelect.innerHTML = '<option value="">Añade ingredientes primero</option>';
+        return;
+      }
+      ingredients.forEach(ingredient => {
+        const option = document.createElement("option");
+        option.value = ingredient.id;
+        option.textContent = `${ingredient.name} (${ingredient.unit})`;
+        recipeIngredientSelect.appendChild(option);
+        const quickOption = document.createElement("option");
+        quickOption.value = ingredient.id;
+        quickOption.textContent = `${ingredient.name} (${ingredient.unit})`;
+        quickIngredientSelect.appendChild(quickOption);
+      });
+    }
+
+    function renderCurrentRecipe() {
+      currentRecipeList.innerHTML = "";
+      if (currentRecipe.length === 0) {
+        currentRecipeList.innerHTML = '<li>No hay ingredientes añadidos al plato.</li>';
+        return;
+      }
+      currentRecipe.forEach((row, index) => {
+        const ingredient = ingredients.find(item => item.id === row.ingredientId);
+        const li = document.createElement("li");
+        li.innerHTML = `${escapeHtml(ingredient ? ingredient.name : "Ingrediente eliminado")}: ${formatNumber(row.qty)} ${escapeHtml(ingredient ? ingredient.unit : "")} por ración <button class="danger" style="padding:3px 7px;margin-left:6px" onclick="removeRecipeIngredient(${index})">Quitar</button>`;
+        currentRecipeList.appendChild(li);
+      });
+    }
+
+
+    function normalizeSearch(text) {
+      return String(text || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function containsSearchText(text, query) {
+      const cleanQuery = normalizeSearch(query);
+      if (!cleanQuery) return true;
+      return normalizeSearch(text).includes(cleanQuery);
+    }
+
+    function ingredientMatchesSearch(ingredient, query) {
+      const familyName = typeof getFamilyName === "function" ? getFamilyName(ingredient.familyId) : "";
+      const productText = (ingredient.products || [])
+        .map(product => `${product.barcode || ""} ${product.brand || ""}`)
+        .join(" ");
+
+      return containsSearchText([
+        ingredient.name,
+        ingredient.unit,
+        familyName,
+        productText
+      ].join(" "), query);
+    }
+
+    function dishMatchesSearch(dish, query) {
+      const recipeText = (dish.recipe || [])
+        .map(row => {
+          const ingredient = ingredients.find(item => item.id === row.ingredientId);
+          return ingredient ? ingredient.name : "";
+        })
+        .join(" ");
+
+      return containsSearchText([
+        dish.name,
+        dish.unit,
+        dish.notes,
+        getPackName(dish.packId),
+        dish.category,
+        normalizeTags(dish.tags).join(" "),
+        dish.prepTime,
+        dish.difficulty,
+        recipeText
+      ].join(" "), query);
+    }
+
+    function renderIngredients() {
+      ingredientList.innerHTML = "";
+
+      if (ingredients.length === 0) {
+        ingredientList.innerHTML = '<div class="empty">Añade ingredientes para crear platos.</div>';
+        if (ingredientSearchMeta) ingredientSearchMeta.textContent = "0 ingredientes";
+        return;
+      }
+
+      const rawQuery = ingredientSearchInput ? ingredientSearchInput.value : "";
+      const required = getIngredientRequiredFromPlan();
+      const visibleIngredients = ingredients
+        .filter(ingredient => ingredientMatchesSearch(ingredient, rawQuery))
+        .sort((a, b) => {
+          const familyCompare = getFamilyName(a.familyId).localeCompare(getFamilyName(b.familyId), "es");
+          return familyCompare || a.name.localeCompare(b.name, "es");
+        });
+
+      if (ingredientSearchMeta) {
+        ingredientSearchMeta.textContent = rawQuery.trim()
+          ? `${visibleIngredients.length} de ${ingredients.length} ingrediente/s coinciden con "${rawQuery}"`
+          : `${ingredients.length} ingrediente/s`;
+      }
+
+      if (visibleIngredients.length === 0) {
+        ingredientList.innerHTML = '<div class="empty">No hay ingredientes que coincidan con la búsqueda.</div>';
+        return;
+      }
+
+      visibleIngredients.forEach(ingredient => {
+        const needed = required[ingredient.id]?.qty || 0;
+        const available = ingredient.available ? ingredient.qty : 0;
+        const remaining = available - needed;
+        const badgeClass = remaining < 0 ? "zero" : remaining === 0 ? "warn" : "ok";
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <div class="item-top">
+            <div>
+              <div class="item-name">${escapeHtml(ingredient.name)}</div>
+              <div class="muted">Familia: ${escapeHtml(getFamilyName(ingredient.familyId))}</div>
+              ${ingredient.approxPrice ? `<div class="muted">Precio aprox.: ${formatCurrency(ingredient.approxPrice)}</div>` : ""}
+              <div class="muted">Tienes: ${ingredient.available ? formatNumber(ingredient.qty) : "0"} ${escapeHtml(ingredient.unit)} · Necesario para cocinar esta semana: ${formatNumber(needed)} ${escapeHtml(ingredient.unit)}</div>
+              <div class="muted">${ingredient.available ? "Marcado como disponible" : "Marcado como no disponible"}</div>
+              ${(ingredient.products || []).length ? `<ul class="recipe-list">${ingredient.products.map(product => `<li>${escapeHtml(product.brand || "Producto")} ${product.barcode ? "· " + escapeHtml(product.barcode) : ""}: ${formatNumber(product.packageQty)} ${escapeHtml(product.packageUnit)} · ${formatCurrency(product.price)}</li>`).join("")}</ul>` : `<div class="muted">Sin códigos de barras asociados.</div>`}
+            </div>
+            <span class="badge ${badgeClass}">${remaining >= 0 ? formatNumber(remaining) + " quedan" : "faltan " + formatNumber(Math.abs(remaining))}</span>
           </div>
           <div class="mini-actions">
-            <button class="ghost" onclick="editFood('${food.id}')">Editar</button>
-            <button class="ghost" onclick="makeFavoriteFromFood('${food.id}')">Guardar como favorito</button>
-            <button class="danger" onclick="deleteFood('${food.id}')">Eliminar</button>
+            <button class="ghost" onclick="editIngredient('${ingredient.id}')">Editar</button>
+            <button class="danger" onclick="deleteIngredient('${ingredient.id}')">Eliminar</button>
+          </div>`;
+        ingredientList.appendChild(div);
+      });
+    }
+
+    function renderDishes() {
+      dishList.innerHTML = "";
+
+      if (dishes.length === 0) {
+        dishList.innerHTML = '<div class="empty">Añade platos para planificar el calendario.</div>';
+        if (dishSearchMeta) dishSearchMeta.textContent = "0 platos";
+        return;
+      }
+
+      const rawQuery = dishSearchInput ? dishSearchInput.value : "";
+      const selectedPackId = dishPackFilterSelect ? dishPackFilterSelect.value : "";
+      const planned = getPlannedDishCounts();
+      const visibleDishes = dishes
+        .filter(dish => dishMatchesSearch(dish, rawQuery))
+        .filter(dish => !selectedPackId || dish.packId === selectedPackId)
+        .sort((a, b) => {
+          const packCompare = getPackName(a.packId).localeCompare(getPackName(b.packId), "es");
+          return packCompare || a.name.localeCompare(b.name, "es");
+        });
+
+      if (dishSearchMeta) {
+        dishSearchMeta.textContent = rawQuery.trim()
+          ? `${visibleDishes.length} de ${dishes.length} plato/s coinciden con "${rawQuery}"`
+          : `${dishes.length} plato/s`;
+      }
+
+      if (visibleDishes.length === 0) {
+        dishList.innerHTML = '<div class="empty">No hay platos que coincidan con la búsqueda.</div>';
+        return;
+      }
+
+      visibleDishes.forEach(dish => {
+        const used = planned[dish.id] || 0;
+        const remaining = dish.qty - used;
+        const badgeClass = remaining < 0 ? "zero" : remaining === 0 ? "warn" : "ok";
+        const recipeHtml = dish.recipe.length ? `<ul class="recipe-list">${dish.recipe.map(row => {
+          const ing = ingredients.find(i => i.id === row.ingredientId);
+          return `<li>${escapeHtml(ing ? ing.name : "Ingrediente eliminado")}: ${formatNumber(row.qty)} ${escapeHtml(ing ? ing.unit : "")} por ración</li>`;
+        }).join("")}</ul>` : '<div class="muted">Sin receta asociada.</div>';
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <div class="item-top">
+            <div>
+              <div class="item-name">${escapeHtml(dish.name)} ${favoriteIds.includes(dish.id) ? '<span class="badge favorite">Favorito</span>' : ''}</div>
+              <div class="muted">Pack: ${escapeHtml(getPackName(dish.packId))}</div>
+              ${dish.category ? `<div class="muted">Categoría: ${escapeHtml(dish.category)}</div>` : ""}
+              ${tagsHtml(dish.tags)}
+              ${(dish.prepTime || dish.difficulty || dish.approxPrice) ? `<div class="muted">${dish.prepTime ? "Tiempo: " + escapeHtml(dish.prepTime) + " · " : ""}${dish.difficulty ? "Dificultad: " + escapeHtml(dish.difficulty) + " · " : ""}${dish.approxPrice ? "Precio aprox.: " + formatCurrency(dish.approxPrice) : ""}</div>` : ""}
+              <div class="muted">Raciones preparadas: ${dish.qty} ${escapeHtml(dish.unit)} · Planificadas esta semana: ${used}</div>
+              ${dish.notes ? `<div class="muted">${escapeHtml(dish.notes)}</div>` : ""}
+            </div>
+            <span class="badge ${badgeClass}">${remaining >= 0 ? remaining + " quedan" : "faltan " + Math.abs(remaining)}</span>
           </div>
-        `;
-        stockList.appendChild(div);
+          ${recipeHtml}
+          <div class="mini-actions">
+            <button class="ghost" onclick="editDish('${dish.id}')">Editar</button>
+            <button class="ghost" onclick="toggleFavorite('${dish.id}')">${favoriteIds.includes(dish.id) ? "Quitar favorito" : "Favorito"}</button>
+            <button class="danger" onclick="deleteDish('${dish.id}')">Eliminar</button>
+          </div>`;
+        dishList.appendChild(div);
       });
     }
 
     function renderFavorites() {
       favoriteList.innerHTML = "";
-      favoriteSelect.innerHTML = "";
-
+      const favorites = dishes.filter(dish => favoriteIds.includes(dish.id));
       if (favorites.length === 0) {
-        favoriteList.innerHTML = '<div class="empty">Todavía no tienes favoritos.</div>';
-        favoriteSelect.innerHTML = '<option value="">No hay favoritos</option>';
+        favoriteList.innerHTML = '<div class="empty">Todavía no tienes platos favoritos.</div>';
         return;
       }
-
-      favorites.forEach(favorite => {
-        const option = document.createElement("option");
-        option.value = favorite.id;
-        option.textContent = favorite.name;
-        favoriteSelect.appendChild(option);
-
+      favorites.forEach(dish => {
         const div = document.createElement("div");
-        div.className = "favorite-item";
-        div.innerHTML = `
-          <div class="food-top">
-            <div>
-              <div class="food-name">${escapeHtml(favorite.name)}</div>
-              <div class="muted">Unidad habitual: ${escapeHtml(favorite.unit || "unidades")}</div>
-              ${favorite.notes ? `<div class="muted">${escapeHtml(favorite.notes)}</div>` : ""}
-            </div>
-            <span class="badge favorite">Habitual</span>
-          </div>
-          <div class="mini-actions">
-            <button class="ghost" onclick="loadFavoriteIntoForm('${favorite.id}')">Usar para añadir</button>
-            <button class="danger" onclick="deleteFavorite('${favorite.id}')">Eliminar favorito</button>
-          </div>
-        `;
+        div.className = "item";
+        const recipeHtml = dish.recipe.length ? `<ul class="recipe-list">${dish.recipe.map(row => {
+          const ing = ingredients.find(i => i.id === row.ingredientId);
+          return `<li>${escapeHtml(ing ? ing.name : "Ingrediente eliminado")}: ${formatNumber(row.qty)} ${escapeHtml(ing ? ing.unit : "")} por ración</li>`;
+        }).join("")}</ul>` : '<div class="muted">Sin receta asociada.</div>';
+        div.innerHTML = `<div class="item-top"><div><div class="item-name">${escapeHtml(dish.name)}</div><div class="muted">Pack: ${escapeHtml(getPackName(dish.packId))}${dish.category ? " · " + escapeHtml(dish.category) : ""}</div>
+            ${tagsHtml(dish.tags)}
+            <div class="muted">${escapeHtml(dish.notes || "Plato habitual")}</div></div><span class="badge favorite">Favorito</span></div>${recipeHtml}<div class="mini-actions"><button class="ghost" onclick="editDish('${dish.id}')">Editar plato</button><button class="danger" onclick="toggleFavorite('${dish.id}')">Quitar favorito</button></div>`;
         favoriteList.appendChild(div);
       });
-
-      const selectedFavorite = favorites.find(fav => fav.id === favoriteSelect.value) || favorites[0];
-      if (selectedFavorite && !favoriteUnitToAdd.value) {
-        favoriteUnitToAdd.value = selectedFavorite.unit || "unidades";
-      }
     }
 
     function renderConfig() {
       memberList.innerHTML = "";
       mealList.innerHTML = "";
-
       familyMembers.forEach(member => {
         const div = document.createElement("div");
-        div.className = "config-item";
-        div.innerHTML = `
-          <div class="food-top">
-            <div class="food-name">${escapeHtml(member.name)}</div>
-            <span class="badge member">Miembro</span>
-          </div>
-          <div class="mini-actions">
-            <button class="danger" onclick="deleteMember('${member.id}')">Eliminar</button>
-          </div>
-        `;
+        div.className = "item";
+        div.innerHTML = `<div class="item-top"><div class="item-name">${escapeHtml(member.name)}</div><span class="badge member">Miembro</span></div><div class="mini-actions"><button class="danger" onclick="deleteMember('${member.id}')">Eliminar</button></div>`;
         memberList.appendChild(div);
       });
-
       mealTypes.forEach(meal => {
         const div = document.createElement("div");
-        div.className = "config-item";
-        div.innerHTML = `
-          <div class="food-top">
-            <div class="food-name">${escapeHtml(meal.name)}</div>
-            <span class="badge favorite">Comida</span>
-          </div>
-          <div class="mini-actions">
-            <button class="danger" onclick="deleteMeal('${meal.id}')">Eliminar</button>
-          </div>
-        `;
+        div.className = "item";
+        div.innerHTML = `<div class="item-top"><div class="item-name">${escapeHtml(meal.name)}</div><span class="badge favorite">Comida</span></div><div class="mini-actions"><button class="danger" onclick="deleteMeal('${meal.id}')">Eliminar</button></div>`;
         mealList.appendChild(div);
       });
-
-      if (familyMembers.length === 0) {
-        memberList.innerHTML = '<div class="empty">Añade al menos un miembro para usar el calendario.</div>';
-      }
-
-      if (mealTypes.length === 0) {
-        mealList.innerHTML = '<div class="empty">Añade al menos un tipo de comida para usar el calendario.</div>';
-      }
     }
 
     function renderCalendar() {
       calendar.innerHTML = "";
-
-      if (mealTypes.length === 0 || familyMembers.length === 0) {
-        calendar.innerHTML = '<div class="empty">Configura al menos un miembro y un tipo de comida para crear el calendario.</div>';
+      if (mealTypes.length === 0 || familyMembers.length === 0 || dishes.length === 0) {
+        calendar.innerHTML = '<div class="empty">Añade platos, miembros y tipos de comida para crear el calendario.</div>';
         return;
+      }
+
+      const plan = getPlan();
+      const rawCalendarQueryForMeta = calendarDishSearchInput ? calendarDishSearchInput.value : "";
+      if (calendarDishSearchMeta) {
+        const selectedCalendarPackId = calendarPackFilterSelect ? calendarPackFilterSelect.value : "";
+        const count = dishes
+          .filter(dish => dishMatchesSearch(dish, rawCalendarQueryForMeta))
+          .filter(dish => !selectedCalendarPackId || dish.packId === selectedCalendarPackId)
+          .length;
+        const packText = selectedCalendarPackId ? ` · pack: ${getPackName(selectedCalendarPackId)}` : "";
+        calendarDishSearchMeta.textContent = rawCalendarQueryForMeta.trim() || selectedCalendarPackId
+          ? `${count} de ${dishes.length} plato/s disponibles${packText}${rawCalendarQueryForMeta.trim() ? ` · búsqueda: "${rawCalendarQueryForMeta}"` : ""}`
+          : "Este filtro reduce los platos que aparecen en los desplegables del calendario.";
       }
 
       days.forEach(day => {
@@ -776,7 +1836,8 @@
 
           familyMembers.forEach(member => {
             const slotId = makeSlotId(day, meal.id, member.id);
-            const selectedFoodId = plan[slotId] || "";
+            const selectedDishIds = getSlotDishIds(slotId);
+
             const memberSlot = document.createElement("div");
             memberSlot.className = "member-slot";
 
@@ -784,33 +1845,60 @@
             label.textContent = member.name;
             memberSlot.appendChild(label);
 
+            const selectedList = document.createElement("div");
+            selectedList.className = "selected-dishes";
+
+            if (selectedDishIds.length === 0) {
+              selectedList.innerHTML = '<div class="muted">Sin platos añadidos.</div>';
+            } else {
+              selectedDishIds.forEach((dishId, index) => {
+                const dish = dishes.find(item => item.id === dishId);
+                const row = document.createElement("div");
+                row.className = "selected-dish-row";
+                row.innerHTML = `
+                  <span class="badge favorite">${escapeHtml(dish ? dish.name : "Plato eliminado")}</span>
+                  <button type="button" class="danger" onclick="removeDishFromSlot('${slotId}', ${index})">×</button>
+                `;
+                selectedList.appendChild(row);
+              });
+            }
+
             const select = document.createElement("select");
             select.dataset.slot = slotId;
-            select.innerHTML = `<option value="">Sin asignar</option>`;
+            select.innerHTML = `<option value="">Añadir plato...</option>`;
 
-            foods.forEach(food => {
-              const remaining = getRemaining(food.id);
-              const isSelectedHere = selectedFoodId === food.id;
+            const rawCalendarQuery = calendarDishSearchInput ? calendarDishSearchInput.value : "";
+            const selectedCalendarPackId = calendarPackFilterSelect ? calendarPackFilterSelect.value : "";
+            const filteredCalendarDishes = dishes
+              .filter(dish => dishMatchesSearch(dish, rawCalendarQuery))
+              .filter(dish => !selectedCalendarPackId || dish.packId === selectedCalendarPackId)
+              .sort((a, b) => {
+                const packCompare = getPackName(a.packId).localeCompare(getPackName(b.packId), "es");
+                return packCompare || a.name.localeCompare(b.name, "es");
+              });
 
-              if (remaining > 0 || isSelectedHere) {
-                const option = document.createElement("option");
-                option.value = food.id;
-                option.textContent = `${food.name} (${remaining} disponibles)`;
-                if (isSelectedHere) option.selected = true;
-                select.appendChild(option);
-              }
+            filteredCalendarDishes.forEach(dish => {
+              const remaining = getDishRemaining(dish.id);
+              const option = document.createElement("option");
+              option.value = dish.id;
+              option.textContent = `${dish.name} (${remaining >= 0 ? remaining + " preparadas" : "cocinar " + Math.abs(remaining)})`;
+              select.appendChild(option);
             });
 
             select.addEventListener("change", event => {
-              if (event.target.value) {
-                plan[event.target.dataset.slot] = event.target.value;
-              } else {
-                delete plan[event.target.dataset.slot];
-              }
+              const dishId = event.target.value;
+              if (!dishId) return;
+
+              const activePlan = getPlan();
+              const slotDishes = getSlotDishIds(event.target.dataset.slot);
+              slotDishes.push(dishId);
+              activePlan[event.target.dataset.slot] = slotDishes;
+
               saveData();
               renderAll();
             });
 
+            memberSlot.appendChild(selectedList);
             memberSlot.appendChild(select);
             mealBlock.appendChild(memberSlot);
           });
@@ -822,153 +1910,384 @@
       });
     }
 
-    function renderSummary() {
-      summary.innerHTML = "";
+    function getSlotDishIds(slotId) {
+      const value = getPlan()[slotId];
+      if (Array.isArray(value)) return value.slice();
+      if (value) return [value];
+      return [];
+    }
 
-      if (foods.length === 0) {
-        summary.innerHTML = '<div class="empty">Añade alimentos para ver el resumen.</div>';
-        return;
+    window.removeDishFromSlot = function(slotId, index) {
+      const activePlan = getPlan();
+      const slotDishes = getSlotDishIds(slotId);
+      slotDishes.splice(index, 1);
+
+      if (slotDishes.length > 0) activePlan[slotId] = slotDishes;
+      else delete activePlan[slotId];
+
+      saveData();
+      renderAll();
+    };
+
+
+    function getIngredientEstimatedPrice(ingredient, missingQty) {
+      if (!ingredient) return 0;
+
+      const products = Array.isArray(ingredient.products) ? ingredient.products : [];
+      const validProducts = products
+        .map(product => ({
+          price: Number(product.price) || 0,
+          packageQty: Number(product.packageQty) || 0
+        }))
+        .filter(product => product.price > 0 && product.packageQty > 0);
+
+      if (validProducts.length) {
+        const best = validProducts
+          .map(product => ({ unitPrice: product.price / product.packageQty, product }))
+          .sort((a, b) => a.unitPrice - b.unitPrice)[0];
+        return best.unitPrice * missingQty;
       }
 
-      const usedCounts = getUsedCounts();
+      if (ingredient.approxPrice && ingredient.qty > 0) {
+        return (Number(ingredient.approxPrice) / Number(ingredient.qty)) * missingQty;
+      }
 
-      foods.forEach(food => {
-        const used = usedCounts[food.id] || 0;
-        const remaining = food.qty - used;
+      return 0;
+    }
+
+    function buildShoppingList() {
+      const planned = getPlannedDishCounts();
+      const items = [];
+      const ingredientNeeds = {};
+      dishes.forEach(dish => {
+        const used = planned[dish.id] || 0;
+        if (used <= 0) return;
+        const servingsToCook = Math.max(0, used - dish.qty);
+        if (servingsToCook > 0 && dish.recipe.length === 0) {
+          items.push({ name: dish.name, qty: servingsToCook, unit: dish.unit, type: "Plato sin stock", detail: `Planificado ${used}, preparado ${dish.qty}. No tiene receta para calcular ingredientes.`, estimatedCost: 0 });
+        }
+        dish.recipe.forEach(row => {
+          const ingredient = ingredients.find(item => item.id === row.ingredientId);
+          if (!ingredient || servingsToCook <= 0) return;
+          if (!ingredientNeeds[ingredient.id]) ingredientNeeds[ingredient.id] = { ingredient, required: 0, details: [] };
+          const amount = servingsToCook * (Number(row.qty) || 0);
+          ingredientNeeds[ingredient.id].required += amount;
+          ingredientNeeds[ingredient.id].details.push(`${dish.name}: ${servingsToCook} ración/es × ${formatNumber(row.qty)} ${ingredient.unit}`);
+        });
+      });
+      Object.values(ingredientNeeds).forEach(row => {
+        const available = row.ingredient.available ? row.ingredient.qty : 0;
+        const missing = Math.max(0, row.required - available);
+        if (missing > 0) {
+          const bestProduct = bestProductForIngredient(row.ingredient);
+          const estimatedCost = bestProduct ? missing * (bestProduct.price / bestProduct.packageQty) : 0;
+          items.push({ name: row.ingredient.name, qty: missing, unit: row.ingredient.unit, type: "Ingrediente", detail: `Necesitas ${formatNumber(row.required)} y tienes ${formatNumber(available)}. ${row.details.join(" · ")}`, ingredientId: row.ingredient.id, estimatedCost, priceSource: bestProduct ? `${bestProduct.brand || "Producto"}: ${formatCurrency(bestProduct.price)} / ${formatNumber(bestProduct.packageQty)} ${bestProduct.packageUnit}` : "Sin precio compatible" });
+        }
+      });
+      return items;
+    }
+
+    function shoppingText() {
+      const active = getActiveWeek();
+      const items = buildShoppingList();
+      if (items.length === 0) return `Lista de la compra · ${active.name}\n\nNo falta nada según la planificación actual.`;
+      const total = items.reduce((sum, item) => sum + (Number(item.estimatedCost) || 0), 0);
+      return `Lista de la compra · ${active.name}\nPresupuesto estimado: ${formatCurrency(total)}\n\n` + items.map(item => `- ${item.name}: ${formatNumber(item.qty)} ${item.unit} (${item.type})${item.estimatedCost ? " · aprox. " + formatCurrency(item.estimatedCost) : ""}`).join("\n");
+    }
+
+    function renderShoppingList() {
+      const items = buildShoppingList();
+      shoppingList.innerHTML = "";
+      const total = items.reduce((sum, item) => sum + (Number(item.estimatedCost) || 0), 0);
+      const pricedItems = items.filter(item => Number(item.estimatedCost) > 0).length;
+      budgetSummary.innerHTML = `<div class="budget-card"><span class="muted">Presupuesto estimado</span><strong>${formatCurrency(total)}</strong></div><div class="budget-card"><span class="muted">Artículos con precio</span><strong>${pricedItems} / ${items.length}</strong></div>`;
+      if (items.length === 0) {
+        budgetSummary.innerHTML = `<div class="budget-card"><span class="muted">Presupuesto estimado</span><strong>0,00 €</strong></div>`;
+        shoppingList.innerHTML = '<div class="empty">No falta nada según la planificación actual.</div>';
+        return;
+      }
+      items.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "item shopping-item";
+        div.innerHTML = `<input type="checkbox" /><div><strong>${escapeHtml(item.name)}</strong><div>${formatNumber(item.qty)} ${escapeHtml(item.unit)}${item.estimatedCost ? " · aprox. " + formatCurrency(item.estimatedCost) : ""}</div><small>${escapeHtml(item.detail)}</small><small>${escapeHtml(item.priceSource || "")}</small></div><span class="badge missing">${escapeHtml(item.type)}</span>`;
+        shoppingList.appendChild(div);
+      });
+    }
+
+    function renderSummary() {
+      summary.innerHTML = "";
+      const planned = getPlannedDishCounts();
+      dishes.forEach(dish => {
+        const used = planned[dish.id] || 0;
+        const remaining = dish.qty - used;
         const div = document.createElement("div");
         div.className = "summary-item";
-        div.innerHTML = `
-          <strong>${escapeHtml(food.name)}</strong>
-          <span>${remaining} de ${food.qty} ${escapeHtml(food.unit)} restantes</span>
-        `;
+        div.innerHTML = `<strong>${escapeHtml(dish.name)}</strong><span>${remaining >= 0 ? remaining + " " + dish.unit + " preparadas restantes" : "hay que cocinar " + Math.abs(remaining) + " " + dish.unit}</span>`;
         summary.appendChild(div);
       });
+      if (dishes.length === 0) summary.innerHTML = '<div class="empty">Añade platos para ver el resumen.</div>';
     }
 
     function renderAll() {
       cleanPlan();
+      renderWeekControls();
+      renderFamilySelect();
+      renderFamilies();
+      renderPackSelects();
+      renderPacks();
+      renderIngredientSelect();
+      renderCurrentRecipe();
+      renderIngredients();
+      renderBarcodeList();
+      renderDishes();
       renderFavorites();
       renderConfig();
-      renderStock();
       renderCalendar();
+      renderShoppingList();
       renderSummary();
       saveData();
     }
 
-    function resetForm() {
-      editingId.value = "";
-      foodName.value = "";
-      foodQty.value = 1;
-      foodUnit.value = "tuppers";
-      foodNotes.value = "";
-      saveFoodBtn.textContent = "Añadir alimento";
-      cancelEditBtn.style.display = "none";
+    function resetIngredientForm() {
+      editingIngredientId.value = "";
+      ingredientName.value = "";
+      ingredientQty.value = 0;
+      ingredientUnit.value = "unidades";
+      ingredientFamilySelect.value = "";
+      ingredientApproxPrice.value = "";
+      ingredientProducts.value = "";
+      ingredientAvailable.checked = true;
+      saveIngredientBtn.textContent = "Añadir ingrediente";
+      cancelIngredientEditBtn.style.display = "none";
     }
 
-    saveFoodBtn.addEventListener("click", () => {
-      const name = foodName.value.trim();
-      const qty = Number(foodQty.value);
-      const unit = foodUnit.value.trim() || "unidades";
-      const notes = foodNotes.value.trim();
+    function resetDishForm() {
+      editingDishId.value = "";
+      dishName.value = "";
+      dishQty.value = 0;
+      dishUnit.value = "raciones";
+      dishPackSelect.value = "";
+      dishCategory.value = "";
+      dishDietTags.value = "";
+      dishPrepTime.value = "";
+      dishDifficulty.value = "";
+      dishApproxPrice.value = "";
+      dishNotes.value = "";
+      currentRecipe = [];
+      saveDishBtn.textContent = "Añadir plato";
+      cancelDishEditBtn.style.display = "none";
+      renderCurrentRecipe();
+    }
 
-      if (!name) {
-        alert("Escribe el nombre del alimento.");
-        return;
-      }
-
-      if (Number.isNaN(qty) || qty < 0) {
-        alert("La cantidad debe ser un número igual o mayor que 0.");
-        return;
-      }
-
-      if (editingId.value) {
-        const food = foods.find(item => item.id === editingId.value);
-        if (food) {
-          food.name = name;
-          food.qty = qty;
-          food.unit = unit;
-          food.notes = notes;
-        }
+    saveIngredientBtn.addEventListener("click", () => {
+      const name = ingredientName.value.trim();
+      const qty = Number(ingredientQty.value);
+      const unit = ingredientUnit.value.trim() || "unidades";
+      const familyId = ingredientFamilySelect.value;
+      const approxPrice = Number(ingredientApproxPrice.value) || 0;
+      const products = parseProducts(ingredientProducts.value);
+      const available = ingredientAvailable.checked;
+      if (!name) return alert("Escribe el nombre del ingrediente.");
+      if (Number.isNaN(qty) || qty < 0) return alert("La cantidad debe ser igual o mayor que 0.");
+      if (editingIngredientId.value) {
+        const ingredient = ingredients.find(item => item.id === editingIngredientId.value);
+        if (ingredient) Object.assign(ingredient, { name, qty, unit, familyId, approxPrice, available, products });
       } else {
-        foods.push({ id: createId(), name, qty, unit, notes });
+        ingredients.push({ id: createId(), name, qty, unit, familyId, approxPrice, available, products });
       }
-
-      resetForm();
-      renderAll();
-      switchTab("stock");
-    });
-
-    cancelEditBtn.addEventListener("click", resetForm);
-
-    document.getElementById("saveFavoriteBtn").addEventListener("click", () => {
-      const name = favName.value.trim();
-      const unit = favUnit.value.trim() || "unidades";
-      const notes = favNotes.value.trim();
-
-      if (!name) {
-        alert("Escribe el nombre del favorito.");
-        return;
-      }
-
-      const existing = favorites.find(fav => fav.name.toLowerCase() === name.toLowerCase());
-      if (existing) {
-        existing.unit = unit;
-        existing.notes = notes;
-      } else {
-        favorites.push({ id: createId(), name, unit, notes });
-      }
-
-      favName.value = "";
-      favUnit.value = "raciones";
-      favNotes.value = "";
+      resetIngredientForm();
       renderAll();
     });
 
-    favoriteSelect.addEventListener("change", () => {
-      const favorite = favorites.find(fav => fav.id === favoriteSelect.value);
-      favoriteUnitToAdd.value = favorite ? favorite.unit || "unidades" : "";
+    cancelIngredientEditBtn.addEventListener("click", resetIngredientForm);
+
+    document.getElementById("addRecipeIngredientBtn").addEventListener("click", () => {
+      const ingredientId = recipeIngredientSelect.value;
+      const qty = Number(recipeIngredientQty.value);
+      if (!ingredientId) return alert("Añade o selecciona un ingrediente.");
+      if (Number.isNaN(qty) || qty <= 0) return alert("La cantidad por ración debe ser mayor que 0.");
+      const existing = currentRecipe.find(row => row.ingredientId === ingredientId);
+      if (existing) existing.qty = qty;
+      else currentRecipe.push({ ingredientId, qty });
+      recipeIngredientQty.value = 1;
+      renderCurrentRecipe();
     });
 
-    document.getElementById("addFavoriteToStockBtn").addEventListener("click", () => {
-      const favorite = favorites.find(fav => fav.id === favoriteSelect.value);
-      const qty = Number(favoriteQtyToAdd.value);
-      const unit = favoriteUnitToAdd.value.trim() || (favorite ? favorite.unit : "") || "unidades";
-
-      if (!favorite) {
-        alert("Selecciona un favorito.");
-        return;
+    saveDishBtn.addEventListener("click", () => {
+      const name = dishName.value.trim();
+      const qty = Number(dishQty.value);
+      const unit = dishUnit.value.trim() || "raciones";
+      const packId = dishPackSelect.value;
+      const category = dishCategory.value.trim();
+      const tags = normalizeTags(dishDietTags.value);
+      const prepTime = dishPrepTime.value.trim();
+      const difficulty = dishDifficulty.value.trim();
+      const approxPrice = Number(dishApproxPrice.value) || 0;
+      const notes = dishNotes.value.trim();
+      if (!name) return alert("Escribe el nombre del plato.");
+      if (Number.isNaN(qty) || qty < 0) return alert("Las raciones preparadas deben ser iguales o mayores que 0.");
+      if (editingDishId.value) {
+        const dish = dishes.find(item => item.id === editingDishId.value);
+        if (dish) Object.assign(dish, { name, qty, unit, packId, category, tags, prepTime, difficulty, approxPrice, notes, recipe: [...currentRecipe] });
+      } else {
+        dishes.push({ id: createId(), name, qty, unit, packId, category, tags, prepTime, difficulty, approxPrice, notes, recipe: [...currentRecipe] });
       }
+      resetDishForm();
+      renderAll();
+    });
 
-      if (Number.isNaN(qty) || qty <= 0) {
-        alert("La cantidad debe ser mayor que 0.");
-        return;
+    cancelDishEditBtn.addEventListener("click", resetDishForm);
+
+    document.getElementById("createWeekBtn").addEventListener("click", () => {
+      const name = newWeekName.value.trim() || `Semana ${weeks.length + 1}`;
+      const week = normalizeWeek({ name, plan: {} });
+      weeks.push(week);
+      activeWeekId = week.id;
+      newWeekName.value = "";
+      renderAll();
+      switchTab("calendar");
+    });
+
+    document.getElementById("duplicateWeekBtn").addEventListener("click", () => {
+      duplicateWeek(activeWeekId, newWeekName.value.trim());
+    });
+
+    document.getElementById("makeTypicalWeekBtn").addEventListener("click", () => {
+      markTypicalWeek(activeWeekId);
+    });
+
+    document.getElementById("applyTypicalWeekBtn").addEventListener("click", () => {
+      if (!typicalWeekPlan) return alert("Aún no has guardado ninguna semana tipo.");
+      const name = applyTypicalName.value.trim() || `Semana desde tipo ${weeks.length + 1}`;
+      const week = normalizeWeek({ name, plan: structuredCloneFallback(typicalWeekPlan) });
+      weeks.push(week);
+      activeWeekId = week.id;
+      applyTypicalName.value = "";
+      renderAll();
+      switchTab("calendar");
+    });
+
+    activeWeekSelect.addEventListener("change", () => {
+      activeWeekId = activeWeekSelect.value;
+      renderAll();
+    });
+
+    document.getElementById("renameWeekBtn").addEventListener("click", () => {
+      const name = renameWeekInput.value.trim();
+      if (!name) return alert("Escribe un nombre para la semana.");
+      getActiveWeek().name = name;
+      renderAll();
+    });
+
+    saveFamilyBtn.addEventListener("click", () => {
+      const name = familyName.value.trim();
+      if (!name) return alert("Escribe el nombre de la familia.");
+      if (ingredientFamilies.some(family => family.name.toLowerCase() === name.toLowerCase() && family.id !== editingFamilyId.value)) {
+        return alert("Esa familia ya existe.");
       }
+      if (editingFamilyId.value) {
+        const family = ingredientFamilies.find(item => item.id === editingFamilyId.value);
+        if (family) family.name = name;
+      } else {
+        ingredientFamilies.push({ id: createId(), name });
+      }
+      resetFamilyForm();
+      renderAll();
+    });
 
-      foods.push({
-        id: createId(),
-        name: favorite.name,
-        qty,
-        unit,
-        notes: favorite.notes || "Añadido desde favoritos"
+    cancelFamilyEditBtn.addEventListener("click", resetFamilyForm);
+
+    function resetFamilyForm() {
+      editingFamilyId.value = "";
+      familyName.value = "";
+      saveFamilyBtn.textContent = "Añadir familia";
+      cancelFamilyEditBtn.style.display = "none";
+    }
+
+    window.editFamily = function(id) {
+      const family = ingredientFamilies.find(item => item.id === id);
+      if (!family) return;
+      editingFamilyId.value = family.id;
+      familyName.value = family.name;
+      saveFamilyBtn.textContent = "Guardar familia";
+      cancelFamilyEditBtn.style.display = "inline-block";
+      switchTab("families");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    window.deleteFamily = function(id) {
+      const family = ingredientFamilies.find(item => item.id === id);
+      if (!family) return;
+      const count = ingredients.filter(ingredient => ingredient.familyId === id).length;
+      const message = count > 0
+        ? `"${family.name}" tiene ${count} ingrediente/s. Si la eliminas, esos ingredientes quedarán sin familia. ¿Continuar?`
+        : `¿Eliminar la familia "${family.name}"?`;
+      if (!confirm(message)) return;
+      ingredientFamilies = ingredientFamilies.filter(item => item.id !== id);
+      ingredients.forEach(ingredient => {
+        if (ingredient.familyId === id) ingredient.familyId = "";
       });
-
-      favoriteQtyToAdd.value = 1;
       renderAll();
-      switchTab("stock");
+    };
+
+    savePackBtn.addEventListener("click", () => {
+      const name = packName.value.trim();
+      if (!name) return alert("Escribe el nombre del pack.");
+      if (dishPacks.some(pack => normalizeSearch(pack.name) === normalizeSearch(name) && pack.id !== editingPackId.value)) {
+        return alert("Ese pack ya existe.");
+      }
+
+      if (editingPackId.value) {
+        const pack = dishPacks.find(item => item.id === editingPackId.value);
+        if (pack) pack.name = name;
+      } else {
+        dishPacks.push({ id: createId(), name });
+      }
+
+      resetPackForm();
+      renderAll();
     });
+
+    cancelPackEditBtn.addEventListener("click", resetPackForm);
+
+    function resetPackForm() {
+      editingPackId.value = "";
+      packName.value = "";
+      savePackBtn.textContent = "Añadir pack";
+      cancelPackEditBtn.style.display = "none";
+    }
+
+    window.editPack = function(id) {
+      const pack = dishPacks.find(item => item.id === id);
+      if (!pack) return;
+      editingPackId.value = pack.id;
+      packName.value = pack.name;
+      savePackBtn.textContent = "Guardar pack";
+      cancelPackEditBtn.style.display = "inline-block";
+      switchTab("packs");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    window.deletePack = function(id) {
+      const pack = dishPacks.find(item => item.id === id);
+      if (!pack) return;
+      const count = dishes.filter(dish => dish.packId === id).length;
+      const message = count > 0
+        ? `"${pack.name}" tiene ${count} plato/s. Si lo eliminas, esos platos quedarán sin clasificar. ¿Continuar?`
+        : `¿Eliminar el pack "${pack.name}"?`;
+      if (!confirm(message)) return;
+
+      dishPacks = dishPacks.filter(item => item.id !== id);
+      dishes.forEach(dish => {
+        if (dish.packId === id) dish.packId = "";
+      });
+      renderAll();
+    };
 
     document.getElementById("addMemberBtn").addEventListener("click", () => {
       const name = memberName.value.trim();
-      if (!name) {
-        alert("Escribe el nombre del miembro.");
-        return;
-      }
-
-      if (familyMembers.some(member => member.name.toLowerCase() === name.toLowerCase())) {
-        alert("Ese miembro ya existe.");
-        return;
-      }
-
+      if (!name) return alert("Escribe el nombre del miembro.");
+      if (familyMembers.some(member => member.name.toLowerCase() === name.toLowerCase())) return alert("Ese miembro ya existe.");
       familyMembers.push({ id: createId(), name });
       memberName.value = "";
       renderAll();
@@ -976,95 +2295,135 @@
 
     document.getElementById("addMealBtn").addEventListener("click", () => {
       const name = mealName.value.trim();
-      if (!name) {
-        alert("Escribe el nombre del tipo de comida.");
-        return;
-      }
-
-      if (mealTypes.some(meal => meal.name.toLowerCase() === name.toLowerCase())) {
-        alert("Ese tipo de comida ya existe.");
-        return;
-      }
-
+      if (!name) return alert("Escribe el nombre del tipo de comida.");
+      if (mealTypes.some(meal => meal.name.toLowerCase() === name.toLowerCase())) return alert("Ese tipo de comida ya existe.");
       mealTypes.push({ id: createId(), name });
       mealName.value = "";
       renderAll();
     });
 
-    window.editFood = function(id) {
-      const food = foods.find(item => item.id === id);
-      if (!food) return;
+    window.selectWeek = function(id) {
+      activeWeekId = id;
+      renderAll();
+      switchTab("calendar");
+    };
 
-      editingId.value = food.id;
-      foodName.value = food.name;
-      foodQty.value = food.qty;
-      foodUnit.value = food.unit;
-      foodNotes.value = food.notes || "";
-      saveFoodBtn.textContent = "Guardar cambios";
-      cancelEditBtn.style.display = "inline-block";
-      switchTab("add");
+    window.duplicateWeek = function(id, customName = "") {
+      const source = weeks.find(week => week.id === id);
+      if (!source) return;
+      const name = customName || `${source.name} copia`;
+      const week = normalizeWeek({
+        name,
+        plan: structuredCloneFallback(source.plan),
+        isTypical: false
+      });
+      weeks.push(week);
+      activeWeekId = week.id;
+      newWeekName.value = "";
+      renderAll();
+      switchTab("calendar");
+    };
+
+    window.markTypicalWeek = function(id) {
+      const week = weeks.find(item => item.id === id);
+      if (!week) return;
+      weeks.forEach(item => item.isTypical = false);
+      week.isTypical = true;
+      typicalWeekPlan = structuredCloneFallback(week.plan);
+      alert(`"${week.name}" se ha guardado como semana tipo.`);
+      renderAll();
+    };
+
+    window.deleteWeek = function(id) {
+      if (weeks.length === 1) return alert("Debe quedar al menos una semana.");
+      const week = weeks.find(item => item.id === id);
+      if (!week || !confirm(`¿Eliminar "${week.name}"?`)) return;
+      weeks = weeks.filter(item => item.id !== id);
+      if (activeWeekId === id) activeWeekId = weeks[0].id;
+      renderAll();
+    };
+
+    window.removeRecipeIngredient = function(index) {
+      currentRecipe.splice(index, 1);
+      renderCurrentRecipe();
+    };
+
+    window.editIngredient = function(id) {
+      const ingredient = ingredients.find(item => item.id === id);
+      if (!ingredient) return;
+      editingIngredientId.value = ingredient.id;
+      ingredientName.value = ingredient.name;
+      ingredientQty.value = ingredient.qty;
+      ingredientUnit.value = ingredient.unit;
+      ingredientFamilySelect.value = ingredient.familyId || "";
+      ingredientProducts.value = stringifyProducts(ingredient.products || []);
+      ingredientAvailable.checked = ingredient.available;
+      saveIngredientBtn.textContent = "Guardar ingrediente";
+      cancelIngredientEditBtn.style.display = "inline-block";
+      switchTab("ingredients");
       window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    window.deleteFood = function(id) {
-      const food = foods.find(item => item.id === id);
-      if (!food) return;
+    window.deleteIngredient = function(id) {
+      const ingredient = ingredients.find(item => item.id === id);
+      if (!ingredient) return;
+      const usedInDish = dishes.some(dish => dish.recipe.some(row => row.ingredientId === id));
+      const message = usedInDish ? `"${ingredient.name}" está usado en algún plato. Si lo eliminas, se quitará de esas recetas. ¿Continuar?` : `¿Eliminar "${ingredient.name}"?`;
+      if (!confirm(message)) return;
+      ingredients = ingredients.filter(item => item.id !== id);
+      dishes.forEach(dish => dish.recipe = dish.recipe.filter(row => row.ingredientId !== id));
+      renderAll();
+    };
 
-      if (!confirm(`¿Eliminar "${food.name}" del stock y de la planificación?`)) return;
+    window.editDish = function(id) {
+      const dish = dishes.find(item => item.id === id);
+      if (!dish) return;
+      editingDishId.value = dish.id;
+      dishName.value = dish.name;
+      dishQty.value = dish.qty;
+      dishUnit.value = dish.unit;
+      dishPackSelect.value = dish.packId || "";
+      dishCategory.value = dish.category || "";
+      dishDietTags.value = normalizeTags(dish.tags).join(", ");
+      dishPrepTime.value = dish.prepTime || "";
+      dishDifficulty.value = dish.difficulty || "";
+      dishApproxPrice.value = dish.approxPrice || "";
+      dishNotes.value = dish.notes || "";
+      currentRecipe = dish.recipe.map(row => ({ ...row }));
+      saveDishBtn.textContent = "Guardar plato";
+      cancelDishEditBtn.style.display = "inline-block";
+      renderCurrentRecipe();
+      switchTab("dishes");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
 
-      foods = foods.filter(item => item.id !== id);
-      Object.keys(plan).forEach(slot => {
-        if (plan[slot] === id) delete plan[slot];
+    window.deleteDish = function(id) {
+      const dish = dishes.find(item => item.id === id);
+      if (!dish || !confirm(`¿Eliminar "${dish.name}" del listado y de todas las semanas?`)) return;
+      dishes = dishes.filter(item => item.id !== id);
+      favoriteIds = favoriteIds.filter(favId => favId !== id);
+      weeks.forEach(week => {
+        Object.keys(week.plan).forEach(slot => {
+          const slotDishes = Array.isArray(week.plan[slot]) ? week.plan[slot] : (week.plan[slot] ? [week.plan[slot]] : []);
+          const cleaned = slotDishes.filter(dishId => dishId !== id);
+          if (cleaned.length > 0) week.plan[slot] = cleaned;
+          else delete week.plan[slot];
+        });
       });
       renderAll();
     };
 
-    window.makeFavoriteFromFood = function(id) {
-      const food = foods.find(item => item.id === id);
-      if (!food) return;
-
-      const existing = favorites.find(fav => fav.name.toLowerCase() === food.name.toLowerCase());
-      if (existing) {
-        existing.unit = food.unit;
-        existing.notes = food.notes || existing.notes;
-      } else {
-        favorites.push({ id: createId(), name: food.name, unit: food.unit, notes: food.notes || "" });
-      }
-
-      renderAll();
-      switchTab("favorites");
-    };
-
-    window.loadFavoriteIntoForm = function(id) {
-      const favorite = favorites.find(fav => fav.id === id);
-      if (!favorite) return;
-
-      resetForm();
-      foodName.value = favorite.name;
-      foodUnit.value = favorite.unit || "unidades";
-      foodNotes.value = favorite.notes || "";
-      switchTab("add");
-    };
-
-    window.deleteFavorite = function(id) {
-      const favorite = favorites.find(fav => fav.id === id);
-      if (!favorite) return;
-
-      if (!confirm(`¿Eliminar "${favorite.name}" de favoritos?`)) return;
-      favorites = favorites.filter(fav => fav.id !== id);
+    window.toggleFavorite = function(id) {
+      if (favoriteIds.includes(id)) favoriteIds = favoriteIds.filter(favId => favId !== id);
+      else favoriteIds.push(id);
       renderAll();
     };
 
     window.deleteMember = function(id) {
       const member = familyMembers.find(item => item.id === id);
       if (!member) return;
-
-      if (familyMembers.length === 1) {
-        alert("Debe quedar al menos un miembro para poder usar el calendario.");
-        return;
-      }
-
-      if (!confirm(`¿Eliminar a "${member.name}" y sus comidas planificadas?`)) return;
+      if (familyMembers.length === 1) return alert("Debe quedar al menos un miembro para poder usar el calendario.");
+      if (!confirm(`¿Eliminar a "${member.name}" y sus comidas planificadas en todas las semanas?`)) return;
       familyMembers = familyMembers.filter(item => item.id !== id);
       renderAll();
     };
@@ -1072,26 +2431,660 @@
     window.deleteMeal = function(id) {
       const meal = mealTypes.find(item => item.id === id);
       if (!meal) return;
-
-      if (mealTypes.length === 1) {
-        alert("Debe quedar al menos un tipo de comida para poder usar el calendario.");
-        return;
-      }
-
-      if (!confirm(`¿Eliminar "${meal.name}" y sus comidas planificadas?`)) return;
+      if (mealTypes.length === 1) return alert("Debe quedar al menos un tipo de comida para poder usar el calendario.");
+      if (!confirm(`¿Eliminar "${meal.name}" y sus comidas planificadas en todas las semanas?`)) return;
       mealTypes = mealTypes.filter(item => item.id !== id);
       renderAll();
     };
 
     document.getElementById("clearPlanBtn").addEventListener("click", () => {
-      if (!confirm("¿Vaciar toda la planificación semanal?")) return;
-      plan = {};
+      if (!confirm("¿Vaciar la planificación de esta semana?")) return;
+      setPlan({});
       renderAll();
     });
 
-    document.getElementById("printBtn").addEventListener("click", () => {
-      window.print();
+    function renderBarcodeList() {
+      barcodeList.innerHTML = "";
+      const rows = [];
+      ingredients.forEach(ingredient => {
+        (ingredient.products || []).forEach(product => rows.push({ ingredient, product }));
+      });
+      if (!rows.length) {
+        barcodeList.innerHTML = '<div class="empty">Todavía no hay códigos guardados. Puedes añadirlos desde esta pestaña o desde la ficha de cada ingrediente.</div>';
+        return;
+      }
+      rows.forEach(({ ingredient, product }) => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<div class="item-top"><div><div class="item-name">${escapeHtml(ingredient.name)}</div><div class="muted">${escapeHtml(product.brand || "Producto")} ${product.barcode ? "· " + escapeHtml(product.barcode) : ""}</div><div class="muted">${formatNumber(product.packageQty)} ${escapeHtml(product.packageUnit)} · ${formatCurrency(product.price)}</div></div><span class="badge favorite">Código</span></div><div class="mini-actions"><button class="ghost" onclick="loadProductIntoScanner('${ingredient.id}', '${escapeForAttr(product.barcode)}')">Usar</button><button class="danger" onclick="deleteProductBarcode('${ingredient.id}', '${escapeForAttr(product.barcode)}', '${escapeForAttr(product.brand)}')">Eliminar</button></div>`;
+        barcodeList.appendChild(div);
+      });
+    }
+
+    function fillScannerFromProduct(ingredient, product) {
+      quickIngredientSelect.value = ingredient.id;
+      scanBarcodeInput.value = product.barcode || scanBarcodeInput.value;
+      quickBrand.value = product.brand || "";
+      quickPackageQty.value = product.packageQty || 1;
+      quickPackageUnit.value = product.packageUnit || ingredient.unit;
+      quickPrice.value = product.price || "";
+      scannerStatus.textContent = `Detectado: ${ingredient.name}${product.brand ? " · " + product.brand : ""}`;
+    }
+
+    function handleBarcodeLookup() {
+      const barcode = scanBarcodeInput.value.trim();
+      if (!barcode) return alert("Escribe o escanea un código.");
+      const found = findBarcode(barcode);
+      if (found) fillScannerFromProduct(found.ingredient, found.product);
+      else scannerStatus.textContent = "Código no guardado. Selecciona un ingrediente y pulsa ‘Guardar código en ingrediente’.";
+    }
+
+    function saveProductFromScanner() {
+      const ingredient = ingredients.find(item => item.id === quickIngredientSelect.value);
+      if (!ingredient) return alert("Selecciona un ingrediente.");
+      const product = normalizeProduct({
+        barcode: scanBarcodeInput.value.trim(),
+        brand: quickBrand.value.trim(),
+        packageQty: Number(quickPackageQty.value),
+        packageUnit: quickPackageUnit.value.trim() || ingredient.unit,
+        price: Number(quickPrice.value)
+      });
+      if (!product.barcode && !product.brand) return alert("Añade al menos un código o una marca/variante.");
+      if (product.packageQty <= 0) return alert("La cantidad por envase debe ser mayor que 0.");
+      const index = (ingredient.products || []).findIndex(item => product.barcode && item.barcode === product.barcode);
+      if (!ingredient.products) ingredient.products = [];
+      if (index >= 0) ingredient.products[index] = product;
+      else ingredient.products.push(product);
+      ingredient.unit = ingredient.unit || product.packageUnit;
+      saveData();
+      renderAll();
+      scannerStatus.textContent = "Código/producto guardado.";
+    }
+
+    function quickUpdateStock() {
+      const ingredient = ingredients.find(item => item.id === quickIngredientSelect.value);
+      if (!ingredient) return alert("Selecciona un ingrediente.");
+      const packages = Number(quickPackages.value) || 1;
+      const packageQty = Number(quickPackageQty.value);
+      const packageUnit = quickPackageUnit.value.trim() || ingredient.unit;
+      if (packageQty <= 0) return alert("La cantidad por envase debe ser mayor que 0.");
+      if (!sameUnit(packageUnit, ingredient.unit)) {
+        if (!confirm(`La unidad del producto (${packageUnit}) no coincide con la del ingrediente (${ingredient.unit}). ¿Quieres cambiar la unidad del ingrediente a ${packageUnit}?`)) return;
+        ingredient.unit = packageUnit;
+      }
+      ingredient.qty = (Number(ingredient.qty) || 0) + packages * packageQty;
+      ingredient.available = true;
+      if (scanBarcodeInput.value.trim() || quickBrand.value.trim()) saveProductFromScanner();
+      else {
+        saveData();
+        renderAll();
+      }
+      scannerStatus.textContent = `Stock actualizado: ${ingredient.name} +${formatNumber(packages * packageQty)} ${ingredient.unit}`;
+    }
+
+    window.loadProductIntoScanner = function(ingredientId, barcode) {
+      const ingredient = ingredients.find(item => item.id === ingredientId);
+      if (!ingredient) return;
+      const product = (ingredient.products || []).find(item => item.barcode === barcode) || (ingredient.products || [])[0];
+      if (product) fillScannerFromProduct(ingredient, product);
+      switchTab("scanner");
+    };
+
+    window.deleteProductBarcode = function(ingredientId, barcode, brand) {
+      const ingredient = ingredients.find(item => item.id === ingredientId);
+      if (!ingredient) return;
+      if (!confirm("¿Eliminar este código/producto guardado?")) return;
+      ingredient.products = (ingredient.products || []).filter(item => !(item.barcode === barcode && item.brand === brand));
+      renderAll();
+    };
+
+    quickIngredientSelect.addEventListener("change", () => {
+      const ingredient = ingredients.find(item => item.id === quickIngredientSelect.value);
+      if (!ingredient) return;
+      quickPackageUnit.value = ingredient.unit;
+      const product = bestProductForIngredient(ingredient) || (ingredient.products || [])[0];
+      if (product) fillScannerFromProduct(ingredient, product);
     });
+
+    document.getElementById("findBarcodeBtn").addEventListener("click", handleBarcodeLookup);
+    document.getElementById("saveBarcodeBtn").addEventListener("click", saveProductFromScanner);
+    document.getElementById("quickUpdateStockBtn").addEventListener("click", quickUpdateStock);
+
+    document.getElementById("startScannerBtn").addEventListener("click", async () => {
+      const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+      const isSecure = window.isSecureContext || isLocalhost;
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        scannerStatus.textContent = "Este navegador no ofrece acceso a cámara desde esta página. Usa la entrada manual o abre el archivo desde localhost.";
+        return;
+      }
+
+      if (!isSecure) {
+        scannerStatus.textContent = "La cámara está bloqueada porque la página no está en un contexto seguro. Abre el archivo desde localhost o HTTPS. Mientras tanto puedes escribir el código manualmente.";
+        return;
+      }
+
+      if (!("BarcodeDetector" in window)) {
+        scannerStatus.textContent = "La cámara puede funcionar, pero este navegador no soporta BarcodeDetector para leer códigos. Usa Chrome/Edge en Android o introduce el código manualmente.";
+        return;
+      }
+
+      try {
+        scannerStatus.textContent = "Solicitando permiso de cámara...";
+        scannerStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+
+        scannerVideo.srcObject = scannerStream;
+        scannerVideo.style.display = "block";
+        await scannerVideo.play();
+
+        const detector = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"] });
+        scannerStatus.textContent = "Escaneando... apunta al código de barras y manténlo centrado.";
+
+        scannerTimer = setInterval(async () => {
+          try {
+            const codes = await detector.detect(scannerVideo);
+            if (codes.length) {
+              scanBarcodeInput.value = codes[0].rawValue;
+              handleBarcodeLookup();
+              stopScanner();
+            }
+          } catch {}
+        }, 700);
+      } catch (error) {
+        let message = "No se pudo acceder a la cámara.";
+
+        if (error && error.name === "NotAllowedError") {
+          message = "Permiso de cámara denegado. Pulsa el candado de la barra de direcciones, permite la cámara y recarga la página.";
+        } else if (error && error.name === "NotFoundError") {
+          message = "No se encontró ninguna cámara disponible en este dispositivo.";
+        } else if (error && error.name === "NotReadableError") {
+          message = "La cámara está ocupada por otra aplicación. Ciérrala y prueba de nuevo.";
+        } else if (error && error.name === "SecurityError") {
+          message = "El navegador bloqueó la cámara por seguridad. Abre la página desde HTTPS o localhost.";
+        }
+
+        scannerStatus.textContent = message + " También puedes introducir el código manualmente.";
+      }
+    });
+
+    document.getElementById("stopScannerBtn").addEventListener("click", stopScanner);
+
+    function stopScanner() {
+      if (scannerTimer) clearInterval(scannerTimer);
+      scannerTimer = null;
+      if (scannerStream) scannerStream.getTracks().forEach(track => track.stop());
+      scannerStream = null;
+      scannerVideo.style.display = "none";
+    }
+
+
+    function buildBackupData() {
+      return {
+        app: "gestor-comidas",
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        ingredientFamilies,
+        ingredients,
+        dishPacks,
+        dishes,
+        favoriteIds,
+        familyMembers,
+        mealTypes,
+        weeks,
+        activeWeekId,
+        typicalWeekPlan
+      };
+    }
+
+    function backupJsonString() {
+      return JSON.stringify(buildBackupData(), null, 2);
+    }
+
+    function updateExportPreview() {
+      const preview = document.getElementById("exportPreview");
+      if (preview) preview.value = backupJsonString();
+    }
+
+    document.getElementById("exportJsonBtn").addEventListener("click", () => {
+      const json = backupJsonString();
+      updateExportPreview();
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `gestor-comidas-backup-${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("copyJsonBtn").addEventListener("click", async () => {
+      const json = backupJsonString();
+      updateExportPreview();
+      try {
+        await navigator.clipboard.writeText(json);
+        alert("JSON copiado al portapapeles.");
+      } catch {
+        alert("No se pudo copiar automáticamente. Puedes copiarlo desde la vista previa.");
+      }
+    });
+
+    document.getElementById("importJsonFile").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      document.getElementById("importJsonText").value = text;
+    });
+
+    document.getElementById("importJsonBtn").addEventListener("click", () => {
+      const text = document.getElementById("importJsonText").value.trim();
+      if (!text) return alert("Selecciona un archivo JSON o pega el contenido de una copia.");
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        return alert("El JSON no es válido.");
+      }
+      if (!confirm("La importación reemplazará los datos actuales. ¿Continuar?")) return;
+
+      ingredientFamilies = Array.isArray(data.ingredientFamilies) ? data.ingredientFamilies.map(normalizeFamily) : ingredientFamilies;
+      ingredients = Array.isArray(data.ingredients) ? data.ingredients.map(normalizeIngredient) : [];
+      dishPacks = Array.isArray(data.dishPacks) ? data.dishPacks.map(normalizePack) : dishPacks;
+      dishes = Array.isArray(data.dishes) ? data.dishes.map(normalizeDish) : [];
+      favoriteIds = Array.isArray(data.favoriteIds) ? data.favoriteIds : [];
+      familyMembers = Array.isArray(data.familyMembers) ? data.familyMembers : [{ id: createId(), name: "Todos" }];
+      mealTypes = Array.isArray(data.mealTypes) ? data.mealTypes : [{ id: createId(), name: "Comida" }, { id: createId(), name: "Cena" }];
+      weeks = Array.isArray(data.weeks) ? data.weeks.map(normalizeWeek) : [normalizeWeek({ name: "Semana importada", plan: {} })];
+      activeWeekId = data.activeWeekId && weeks.some(week => week.id === data.activeWeekId) ? data.activeWeekId : weeks[0].id;
+      typicalWeekPlan = data.typicalWeekPlan || null;
+
+      saveData();
+      renderAll();
+      switchTab("ingredients");
+      alert("Datos importados correctamente.");
+    });
+
+    document.getElementById("clearAllDataBtn").addEventListener("click", () => {
+      if (!confirm("Esto borrará todos los datos guardados en este navegador. ¿Continuar?")) return;
+      [
+        "ingredientFamilies",
+        "ingredients",
+        "dishes",
+        "favoriteDishIds",
+        "familyMembers",
+        "mealTypes",
+        "savedWeeks",
+        "activeWeekId",
+        "typicalWeekPlan",
+        "weeklyPlan",
+        "foods",
+        "favoriteFoods"
+      ].forEach(key => localStorage.removeItem(key));
+      alert("Datos borrados. Recarga la página para empezar desde cero.");
+    });
+
+
+    function normalizeImportedIngredient(item) {
+      const familyName = item.family || item.familyName || "";
+      let familyId = item.familyId || "";
+
+      if (!familyId && familyName) {
+        let family = ingredientFamilies.find(existing => normalizeSearch(existing.name) === normalizeSearch(familyName));
+        if (!family) {
+          family = { id: createId(), name: familyName };
+          ingredientFamilies.push(family);
+        }
+        familyId = family.id;
+      }
+
+      return normalizeIngredient({
+        id: item.id || createId(),
+        name: item.name || item.nombre || "Ingrediente",
+        qty: Number(item.qty ?? item.cantidad ?? 0) || 0,
+        unit: item.unit || item.unidad || "unidades",
+        available: item.available ?? item.disponible ?? true,
+        familyId,
+        approxPrice: Number(item.approxPrice ?? item.priceApprox ?? item.precioAproximado ?? item.price ?? 0) || 0,
+        products: Array.isArray(item.products) ? item.products : (Array.isArray(item.barcodes) ? item.barcodes : [])
+      });
+    }
+
+    function extractIngredientsFromImport(data) {
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.ingredients)) return data.ingredients;
+      if (data && Array.isArray(data.ingredientes)) return data.ingredientes;
+      return null;
+    }
+
+    document.getElementById("importIngredientsFile").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      document.getElementById("importIngredientsText").value = text;
+    });
+
+    document.getElementById("importIngredientsBtn").addEventListener("click", () => {
+      const text = document.getElementById("importIngredientsText").value.trim();
+      if (!text) return alert("Selecciona un archivo JSON o pega una lista de ingredientes.");
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        return alert("El JSON de ingredientes no es válido.");
+      }
+
+      const importedItems = extractIngredientsFromImport(data);
+      if (!importedItems) {
+        return alert("No encuentro una lista de ingredientes. Usa un array JSON o un objeto con la clave ingredients.");
+      }
+
+      const mergeByName = document.getElementById("mergeIngredientsByName").checked;
+      let added = 0;
+      let updated = 0;
+
+      importedItems.forEach(rawItem => {
+        const imported = normalizeImportedIngredient(rawItem);
+        const existing = mergeByName
+          ? ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(imported.name))
+          : null;
+
+        if (existing) {
+          Object.assign(existing, {
+            name: imported.name,
+            qty: imported.qty,
+            unit: imported.unit,
+            available: imported.available,
+            familyId: imported.familyId || existing.familyId,
+            approxPrice: imported.approxPrice || existing.approxPrice || 0,
+            products: imported.products && imported.products.length ? imported.products : (existing.products || [])
+          });
+          updated++;
+        } else {
+          ingredients.push(imported);
+          added++;
+        }
+      });
+
+      saveData();
+      renderAll();
+      switchTab("ingredients");
+      alert(`Importación completada. Añadidos: ${added}. Actualizados: ${updated}.`);
+    });
+
+    document.getElementById("exportIngredientsBtn").addEventListener("click", () => {
+      const data = {
+        app: "gestor-comidas",
+        type: "ingredients-only",
+        exportedAt: new Date().toISOString(),
+        ingredientFamilies,
+        ingredients: ingredients.map(item => ({
+          ...item,
+          family: getFamilyName(item.familyId)
+        }))
+      };
+
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `gestor-comidas-ingredientes-${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+
+
+    function findOrCreateFamilyByName(name) {
+      const cleanName = String(name || "").trim();
+      if (!cleanName) return "";
+      let family = ingredientFamilies.find(item => normalizeSearch(item.name) === normalizeSearch(cleanName));
+      if (!family) {
+        family = { id: createId(), name: cleanName };
+        ingredientFamilies.push(family);
+      }
+      return family.id;
+    }
+
+    function findOrCreateIngredientFromRecipe(rawIngredient) {
+      const name = String(rawIngredient.name || rawIngredient.nombre || "").trim();
+      if (!name) return null;
+
+      let ingredient = ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(name));
+      const unit = rawIngredient.unit || rawIngredient.unidad || "unidades";
+      const familyId = rawIngredient.familyId || findOrCreateFamilyByName(rawIngredient.family || rawIngredient.familyName || rawIngredient.familia || "");
+
+      if (!ingredient) {
+        ingredient = normalizeIngredient({
+          id: createId(),
+          name,
+          qty: Number(rawIngredient.stock ?? rawIngredient.have ?? rawIngredient.tengo ?? rawIngredient.availableQty ?? 0) || 0,
+          unit,
+          available: rawIngredient.available ?? rawIngredient.disponible ?? true,
+          familyId,
+          approxPrice: Number(rawIngredient.approxPrice ?? rawIngredient.priceApprox ?? rawIngredient.precioAproximado ?? rawIngredient.price ?? 0) || 0,
+          products: Array.isArray(rawIngredient.products) ? rawIngredient.products : []
+        });
+        ingredients.push(ingredient);
+      } else {
+        if (!ingredient.familyId && familyId) ingredient.familyId = familyId;
+        if (!ingredient.unit && unit) ingredient.unit = unit;
+      }
+
+      return ingredient;
+    }
+
+    function normalizeImportedDish(rawDish, defaultPackId = "") {
+      const rawIngredients = rawDish.ingredients || rawDish.ingredientes || rawDish.recipe || rawDish.receta || [];
+      const recipe = [];
+
+      rawIngredients.forEach(rawIngredient => {
+        const ingredient = findOrCreateIngredientFromRecipe(rawIngredient);
+        if (!ingredient) return;
+        recipe.push({
+          ingredientId: ingredient.id,
+          qty: Number(rawIngredient.qty ?? rawIngredient.cantidad ?? rawIngredient.amount ?? 1) || 1
+        });
+      });
+
+      return normalizeDish({
+        id: rawDish.id || createId(),
+        name: rawDish.name || rawDish.nombre || "Plato",
+        qty: Number(rawDish.qty ?? rawDish.racionesPreparadas ?? rawDish.stock ?? 0) || 0,
+        unit: rawDish.unit || rawDish.unidad || "raciones",
+        packId: rawDish.packId || findOrCreatePackByName(rawDish.pack || rawDish.packName || rawDish.collection || rawDish.coleccion || "") || defaultPackId,
+        category: rawDish.category || rawDish.categoria || inferDishCategory(rawDish) || "",
+        tags: normalizeTags(rawDish.tags || rawDish.etiquetas || rawDish.dietTags || rawDish.dietaryTags || inferDishTags(rawDish)),
+        prepTime: rawDish.prepTime || rawDish.tiempo || rawDish.time || "",
+        difficulty: rawDish.difficulty || rawDish.dificultad || "",
+        approxPrice: Number(rawDish.approxPrice ?? rawDish.priceApprox ?? rawDish.precioAproximado ?? rawDish.price ?? 0) || 0,
+        notes: rawDish.notes || rawDish.notas || "",
+        recipe
+      });
+    }
+
+    function extractDishesFromImport(data) {
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.dishes)) return data.dishes;
+      if (data && Array.isArray(data.platos)) return data.platos;
+      if (data && Array.isArray(data.recipes)) return data.recipes;
+      if (data && Array.isArray(data.recetas)) return data.recetas;
+      return null;
+    }
+
+    document.getElementById("importDishesFile").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      document.getElementById("importDishesText").value = text;
+    });
+
+    document.getElementById("importDishesBtn").addEventListener("click", () => {
+      const text = document.getElementById("importDishesText").value.trim();
+      if (!text) return alert("Selecciona un archivo JSON o pega una lista de platos.");
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        return alert("El JSON de platos no es válido.");
+      }
+
+      const importedItems = extractDishesFromImport(data);
+      if (!importedItems) {
+        return alert("No encuentro una lista de platos. Usa un array JSON o un objeto con la clave dishes/platos.");
+      }
+
+      const mergeByName = document.getElementById("mergeDishesByName").checked;
+      const defaultPackId = findOrCreatePackByName(data.name || data.nombre || data.pack || data.collection || "Importado");
+      let addedDishes = 0;
+      let updatedDishes = 0;
+      const ingredientsBefore = ingredients.length;
+
+      importedItems.forEach(rawDish => {
+        const imported = normalizeImportedDish({
+          ...rawDish,
+          pack: rawDish.pack || rawDish.packName || rawDish.collection || rawDish.coleccion || data.name || data.nombre || data.pack || data.collection || "Importado"
+        }, defaultPackId);
+        const existing = mergeByName
+          ? dishes.find(item => normalizeSearch(item.name) === normalizeSearch(imported.name))
+          : null;
+
+        if (existing) {
+          Object.assign(existing, {
+            name: imported.name,
+            qty: imported.qty,
+            unit: imported.unit,
+            packId: imported.packId,
+            category: imported.category,
+            tags: imported.tags,
+            prepTime: imported.prepTime,
+            difficulty: imported.difficulty,
+            approxPrice: imported.approxPrice,
+            notes: imported.notes,
+            recipe: imported.recipe
+          });
+          updatedDishes++;
+        } else {
+          dishes.push(imported);
+          addedDishes++;
+        }
+      });
+
+      const addedIngredients = ingredients.length - ingredientsBefore;
+
+      saveData();
+      renderAll();
+      switchTab("dishes");
+      alert(`Importación completada. Platos añadidos: ${addedDishes}. Platos actualizados: ${updatedDishes}. Ingredientes creados: ${addedIngredients}.`);
+    });
+
+    document.getElementById("exportDishesBtn").addEventListener("click", () => {
+      const data = {
+        app: "gestor-comidas",
+        type: "dishes-with-ingredients",
+        exportedAt: new Date().toISOString(),
+        dishes: dishes.map(dish => ({
+          id: dish.id,
+          name: dish.name,
+          qty: dish.qty,
+          unit: dish.unit,
+          pack: getPackName(dish.packId),
+          category: dish.category || "",
+          tags: normalizeTags(dish.tags),
+          prepTime: dish.prepTime || "",
+          difficulty: dish.difficulty || "",
+          approxPrice: dish.approxPrice || 0,
+          notes: dish.notes,
+          ingredients: (dish.recipe || []).map(row => {
+            const ingredient = ingredients.find(item => item.id === row.ingredientId);
+            return {
+              name: ingredient ? ingredient.name : "Ingrediente eliminado",
+              qty: row.qty,
+              unit: ingredient ? ingredient.unit : "",
+              family: ingredient ? getFamilyName(ingredient.familyId) : ""
+            };
+          })
+        }))
+      };
+
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `gestor-comidas-platos-${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+
+    document.getElementById("printCalendarBtn").addEventListener("click", () => printMode("print-calendar"));
+    document.getElementById("printShoppingBtn").addEventListener("click", () => printMode("print-shopping"));
+
+    function printMode(mode) {
+      document.body.classList.remove("print-calendar", "print-shopping");
+      document.body.classList.add(mode);
+      window.print();
+      setTimeout(() => document.body.classList.remove(mode), 500);
+    }
+
+    document.getElementById("copyShoppingBtn").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(shoppingText());
+        alert("Lista copiada. Puedes pegarla en Tasks, WhatsApp, Notas o donde quieras.");
+      } catch {
+        alert("No se pudo copiar automáticamente. Puedes usar el botón de exportar a PDF.");
+      }
+    });
+
+    document.getElementById("shareShoppingBtn").addEventListener("click", async () => {
+      const text = shoppingText();
+      if (navigator.share) {
+        try { await navigator.share({ title: "Lista de la compra", text }); } catch {}
+      } else {
+        try {
+          await navigator.clipboard.writeText(text);
+          alert("Tu navegador no permite compartir directamente. He copiado la lista para pegarla en Tasks.");
+        } catch {
+          alert("Tu navegador no permite compartir directamente. Puedes exportar la lista a PDF.");
+        }
+      }
+    });
+
+    function structuredCloneFallback(value) {
+      if (typeof structuredClone === "function") return structuredClone(value);
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function formatNumber(value) {
+      const number = Number(value) || 0;
+      return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(".", ",").replace(/,?0+$/, "");
+    }
+
+    function formatCurrency(value) {
+      return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(Number(value) || 0);
+    }
+
+    function escapeForAttr(text) {
+      return String(text || "").replaceAll("\\", "\\\\").replaceAll("'", "\\'");
+    }
 
     function escapeHtml(text) {
       return String(text)
@@ -1102,7 +3095,119 @@
         .replaceAll("'", "&#039;");
     }
 
-    renderAll();
+
+    if (ingredientSearchInput) {
+      ingredientSearchInput.addEventListener("input", () => {
+        renderIngredients();
+      });
+    }
+
+    if (dishSearchInput) {
+      dishSearchInput.addEventListener("input", () => {
+        renderDishes();
+      });
+    }
+
+    if (dishPackFilterSelect) {
+      dishPackFilterSelect.addEventListener("change", () => {
+        renderDishes();
+      });
+    }
+
+    if (calendarPackFilterSelect) {
+      calendarPackFilterSelect.addEventListener("change", () => {
+        renderCalendar();
+      });
+    }
+
+    if (calendarDishSearchInput) {
+      calendarDishSearchInput.addEventListener("input", () => {
+        renderCalendar();
+      });
+    }
+
+    function showStartupError(error) {
+      console.error(error);
+      const box = document.getElementById("startup-error");
+      const msg = document.getElementById("startup-error-message");
+      if (box) box.style.display = "block";
+      if (msg) msg.textContent = "Error: " + (error && error.message ? error.message : String(error));
+    }
+
+    function emergencyBackupJson() {
+      const keys = [
+        "ingredientFamilies",
+        "ingredients",
+        "dishPacks",
+        "dishes",
+        "favoriteDishIds",
+        "familyMembers",
+        "mealTypes",
+        "savedWeeks",
+        "activeWeekId",
+        "typicalWeekPlan",
+        "weeklyPlan",
+        "foods",
+        "favoriteFoods"
+      ];
+
+      const data = {
+        app: "gestor-comidas",
+        type: "emergency-backup",
+        exportedAt: new Date().toISOString(),
+        localStorage: {}
+      };
+
+      keys.forEach(key => {
+        data.localStorage[key] = localStorage.getItem(key);
+      });
+
+      return JSON.stringify(data, null, 2);
+    }
+
+    document.getElementById("exportEmergencyBtn")?.addEventListener("click", () => {
+      const json = emergencyBackupJson();
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `gestor-comidas-emergencia-${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("clearEmergencyBtn")?.addEventListener("click", () => {
+      if (!confirm("Esto borrará los datos guardados solo en este navegador. Exporta antes una copia de emergencia si quieres conservarlos. ¿Continuar?")) return;
+      [
+        "ingredientFamilies",
+        "ingredients",
+        "dishPacks",
+        "dishes",
+        "favoriteDishIds",
+        "familyMembers",
+        "mealTypes",
+        "savedWeeks",
+        "activeWeekId",
+        "typicalWeekPlan",
+        "weeklyPlan",
+        "foods",
+        "favoriteFoods"
+      ].forEach(key => localStorage.removeItem(key));
+      location.reload();
+    });
+
+    try {
+      renderAll();
+    } catch (error) {
+      showStartupError(error);
+    }
+
+    if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1" && scannerStatus) {
+      scannerStatus.textContent = "Aviso: la cámara puede estar bloqueada porque esta página no está en HTTPS ni localhost. Puedes seguir usando códigos manuales.";
+    }
   </script>
 </body>
 </html>
