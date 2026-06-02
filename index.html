@@ -383,6 +383,42 @@
       color: var(--primary-dark);
     }
 
+
+    .remote-pack-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .remote-pack-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      background: linear-gradient(135deg, #ffffff, #eefaff);
+    }
+
+    .remote-pack-card input { width: auto; margin-top: 4px; }
+    .remote-pack-card .item-name { margin-bottom: 3px; }
+    .remote-pack-category { margin-top: 16px; color: var(--primary-dark); }
+    .locked-repo-box {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #f8fffd;
+      margin: 10px 0;
+    }
+
+    .code-block {
+      min-height: 190px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      white-space: pre;
+    }
+
     @media (max-width: 1120px) {
       .calendar { grid-template-columns: repeat(2, 1fr); }
       .two-columns { grid-template-columns: 1fr; }
@@ -598,6 +634,27 @@
         <div>
           <h2>Packs de platos</h2>
           <p class="muted">Clasifica los platos por colecciones: dieta mediterránea, vegano, diabetes, cenas ligeras, básicos diarios...</p>
+
+          <div class="scanner-box">
+            <h3>Biblioteca de packs oficial</h3>
+            <p class="help">La app solo lee archivos JSON de la carpeta <strong>packs</strong> del repositorio oficial <strong>WolcenOn/PlanificadorComidas</strong>. No se muestran campos para otros usuarios ni otros repositorios, así mantienes la calidad de los packs.</p>
+
+            <div class="locked-repo-box">
+              <strong>Repositorio bloqueado:</strong>
+              <div id="lockedRepoInfo" class="muted">Repositorio oficial bloqueado: WolcenOn/PlanificadorComidas · carpeta /packs.</div>
+              <div class="help">Estructura recomendada: <strong>packs/recetas</strong> para recetas y <strong>packs/ingredientes</strong> para listas de ingredientes. Se escanean también subcarpetas dentro de cada categoría.</div>
+            </div>
+
+            <div class="actions">
+              <button id="loadRemotePacksBtn" class="ghost" type="button">Escanear biblioteca oficial</button>
+              <button id="importSelectedRemotePacksBtn" type="button">Importar packs marcados</button>
+              <button id="selectAllRemotePacksBtn" class="ghost" type="button">Marcar todos</button>
+              <button id="copyPackPromptBtn" class="ghost" type="button">Copiar prompt ejemplo</button>
+            </div>
+
+            <div id="remotePacksStatus" class="help">Pulsa “Escanear biblioteca oficial” para leer los JSON publicados en /packs.</div>
+            <div id="remotePacksList" class="remote-pack-grid"></div>
+          </div>
 
           <input type="hidden" id="editingPackId" />
 
@@ -831,6 +888,15 @@
 
           <label for="exportPreview">Vista previa del JSON</label>
           <textarea id="exportPreview" readonly placeholder="Aquí aparecerá la copia de seguridad."></textarea>
+
+          <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+
+          <h2>Prompt para crear packs de recetas</h2>
+          <p class="muted">Copia este prompt en ChatGPT para generar un archivo JSON compatible con la importación de platos e ingredientes.</p>
+          <textarea id="packPromptExample" class="code-block" readonly></textarea>
+          <div class="actions">
+            <button id="copyPackPromptBackupBtn" class="ghost" type="button">Copiar prompt</button>
+          </div>
         </div>
 
         <div>
@@ -1037,6 +1103,18 @@
     const savePackBtn = document.getElementById("savePackBtn");
     const cancelPackEditBtn = document.getElementById("cancelPackEditBtn");
     const packList = document.getElementById("packList");
+    const remotePacksStatus = document.getElementById("remotePacksStatus");
+    const remotePacksList = document.getElementById("remotePacksList");
+    const lockedRepoInfo = document.getElementById("lockedRepoInfo");
+    const packPromptExample = document.getElementById("packPromptExample");
+    const OFFICIAL_PACKS_ROOT = "packs";
+    const OFFICIAL_REPO_OWNER = "WolcenOn";
+    const OFFICIAL_REPO_BRANCH = "main";
+    // Si usas dominio personalizado o una URL local y no se puede inferir el repositorio,
+    // escribe aquí el nombre exacto del repositorio de la web. En GitHub Pages normal se detecta solo.
+    const OFFICIAL_REPO_NAME_FALLBACK = "PlanificadorComidas";
+    let officialRepo = { owner: OFFICIAL_REPO_OWNER, repo: "", branch: OFFICIAL_REPO_BRANCH };
+    let remotePackFiles = [];
 
     const editingDishId = document.getElementById("editingDishId");
     const dishName = document.getElementById("dishName");
@@ -1558,6 +1636,385 @@
             </div>`;
           packList.appendChild(div);
         });
+    }
+
+    const packPromptText = `Necesito que generes un pack de recetas para mi aplicación web de gestor de comidas.
+Devuélveme SOLO JSON válido, sin markdown, sin comentarios y sin texto extra.
+
+Formato obligatorio:
+{
+  "app": "gestor-comidas",
+  "type": "dishes-with-ingredients",
+  "name": "Nombre del pack",
+  "description": "Descripción breve",
+  "dishes": [
+    {
+      "name": "Nombre del plato",
+      "qty": 0,
+      "unit": "raciones",
+      "pack": "Nombre del pack",
+      "category": "Legumbres / Verduras / Pescado / Carne / Cenas ligeras / Desayunos / etc.",
+      "tags": ["mediterránea", "fácil", "económica"],
+      "prepTime": "25 min",
+      "difficulty": "Fácil",
+      "approxPrice": 2.5,
+      "notes": "Notas de preparación o conservación",
+      "ingredients": [
+        { "name": "Ingrediente", "qty": 100, "unit": "g", "family": "Verdura", "approxPrice": 1.2 }
+      ]
+    }
+  ]
+}
+
+Reglas:
+- Usa nombres de ingredientes consistentes para que se fusionen correctamente.
+- qty de cada ingrediente es la cantidad por ración.
+- Incluye family en cada ingrediente.
+- No inventes IDs.
+- No uses unidades mezcladas para el mismo ingrediente dentro del pack.
+- Crea entre 10 y 20 recetas variadas.
+Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, batch cooking, infantil, etc.]
+Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes, usa type: "ingredients-only" y la clave ingredients, y guárdalo en packs/ingredientes/nombre.json.`;
+
+    function setupRemotePackDefaults() {
+      officialRepo = getOfficialRepoConfig();
+      if (lockedRepoInfo) {
+        lockedRepoInfo.textContent = officialRepo.repo
+          ? `${officialRepo.owner}/${officialRepo.repo} · rama ${officialRepo.branch} · carpeta /${OFFICIAL_PACKS_ROOT}`
+          : `No se ha podido detectar el repositorio. Revisa OFFICIAL_REPO_NAME_FALLBACK en el HTML.`;
+      }
+      if (packPromptExample) packPromptExample.value = packPromptText;
+    }
+
+    function getOfficialRepoConfig() {
+      const inferred = inferGitHubRepoFromLocation();
+      return {
+        owner: OFFICIAL_REPO_OWNER,
+        repo: inferred.repo || OFFICIAL_REPO_NAME_FALLBACK,
+        branch: OFFICIAL_REPO_BRANCH
+      };
+    }
+
+    function inferGitHubRepoFromLocation() {
+      const host = window.location.hostname;
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      if (!host.endsWith("github.io")) return { owner: OFFICIAL_REPO_OWNER, repo: "" };
+      const pageOwner = host.replace(".github.io", "");
+      const repo = parts[0] || `${pageOwner}.github.io`;
+      return { owner: pageOwner, repo };
+    }
+
+    function cleanRemotePath(path) {
+      return String(path || OFFICIAL_PACKS_ROOT).trim().replace(/^\/+|\/+$/g, "") || OFFICIAL_PACKS_ROOT;
+    }
+
+    function makeRelativeUrl(path) {
+      return cleanRemotePath(path).split("/").map(encodeURIComponent).join("/");
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+
+    function githubContentsUrl(path) {
+      const safePath = cleanRemotePath(path).split("/").map(encodeURIComponent).join("/");
+      return `https://api.github.com/repos/${encodeURIComponent(officialRepo.owner)}/${encodeURIComponent(officialRepo.repo)}/contents/${safePath}?ref=${encodeURIComponent(officialRepo.branch)}`;
+    }
+
+    function humanizePackCategory(category) {
+      const key = normalizeSearch(category || "otros");
+      if (key === "recetas" || key === "recipes" || key === "platos") return "Recetas";
+      if (key === "ingredientes" || key === "ingredients") return "Ingredientes";
+      return category ? category.charAt(0).toUpperCase() + category.slice(1) : "Otros";
+    }
+
+    function inferRemotePackType(pack, data = null) {
+      const path = normalizeSearch(pack.path || pack.filename || "");
+      const declared = normalizeSearch(data?.type || data?.tipo || pack.type || "");
+      if (declared.includes("ingredient") || declared.includes("ingrediente") || path.includes("/ingredientes/") || path.includes("/ingredients/")) return "ingredients";
+      if (declared.includes("dish") || declared.includes("recipe") || declared.includes("receta") || declared.includes("plato") || path.includes("/recetas/") || path.includes("/recipes/") || path.includes("/platos/")) return "dishes";
+      return "dishes";
+    }
+
+    function normalizeIndexPackItem(item, fallbackCategory = "") {
+      if (typeof item === "string") {
+        const path = cleanRemotePath(item);
+        const parts = path.split("/");
+        const filename = parts[parts.length - 1] || "pack.json";
+        const category = parts[1] || fallbackCategory || "recetas";
+        return {
+          name: filename.replace(/\.json$/i, ""),
+          description: "Archivo JSON de la biblioteca oficial",
+          url: makeRelativeUrl(path),
+          filename,
+          path,
+          category,
+          type: category === "ingredientes" ? "ingredients" : "dishes"
+        };
+      }
+      const path = cleanRemotePath(item.path || item.file || item.filename || item.url || "");
+      const filename = item.filename || item.file || path.split("/").pop() || item.name || "pack.json";
+      const category = item.category || item.categoria || path.split("/")[1] || fallbackCategory || "recetas";
+      return {
+        name: item.name || item.title || filename.replace(/\.json$/i, ""),
+        description: item.description || item.descripcion || "Archivo JSON de la biblioteca oficial",
+        url: item.url || makeRelativeUrl(path),
+        filename,
+        path,
+        category,
+        type: item.type || item.tipo || (category === "ingredientes" ? "ingredients" : "dishes")
+      };
+    }
+
+    async function scanOfficialPacksDirectory(path = OFFICIAL_PACKS_ROOT, category = "") {
+      const contents = await fetchJson(githubContentsUrl(path));
+      if (!Array.isArray(contents)) return [];
+      const found = [];
+      const directories = [];
+
+      contents.forEach(item => {
+        if (item.type === "file" && item.name.toLowerCase().endsWith(".json") && item.name.toLowerCase() !== "index.json") {
+          const itemPath = cleanRemotePath(item.path || `${path}/${item.name}`);
+          const relativeParts = itemPath.split("/");
+          const inferredCategory = category || relativeParts[1] || "recetas";
+          found.push({
+            name: item.name.replace(/\.json$/i, ""),
+            description: `Archivo JSON en /${itemPath}`,
+            url: item.download_url || makeRelativeUrl(itemPath),
+            filename: item.name,
+            path: itemPath,
+            category: inferredCategory,
+            type: inferredCategory === "ingredientes" ? "ingredients" : "dishes"
+          });
+        } else if (item.type === "dir") {
+          const childPath = cleanRemotePath(item.path || `${path}/${item.name}`);
+          const rootParts = childPath.split("/");
+          directories.push({
+            path: childPath,
+            category: category || rootParts[1] || item.name
+          });
+        }
+      });
+
+      for (const directory of directories) {
+        try {
+          found.push(...await scanOfficialPacksDirectory(directory.path, directory.category));
+        } catch (error) {
+          console.warn(`No se pudo escanear ${directory.path}`, error);
+        }
+      }
+      return found;
+    }
+
+    async function loadRemotePacks() {
+      officialRepo = getOfficialRepoConfig();
+      remotePackFiles = [];
+      renderRemotePacks();
+
+      if (!officialRepo.repo) {
+        if (remotePacksStatus) remotePacksStatus.textContent = "No se ha podido detectar el repositorio de esta web. Si usas dominio personalizado o pruebas en local, escribe el repo en OFFICIAL_REPO_NAME_FALLBACK dentro del HTML.";
+        return;
+      }
+
+      if (remotePacksStatus) remotePacksStatus.textContent = `Escaneando /${OFFICIAL_PACKS_ROOT} en ${officialRepo.owner}/${officialRepo.repo}...`;
+      if (lockedRepoInfo) lockedRepoInfo.textContent = `${officialRepo.owner}/${officialRepo.repo} · rama ${officialRepo.branch} · carpeta /${OFFICIAL_PACKS_ROOT}`;
+
+      try {
+        const index = await fetchJson(`${makeRelativeUrl(OFFICIAL_PACKS_ROOT)}/index.json`);
+        const files = Array.isArray(index) ? index : (index.files || index.packs || []);
+        remotePackFiles = files.map(item => normalizeIndexPackItem(item)).filter(item => item.url && item.url.toLowerCase().endsWith(".json"));
+      } catch {
+        try {
+          remotePackFiles = await scanOfficialPacksDirectory(OFFICIAL_PACKS_ROOT);
+        } catch (error) {
+          if (remotePacksStatus) remotePacksStatus.textContent = `No se pudo escanear /${OFFICIAL_PACKS_ROOT}: ${error.message}. El repositorio debe ser público o debes publicar un índice packs/index.json.`;
+          return;
+        }
+      }
+
+      remotePackFiles = remotePackFiles
+        .filter(item => item.url && item.url.toLowerCase().endsWith(".json"))
+        .sort((a, b) => humanizePackCategory(a.category).localeCompare(humanizePackCategory(b.category), "es") || (a.name || "").localeCompare(b.name || "", "es"));
+
+      renderRemotePacks();
+      if (remotePacksStatus) remotePacksStatus.textContent = remotePackFiles.length
+        ? `${remotePackFiles.length} JSON encontrado/s en la biblioteca oficial. Marca recetas o ingredientes para importarlos.`
+        : `No se han encontrado archivos .json dentro de /${OFFICIAL_PACKS_ROOT}.`;
+    }
+
+    function renderRemotePacks() {
+      if (!remotePacksList) return;
+      remotePacksList.innerHTML = "";
+      if (!remotePackFiles.length) {
+        remotePacksList.innerHTML = '<div class="empty">No hay packs remotos cargados.</div>';
+        return;
+      }
+
+      let currentCategory = "";
+      remotePackFiles.forEach((pack, index) => {
+        const categoryLabel = humanizePackCategory(pack.category);
+        if (categoryLabel !== currentCategory) {
+          currentCategory = categoryLabel;
+          const title = document.createElement("h3");
+          title.className = "remote-pack-category";
+          title.textContent = categoryLabel;
+          remotePacksList.appendChild(title);
+        }
+
+        const div = document.createElement("div");
+        div.className = "remote-pack-card";
+        const typeLabel = inferRemotePackType(pack) === "ingredients" ? "Ingredientes" : "Recetas";
+        div.innerHTML = `
+          <input type="checkbox" class="remote-pack-check" data-index="${index}" />
+          <div>
+            <div class="item-name">${escapeHtml(pack.name || pack.filename || "Pack")}</div>
+            <div class="muted"><span class="badge favorite">${escapeHtml(typeLabel)}</span> ${escapeHtml(pack.description || pack.path || pack.filename || "Archivo JSON")}</div>
+            <div class="mini-actions"><button class="ghost" type="button" onclick="previewRemotePack(${index})">Vista previa</button></div>
+          </div>`;
+        remotePacksList.appendChild(div);
+      });
+    }
+
+    async function previewRemotePack(index) {
+      const pack = remotePackFiles[index];
+      if (!pack) return;
+      try {
+        const data = await fetchJson(pack.url);
+        const type = inferRemotePackType(pack, data);
+        const items = type === "ingredients" ? (extractIngredientsFromImport(data) || []) : (extractDishesFromImport(data) || []);
+        const title = data.name || data.nombre || pack.name;
+        const label = type === "ingredients" ? "ingrediente/s" : "plato/s";
+        alert(`${title}\n${items.length} ${label}\n${data.description || data.descripcion || pack.path || "Sin descripción"}`);
+      } catch (error) {
+        alert(`No se pudo leer el pack: ${error.message}`);
+      }
+    }
+
+    function importIngredientsData(data, mergeByName = true) {
+      const importedItems = extractIngredientsFromImport(data);
+      if (!importedItems) throw new Error("No encuentro una lista de ingredientes. Usa un array JSON o un objeto con la clave ingredients/ingredientes.");
+
+      let added = 0;
+      let updated = 0;
+      importedItems.forEach(rawItem => {
+        const imported = normalizeImportedIngredient(rawItem);
+        const existing = mergeByName
+          ? ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(imported.name))
+          : null;
+
+        if (existing) {
+          Object.assign(existing, {
+            name: imported.name,
+            qty: imported.qty,
+            unit: imported.unit,
+            available: imported.available,
+            familyId: imported.familyId || existing.familyId,
+            approxPrice: imported.approxPrice || existing.approxPrice || 0,
+            products: imported.products && imported.products.length ? imported.products : (existing.products || [])
+          });
+          updated++;
+        } else {
+          ingredients.push(imported);
+          added++;
+        }
+      });
+      return { added, updated };
+    }
+
+    function importDishesData(data, mergeByName = true) {
+      const importedItems = extractDishesFromImport(data);
+      if (!importedItems) throw new Error("No encuentro una lista de platos. Usa un array JSON o un objeto con la clave dishes/platos/recipes/recetas.");
+
+      const defaultPackId = findOrCreatePackByName(data.name || data.nombre || data.pack || data.collection || "Importado");
+      let addedDishes = 0;
+      let updatedDishes = 0;
+      const ingredientsBefore = ingredients.length;
+
+      importedItems.forEach(rawDish => {
+        const imported = normalizeImportedDish({
+          ...rawDish,
+          pack: rawDish.pack || rawDish.packName || rawDish.collection || rawDish.coleccion || data.name || data.nombre || data.pack || data.collection || "Importado"
+        }, defaultPackId);
+        const existing = mergeByName
+          ? dishes.find(item => normalizeSearch(item.name) === normalizeSearch(imported.name))
+          : null;
+
+        if (existing) {
+          Object.assign(existing, {
+            name: imported.name,
+            qty: imported.qty,
+            unit: imported.unit,
+            packId: imported.packId,
+            category: imported.category,
+            tags: imported.tags,
+            prepTime: imported.prepTime,
+            difficulty: imported.difficulty,
+            approxPrice: imported.approxPrice,
+            notes: imported.notes,
+            recipe: imported.recipe
+          });
+          updatedDishes++;
+        } else {
+          dishes.push(imported);
+          addedDishes++;
+        }
+      });
+
+      return { addedDishes, updatedDishes, addedIngredients: ingredients.length - ingredientsBefore };
+    }
+
+    async function importSelectedRemotePacks() {
+      const checks = Array.from(document.querySelectorAll(".remote-pack-check:checked"));
+      if (!checks.length) return alert("Marca al menos un pack para importar.");
+
+      let totalAddedDishes = 0;
+      let totalUpdatedDishes = 0;
+      let totalIngredientsCreatedByRecipes = 0;
+      let totalAddedIngredients = 0;
+      let totalUpdatedIngredients = 0;
+      const errors = [];
+
+      for (const check of checks) {
+        const pack = remotePackFiles[Number(check.dataset.index)];
+        if (!pack) continue;
+        try {
+          const data = await fetchJson(pack.url);
+          const type = inferRemotePackType(pack, data);
+          if (type === "ingredients") {
+            const result = importIngredientsData(data, true);
+            totalAddedIngredients += result.added;
+            totalUpdatedIngredients += result.updated;
+          } else {
+            const result = importDishesData(data, true);
+            totalAddedDishes += result.addedDishes;
+            totalUpdatedDishes += result.updatedDishes;
+            totalIngredientsCreatedByRecipes += result.addedIngredients;
+          }
+        } catch (error) {
+          errors.push(`${pack.name || pack.filename}: ${error.message}`);
+        }
+      }
+
+      saveData();
+      renderAll();
+      switchTab(totalAddedDishes || totalUpdatedDishes ? "dishes" : "ingredients");
+      alert(`Importación completada.\nRecetas añadidas: ${totalAddedDishes}. Recetas actualizadas: ${totalUpdatedDishes}.\nIngredientes añadidos: ${totalAddedIngredients + totalIngredientsCreatedByRecipes}. Ingredientes actualizados: ${totalUpdatedIngredients}.${errors.length ? "\n\nErrores:\n" + errors.join("\n") : ""}`);
+    }
+
+    async function copyPackPrompt() {
+      const text = packPromptText;
+      try {
+        await navigator.clipboard.writeText(text);
+        alert("Prompt copiado.");
+      } catch {
+        if (packPromptExample) {
+          packPromptExample.focus();
+          packPromptExample.select();
+        }
+        alert("No se pudo copiar automáticamente. Puedes seleccionarlo y copiarlo manualmente.");
+      }
     }
 
     function renderIngredientSelect() {
@@ -2783,42 +3240,15 @@
         return alert("El JSON de ingredientes no es válido.");
       }
 
-      const importedItems = extractIngredientsFromImport(data);
-      if (!importedItems) {
-        return alert("No encuentro una lista de ingredientes. Usa un array JSON o un objeto con la clave ingredients.");
+      try {
+        const result = importIngredientsData(data, document.getElementById("mergeIngredientsByName").checked);
+        saveData();
+        renderAll();
+        switchTab("ingredients");
+        alert(`Importación completada. Añadidos: ${result.added}. Actualizados: ${result.updated}.`);
+      } catch (error) {
+        alert(error.message);
       }
-
-      const mergeByName = document.getElementById("mergeIngredientsByName").checked;
-      let added = 0;
-      let updated = 0;
-
-      importedItems.forEach(rawItem => {
-        const imported = normalizeImportedIngredient(rawItem);
-        const existing = mergeByName
-          ? ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(imported.name))
-          : null;
-
-        if (existing) {
-          Object.assign(existing, {
-            name: imported.name,
-            qty: imported.qty,
-            unit: imported.unit,
-            available: imported.available,
-            familyId: imported.familyId || existing.familyId,
-            approxPrice: imported.approxPrice || existing.approxPrice || 0,
-            products: imported.products && imported.products.length ? imported.products : (existing.products || [])
-          });
-          updated++;
-        } else {
-          ingredients.push(imported);
-          added++;
-        }
-      });
-
-      saveData();
-      renderAll();
-      switchTab("ingredients");
-      alert(`Importación completada. Añadidos: ${added}. Actualizados: ${updated}.`);
     });
 
     document.getElementById("exportIngredientsBtn").addEventListener("click", () => {
@@ -2943,53 +3373,15 @@
         return alert("El JSON de platos no es válido.");
       }
 
-      const importedItems = extractDishesFromImport(data);
-      if (!importedItems) {
-        return alert("No encuentro una lista de platos. Usa un array JSON o un objeto con la clave dishes/platos.");
+      try {
+        const result = importDishesData(data, document.getElementById("mergeDishesByName").checked);
+        saveData();
+        renderAll();
+        switchTab("dishes");
+        alert(`Importación completada. Platos añadidos: ${result.addedDishes}. Platos actualizados: ${result.updatedDishes}. Ingredientes creados: ${result.addedIngredients}.`);
+      } catch (error) {
+        alert(error.message);
       }
-
-      const mergeByName = document.getElementById("mergeDishesByName").checked;
-      const defaultPackId = findOrCreatePackByName(data.name || data.nombre || data.pack || data.collection || "Importado");
-      let addedDishes = 0;
-      let updatedDishes = 0;
-      const ingredientsBefore = ingredients.length;
-
-      importedItems.forEach(rawDish => {
-        const imported = normalizeImportedDish({
-          ...rawDish,
-          pack: rawDish.pack || rawDish.packName || rawDish.collection || rawDish.coleccion || data.name || data.nombre || data.pack || data.collection || "Importado"
-        }, defaultPackId);
-        const existing = mergeByName
-          ? dishes.find(item => normalizeSearch(item.name) === normalizeSearch(imported.name))
-          : null;
-
-        if (existing) {
-          Object.assign(existing, {
-            name: imported.name,
-            qty: imported.qty,
-            unit: imported.unit,
-            packId: imported.packId,
-            category: imported.category,
-            tags: imported.tags,
-            prepTime: imported.prepTime,
-            difficulty: imported.difficulty,
-            approxPrice: imported.approxPrice,
-            notes: imported.notes,
-            recipe: imported.recipe
-          });
-          updatedDishes++;
-        } else {
-          dishes.push(imported);
-          addedDishes++;
-        }
-      });
-
-      const addedIngredients = ingredients.length - ingredientsBefore;
-
-      saveData();
-      renderAll();
-      switchTab("dishes");
-      alert(`Importación completada. Platos añadidos: ${addedDishes}. Platos actualizados: ${updatedDishes}. Ingredientes creados: ${addedIngredients}.`);
     });
 
     document.getElementById("exportDishesBtn").addEventListener("click", () => {
@@ -3034,6 +3426,14 @@
       URL.revokeObjectURL(url);
     });
 
+
+    document.getElementById("loadRemotePacksBtn")?.addEventListener("click", loadRemotePacks);
+    document.getElementById("importSelectedRemotePacksBtn")?.addEventListener("click", importSelectedRemotePacks);
+    document.getElementById("selectAllRemotePacksBtn")?.addEventListener("click", () => {
+      document.querySelectorAll(".remote-pack-check").forEach(check => check.checked = true);
+    });
+    document.getElementById("copyPackPromptBtn")?.addEventListener("click", copyPackPrompt);
+    document.getElementById("copyPackPromptBackupBtn")?.addEventListener("click", copyPackPrompt);
 
     document.getElementById("printCalendarBtn").addEventListener("click", () => printMode("print-calendar"));
     document.getElementById("printShoppingBtn").addEventListener("click", () => printMode("print-shopping"));
@@ -3198,6 +3598,8 @@
       ].forEach(key => localStorage.removeItem(key));
       location.reload();
     });
+
+    setupRemotePackDefaults();
 
     try {
       renderAll();
