@@ -403,14 +403,6 @@
 
     .remote-pack-card input { width: auto; margin-top: 4px; }
     .remote-pack-card .item-name { margin-bottom: 3px; }
-    .remote-pack-category { margin-top: 16px; color: var(--primary-dark); }
-    .locked-repo-box {
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: #f8fffd;
-      margin: 10px 0;
-    }
 
     .code-block {
       min-height: 190px;
@@ -577,6 +569,19 @@
               <button id="startScannerBtn">Usar cámara</button>
               <button id="stopScannerBtn" class="secondary">Detener cámara</button>
             </div>
+
+            <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+
+            <h3>Buscar en Open Food Facts</h3>
+            <p class="help">Puedes buscar por nombre, por ejemplo “tomate frito”, y asignar varios códigos de marcas distintas al mismo ingrediente.</p>
+            <label for="offSearchInput">Nombre del producto</label>
+            <input id="offSearchInput" placeholder="Ej. tomate frito, yogur natural, garbanzos cocidos..." />
+            <div class="actions">
+              <button id="searchOpenFoodFactsBtn" class="ghost">Buscar alimentos</button>
+              <button id="createIngredientFromOffBtn" class="secondary">Crear ingrediente con primer resultado</button>
+            </div>
+            <div id="offResults" class="list"></div>
+
             <video id="scannerVideo" class="scanner-video" muted playsinline></video>
             <div id="scannerStatus" class="help">La cámara necesita permiso del navegador y normalmente requiere abrir la página desde HTTPS o localhost. Si no funciona, usa la entrada manual.</div>
             <div class="help">
@@ -636,23 +641,40 @@
           <p class="muted">Clasifica los platos por colecciones: dieta mediterránea, vegano, diabetes, cenas ligeras, básicos diarios...</p>
 
           <div class="scanner-box">
-            <h3>Biblioteca de packs oficial</h3>
-            <p class="help">La app solo lee archivos JSON de la carpeta <strong>packs</strong> del repositorio oficial <strong>WolcenOn/PlanificadorComidas</strong>. No se muestran campos para otros usuarios ni otros repositorios, así mantienes la calidad de los packs.</p>
+            <h3>Packs disponibles en GitHub</h3>
+            <p class="help">Guarda archivos JSON en una carpeta del repositorio, por ejemplo <strong>packs/recetas</strong>. La app puede leerlos desde GitHub Pages si existe un índice <strong>packs/index.json</strong> o desde la API pública de GitHub si el repositorio es público.</p>
 
-            <div class="locked-repo-box">
-              <strong>Repositorio bloqueado:</strong>
-              <div id="lockedRepoInfo" class="muted">Repositorio oficial bloqueado: WolcenOn/PlanificadorComidas · carpeta /packs.</div>
-              <div class="help">Estructura recomendada: <strong>packs/recetas</strong> para recetas y <strong>packs/ingredientes</strong> para listas de ingredientes. Se escanean también subcarpetas dentro de cada categoría.</div>
+            <label for="remotePacksPath">Carpeta de packs JSON</label>
+            <input id="remotePacksPath" placeholder="packs/recetas" value="packs/recetas" />
+
+            <div class="row">
+              <div>
+                <label for="remoteRepoOwner">Usuario/organización GitHub</label>
+                <input id="remoteRepoOwner" placeholder="Ej. virjiprofe" />
+              </div>
+              <div>
+                <label for="remoteRepoName">Repositorio</label>
+                <input id="remoteRepoName" placeholder="Ej. gestor-comidas" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="remoteRepoBranch">Rama</label>
+                <input id="remoteRepoBranch" placeholder="main" value="main" />
+              </div>
+              <div class="actions">
+                <button id="loadRemotePacksBtn" class="ghost" type="button">Buscar packs</button>
+              </div>
             </div>
 
             <div class="actions">
-              <button id="loadRemotePacksBtn" class="ghost" type="button">Escanear biblioteca oficial</button>
               <button id="importSelectedRemotePacksBtn" type="button">Importar packs marcados</button>
               <button id="selectAllRemotePacksBtn" class="ghost" type="button">Marcar todos</button>
               <button id="copyPackPromptBtn" class="ghost" type="button">Copiar prompt ejemplo</button>
             </div>
 
-            <div id="remotePacksStatus" class="help">Pulsa “Escanear biblioteca oficial” para leer los JSON publicados en /packs.</div>
+            <div id="remotePacksStatus" class="help">Pulsa “Buscar packs” para cargar los JSON publicados.</div>
             <div id="remotePacksList" class="remote-pack-grid"></div>
           </div>
 
@@ -1103,17 +1125,13 @@
     const savePackBtn = document.getElementById("savePackBtn");
     const cancelPackEditBtn = document.getElementById("cancelPackEditBtn");
     const packList = document.getElementById("packList");
+    const remotePacksPath = document.getElementById("remotePacksPath");
+    const remoteRepoOwner = document.getElementById("remoteRepoOwner");
+    const remoteRepoName = document.getElementById("remoteRepoName");
+    const remoteRepoBranch = document.getElementById("remoteRepoBranch");
     const remotePacksStatus = document.getElementById("remotePacksStatus");
     const remotePacksList = document.getElementById("remotePacksList");
-    const lockedRepoInfo = document.getElementById("lockedRepoInfo");
     const packPromptExample = document.getElementById("packPromptExample");
-    const OFFICIAL_PACKS_ROOT = "packs";
-    const OFFICIAL_REPO_OWNER = "WolcenOn";
-    const OFFICIAL_REPO_BRANCH = "main";
-    // Si usas dominio personalizado o una URL local y no se puede inferir el repositorio,
-    // escribe aquí el nombre exacto del repositorio de la web. En GitHub Pages normal se detecta solo.
-    const OFFICIAL_REPO_NAME_FALLBACK = "PlanificadorComidas";
-    let officialRepo = { owner: OFFICIAL_REPO_OWNER, repo: "", branch: OFFICIAL_REPO_BRANCH };
     let remotePackFiles = [];
 
     const editingDishId = document.getElementById("editingDishId");
@@ -1150,6 +1168,10 @@
     const summary = document.getElementById("summary");
     const quickIngredientSelect = document.getElementById("quickIngredientSelect");
     const scanBarcodeInput = document.getElementById("scanBarcodeInput");
+    const offSearchInput = document.getElementById("offSearchInput");
+    const offResults = document.getElementById("offResults");
+    let lastOpenFoodFactsResults = [];
+    const OPEN_FOOD_FACTS_FIELDS = "code,product_name,generic_name,brands,quantity,serving_size,categories,categories_tags,image_small_url,image_url,nutriscore_grade,nova_group,nutriments";
     const quickBrand = document.getElementById("quickBrand");
     const quickPackages = document.getElementById("quickPackages");
     const quickPackageQty = document.getElementById("quickPackageQty");
@@ -1271,11 +1293,19 @@
     function normalizeProduct(product) {
       if (!product || typeof product !== "object") return null;
       return {
-        barcode: String(product.barcode || "").trim(),
-        brand: product.brand || "",
+        barcode: String(product.barcode || product.code || "").trim(),
+        brand: product.brand || product.brands || "",
         packageQty: Number(product.packageQty) || 0,
         packageUnit: product.packageUnit || "unidades",
-        price: Number(product.price) || 0
+        price: Number(product.price) || 0,
+        source: product.source || "",
+        productName: product.productName || product.product_name || "",
+        quantityText: product.quantityText || product.quantity || "",
+        imageUrl: product.imageUrl || product.image_small_url || product.image_url || "",
+        offUrl: product.offUrl || product.url || "",
+        nutriscore: product.nutriscore || product.nutriscore_grade || "",
+        novaGroup: product.novaGroup || product.nova_group || "",
+        categories: product.categories || ""
       };
     }
 
@@ -1395,6 +1425,10 @@
       localStorage.setItem("savedWeeks", JSON.stringify(weeks));
       localStorage.setItem("activeWeekId", activeWeekId);
       localStorage.setItem("typicalWeekPlan", JSON.stringify(typicalWeekPlan));
+      if (remotePacksPath) localStorage.setItem("remotePacksPath", remotePacksPath.value.trim() || "packs/recetas");
+      if (remoteRepoOwner) localStorage.setItem("remoteRepoOwner", remoteRepoOwner.value.trim());
+      if (remoteRepoName) localStorage.setItem("remoteRepoName", remoteRepoName.value.trim());
+      if (remoteRepoBranch) localStorage.setItem("remoteRepoBranch", remoteRepoBranch.value.trim() || "main");
     }
 
     function makeSlotId(day, mealId, memberId) { return `${day}__${mealId}__${memberId}`; }
@@ -1673,39 +1707,29 @@ Reglas:
 - No inventes IDs.
 - No uses unidades mezcladas para el mismo ingrediente dentro del pack.
 - Crea entre 10 y 20 recetas variadas.
-Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, batch cooking, infantil, etc.]
-Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes, usa type: "ingredients-only" y la clave ingredients, y guárdalo en packs/ingredientes/nombre.json.`;
+Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, batch cooking, infantil, etc.]`;
 
     function setupRemotePackDefaults() {
-      officialRepo = getOfficialRepoConfig();
-      if (lockedRepoInfo) {
-        lockedRepoInfo.textContent = officialRepo.repo
-          ? `${officialRepo.owner}/${officialRepo.repo} · rama ${officialRepo.branch} · carpeta /${OFFICIAL_PACKS_ROOT}`
-          : `No se ha podido detectar el repositorio. Revisa OFFICIAL_REPO_NAME_FALLBACK en el HTML.`;
-      }
-      if (packPromptExample) packPromptExample.value = packPromptText;
-    }
+      if (remotePacksPath) remotePacksPath.value = localStorage.getItem("remotePacksPath") || remotePacksPath.value || "packs/recetas";
+      if (remoteRepoBranch) remoteRepoBranch.value = localStorage.getItem("remoteRepoBranch") || remoteRepoBranch.value || "main";
 
-    function getOfficialRepoConfig() {
       const inferred = inferGitHubRepoFromLocation();
-      return {
-        owner: OFFICIAL_REPO_OWNER,
-        repo: inferred.repo || OFFICIAL_REPO_NAME_FALLBACK,
-        branch: OFFICIAL_REPO_BRANCH
-      };
+      if (remoteRepoOwner) remoteRepoOwner.value = localStorage.getItem("remoteRepoOwner") || inferred.owner || "";
+      if (remoteRepoName) remoteRepoName.value = localStorage.getItem("remoteRepoName") || inferred.repo || "";
+      if (packPromptExample) packPromptExample.value = packPromptText;
     }
 
     function inferGitHubRepoFromLocation() {
       const host = window.location.hostname;
       const parts = window.location.pathname.split("/").filter(Boolean);
-      if (!host.endsWith("github.io")) return { owner: OFFICIAL_REPO_OWNER, repo: "" };
-      const pageOwner = host.replace(".github.io", "");
-      const repo = parts[0] || `${pageOwner}.github.io`;
-      return { owner: pageOwner, repo };
+      if (!host.endsWith("github.io")) return { owner: "", repo: "" };
+      const owner = host.replace(".github.io", "");
+      const repo = parts[0] || `${owner}.github.io`;
+      return { owner, repo };
     }
 
     function cleanRemotePath(path) {
-      return String(path || OFFICIAL_PACKS_ROOT).trim().replace(/^\/+|\/+$/g, "") || OFFICIAL_PACKS_ROOT;
+      return String(path || "packs/recetas").trim().replace(/^\/+|\/+$/g, "") || "packs/recetas";
     }
 
     function makeRelativeUrl(path) {
@@ -1718,130 +1742,58 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
       return response.json();
     }
 
-    function githubContentsUrl(path) {
-      const safePath = cleanRemotePath(path).split("/").map(encodeURIComponent).join("/");
-      return `https://api.github.com/repos/${encodeURIComponent(officialRepo.owner)}/${encodeURIComponent(officialRepo.repo)}/contents/${safePath}?ref=${encodeURIComponent(officialRepo.branch)}`;
-    }
-
-    function humanizePackCategory(category) {
-      const key = normalizeSearch(category || "otros");
-      if (key === "recetas" || key === "recipes" || key === "platos") return "Recetas";
-      if (key === "ingredientes" || key === "ingredients") return "Ingredientes";
-      return category ? category.charAt(0).toUpperCase() + category.slice(1) : "Otros";
-    }
-
-    function inferRemotePackType(pack, data = null) {
-      const path = normalizeSearch(pack.path || pack.filename || "");
-      const declared = normalizeSearch(data?.type || data?.tipo || pack.type || "");
-      if (declared.includes("ingredient") || declared.includes("ingrediente") || path.includes("/ingredientes/") || path.includes("/ingredients/")) return "ingredients";
-      if (declared.includes("dish") || declared.includes("recipe") || declared.includes("receta") || declared.includes("plato") || path.includes("/recetas/") || path.includes("/recipes/") || path.includes("/platos/")) return "dishes";
-      return "dishes";
-    }
-
-    function normalizeIndexPackItem(item, fallbackCategory = "") {
-      if (typeof item === "string") {
-        const path = cleanRemotePath(item);
-        const parts = path.split("/");
-        const filename = parts[parts.length - 1] || "pack.json";
-        const category = parts[1] || fallbackCategory || "recetas";
-        return {
-          name: filename.replace(/\.json$/i, ""),
-          description: "Archivo JSON de la biblioteca oficial",
-          url: makeRelativeUrl(path),
-          filename,
-          path,
-          category,
-          type: category === "ingredientes" ? "ingredients" : "dishes"
-        };
-      }
-      const path = cleanRemotePath(item.path || item.file || item.filename || item.url || "");
-      const filename = item.filename || item.file || path.split("/").pop() || item.name || "pack.json";
-      const category = item.category || item.categoria || path.split("/")[1] || fallbackCategory || "recetas";
-      return {
-        name: item.name || item.title || filename.replace(/\.json$/i, ""),
-        description: item.description || item.descripcion || "Archivo JSON de la biblioteca oficial",
-        url: item.url || makeRelativeUrl(path),
-        filename,
-        path,
-        category,
-        type: item.type || item.tipo || (category === "ingredientes" ? "ingredients" : "dishes")
-      };
-    }
-
-    async function scanOfficialPacksDirectory(path = OFFICIAL_PACKS_ROOT, category = "") {
-      const contents = await fetchJson(githubContentsUrl(path));
-      if (!Array.isArray(contents)) return [];
-      const found = [];
-      const directories = [];
-
-      contents.forEach(item => {
-        if (item.type === "file" && item.name.toLowerCase().endsWith(".json") && item.name.toLowerCase() !== "index.json") {
-          const itemPath = cleanRemotePath(item.path || `${path}/${item.name}`);
-          const relativeParts = itemPath.split("/");
-          const inferredCategory = category || relativeParts[1] || "recetas";
-          found.push({
-            name: item.name.replace(/\.json$/i, ""),
-            description: `Archivo JSON en /${itemPath}`,
-            url: item.download_url || makeRelativeUrl(itemPath),
-            filename: item.name,
-            path: itemPath,
-            category: inferredCategory,
-            type: inferredCategory === "ingredientes" ? "ingredients" : "dishes"
-          });
-        } else if (item.type === "dir") {
-          const childPath = cleanRemotePath(item.path || `${path}/${item.name}`);
-          const rootParts = childPath.split("/");
-          directories.push({
-            path: childPath,
-            category: category || rootParts[1] || item.name
-          });
-        }
-      });
-
-      for (const directory of directories) {
-        try {
-          found.push(...await scanOfficialPacksDirectory(directory.path, directory.category));
-        } catch (error) {
-          console.warn(`No se pudo escanear ${directory.path}`, error);
-        }
-      }
-      return found;
-    }
-
     async function loadRemotePacks() {
-      officialRepo = getOfficialRepoConfig();
+      const path = cleanRemotePath(remotePacksPath?.value || "packs/recetas");
+      const owner = remoteRepoOwner?.value.trim();
+      const repo = remoteRepoName?.value.trim();
+      const branch = remoteRepoBranch?.value.trim() || "main";
+
       remotePackFiles = [];
       renderRemotePacks();
-
-      if (!officialRepo.repo) {
-        if (remotePacksStatus) remotePacksStatus.textContent = "No se ha podido detectar el repositorio de esta web. Si usas dominio personalizado o pruebas en local, escribe el repo en OFFICIAL_REPO_NAME_FALLBACK dentro del HTML.";
-        return;
-      }
-
-      if (remotePacksStatus) remotePacksStatus.textContent = `Escaneando /${OFFICIAL_PACKS_ROOT} en ${officialRepo.owner}/${officialRepo.repo}...`;
-      if (lockedRepoInfo) lockedRepoInfo.textContent = `${officialRepo.owner}/${officialRepo.repo} · rama ${officialRepo.branch} · carpeta /${OFFICIAL_PACKS_ROOT}`;
+      if (remotePacksStatus) remotePacksStatus.textContent = "Buscando packs publicados...";
 
       try {
-        const index = await fetchJson(`${makeRelativeUrl(OFFICIAL_PACKS_ROOT)}/index.json`);
+        const index = await fetchJson("packs/index.json");
         const files = Array.isArray(index) ? index : (index.files || index.packs || []);
-        remotePackFiles = files.map(item => normalizeIndexPackItem(item)).filter(item => item.url && item.url.toLowerCase().endsWith(".json"));
+        remotePackFiles = files.map(item => {
+          if (typeof item === "string") {
+            return { name: item.replace(/\.json$/i, ""), url: `${path}/${item}`, filename: item };
+          }
+          return {
+            name: item.name || item.title || item.filename || "Pack",
+            description: item.description || "",
+            url: item.url || `${path}/${item.file || item.filename}`,
+            filename: item.file || item.filename || item.name || "pack.json"
+          };
+        }).filter(item => item.url && item.url.endsWith(".json"));
       } catch {
+        if (!owner || !repo) {
+          if (remotePacksStatus) remotePacksStatus.textContent = "No hay packs/index.json y faltan usuario o repositorio para consultar la API de GitHub.";
+          return;
+        }
+
+        const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeURIComponent(path).replace(/%2F/g, "/")}?ref=${encodeURIComponent(branch)}`;
         try {
-          remotePackFiles = await scanOfficialPacksDirectory(OFFICIAL_PACKS_ROOT);
+          const contents = await fetchJson(apiUrl);
+          remotePackFiles = (Array.isArray(contents) ? contents : [])
+            .filter(item => item.type === "file" && item.name.toLowerCase().endsWith(".json"))
+            .map(item => ({
+              name: item.name.replace(/\.json$/i, ""),
+              description: "Archivo JSON del repositorio",
+              url: item.download_url || `${path}/${item.name}`,
+              filename: item.name
+            }));
         } catch (error) {
-          if (remotePacksStatus) remotePacksStatus.textContent = `No se pudo escanear /${OFFICIAL_PACKS_ROOT}: ${error.message}. El repositorio debe ser público o debes publicar un índice packs/index.json.`;
+          if (remotePacksStatus) remotePacksStatus.textContent = `No se pudieron cargar los packs: ${error.message}. Revisa usuario, repositorio, rama y carpeta.`;
           return;
         }
       }
 
-      remotePackFiles = remotePackFiles
-        .filter(item => item.url && item.url.toLowerCase().endsWith(".json"))
-        .sort((a, b) => humanizePackCategory(a.category).localeCompare(humanizePackCategory(b.category), "es") || (a.name || "").localeCompare(b.name || "", "es"));
-
+      saveData();
       renderRemotePacks();
       if (remotePacksStatus) remotePacksStatus.textContent = remotePackFiles.length
-        ? `${remotePackFiles.length} JSON encontrado/s en la biblioteca oficial. Marca recetas o ingredientes para importarlos.`
-        : `No se han encontrado archivos .json dentro de /${OFFICIAL_PACKS_ROOT}.`;
+        ? `${remotePackFiles.length} pack/s encontrados. Marca los que quieras importar.`
+        : "No se han encontrado archivos .json en esa carpeta.";
     }
 
     function renderRemotePacks() {
@@ -1852,25 +1804,14 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
         return;
       }
 
-      let currentCategory = "";
       remotePackFiles.forEach((pack, index) => {
-        const categoryLabel = humanizePackCategory(pack.category);
-        if (categoryLabel !== currentCategory) {
-          currentCategory = categoryLabel;
-          const title = document.createElement("h3");
-          title.className = "remote-pack-category";
-          title.textContent = categoryLabel;
-          remotePacksList.appendChild(title);
-        }
-
         const div = document.createElement("div");
         div.className = "remote-pack-card";
-        const typeLabel = inferRemotePackType(pack) === "ingredients" ? "Ingredientes" : "Recetas";
         div.innerHTML = `
           <input type="checkbox" class="remote-pack-check" data-index="${index}" />
           <div>
             <div class="item-name">${escapeHtml(pack.name || pack.filename || "Pack")}</div>
-            <div class="muted"><span class="badge favorite">${escapeHtml(typeLabel)}</span> ${escapeHtml(pack.description || pack.path || pack.filename || "Archivo JSON")}</div>
+            <div class="muted">${escapeHtml(pack.description || pack.filename || "Archivo JSON")}</div>
             <div class="mini-actions"><button class="ghost" type="button" onclick="previewRemotePack(${index})">Vista previa</button></div>
           </div>`;
         remotePacksList.appendChild(div);
@@ -1882,45 +1823,12 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
       if (!pack) return;
       try {
         const data = await fetchJson(pack.url);
-        const type = inferRemotePackType(pack, data);
-        const items = type === "ingredients" ? (extractIngredientsFromImport(data) || []) : (extractDishesFromImport(data) || []);
+        const items = extractDishesFromImport(data) || [];
         const title = data.name || data.nombre || pack.name;
-        const label = type === "ingredients" ? "ingrediente/s" : "plato/s";
-        alert(`${title}\n${items.length} ${label}\n${data.description || data.descripcion || pack.path || "Sin descripción"}`);
+        alert(`${title}\n${items.length} plato/s\n${data.description || data.descripcion || "Sin descripción"}`);
       } catch (error) {
         alert(`No se pudo leer el pack: ${error.message}`);
       }
-    }
-
-    function importIngredientsData(data, mergeByName = true) {
-      const importedItems = extractIngredientsFromImport(data);
-      if (!importedItems) throw new Error("No encuentro una lista de ingredientes. Usa un array JSON o un objeto con la clave ingredients/ingredientes.");
-
-      let added = 0;
-      let updated = 0;
-      importedItems.forEach(rawItem => {
-        const imported = normalizeImportedIngredient(rawItem);
-        const existing = mergeByName
-          ? ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(imported.name))
-          : null;
-
-        if (existing) {
-          Object.assign(existing, {
-            name: imported.name,
-            qty: imported.qty,
-            unit: imported.unit,
-            available: imported.available,
-            familyId: imported.familyId || existing.familyId,
-            approxPrice: imported.approxPrice || existing.approxPrice || 0,
-            products: imported.products && imported.products.length ? imported.products : (existing.products || [])
-          });
-          updated++;
-        } else {
-          ingredients.push(imported);
-          added++;
-        }
-      });
-      return { added, updated };
     }
 
     function importDishesData(data, mergeByName = true) {
@@ -1969,11 +1877,10 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
       const checks = Array.from(document.querySelectorAll(".remote-pack-check:checked"));
       if (!checks.length) return alert("Marca al menos un pack para importar.");
 
-      let totalAddedDishes = 0;
-      let totalUpdatedDishes = 0;
-      let totalIngredientsCreatedByRecipes = 0;
-      let totalAddedIngredients = 0;
-      let totalUpdatedIngredients = 0;
+      const mergeByName = true;
+      let totalAdded = 0;
+      let totalUpdated = 0;
+      let totalIngredients = 0;
       const errors = [];
 
       for (const check of checks) {
@@ -1981,17 +1888,10 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
         if (!pack) continue;
         try {
           const data = await fetchJson(pack.url);
-          const type = inferRemotePackType(pack, data);
-          if (type === "ingredients") {
-            const result = importIngredientsData(data, true);
-            totalAddedIngredients += result.added;
-            totalUpdatedIngredients += result.updated;
-          } else {
-            const result = importDishesData(data, true);
-            totalAddedDishes += result.addedDishes;
-            totalUpdatedDishes += result.updatedDishes;
-            totalIngredientsCreatedByRecipes += result.addedIngredients;
-          }
+          const result = importDishesData(data, mergeByName);
+          totalAdded += result.addedDishes;
+          totalUpdated += result.updatedDishes;
+          totalIngredients += result.addedIngredients;
         } catch (error) {
           errors.push(`${pack.name || pack.filename}: ${error.message}`);
         }
@@ -1999,8 +1899,8 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
 
       saveData();
       renderAll();
-      switchTab(totalAddedDishes || totalUpdatedDishes ? "dishes" : "ingredients");
-      alert(`Importación completada.\nRecetas añadidas: ${totalAddedDishes}. Recetas actualizadas: ${totalUpdatedDishes}.\nIngredientes añadidos: ${totalAddedIngredients + totalIngredientsCreatedByRecipes}. Ingredientes actualizados: ${totalUpdatedIngredients}.${errors.length ? "\n\nErrores:\n" + errors.join("\n") : ""}`);
+      switchTab("dishes");
+      alert(`Importación completada. Platos añadidos: ${totalAdded}. Platos actualizados: ${totalUpdated}. Ingredientes creados: ${totalIngredients}.${errors.length ? "\n\nErrores:\n" + errors.join("\n") : ""}`);
     }
 
     async function copyPackPrompt() {
@@ -2900,6 +2800,142 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
       renderAll();
     });
 
+    function parseOpenFoodFactsQuantity(text) {
+      const raw = String(text || "").toLowerCase().replace(",", ".");
+      const match = raw.match(/(\d+(?:\.\d+)?)\s*(kg|g|l|ml|cl|unidad|unidades|ud|uds)/i);
+      if (!match) return { packageQty: 1, packageUnit: "unidades" };
+      let value = Number(match[1]) || 1;
+      let unit = match[2].toLowerCase();
+      if (unit === "kg") { value *= 1000; unit = "g"; }
+      if (unit === "l") { value *= 1000; unit = "ml"; }
+      if (unit === "cl") { value *= 10; unit = "ml"; }
+      if (["unidad", "ud", "uds"].includes(unit)) unit = "unidades";
+      return { packageQty: value, packageUnit: unit };
+    }
+
+    function productFromOpenFoodFacts(rawProduct) {
+      const quantity = parseOpenFoodFactsQuantity(rawProduct.quantity || rawProduct.serving_size || "");
+      const name = rawProduct.product_name || rawProduct.generic_name || "Producto sin nombre";
+      const brand = [name, rawProduct.brands, rawProduct.quantity].filter(Boolean).join(" · ");
+      return normalizeProduct({
+        barcode: rawProduct.code,
+        brand,
+        packageQty: quantity.packageQty,
+        packageUnit: quantity.packageUnit,
+        price: 0,
+        source: "Open Food Facts",
+        productName: name,
+        quantityText: rawProduct.quantity || rawProduct.serving_size || "",
+        imageUrl: rawProduct.image_small_url || rawProduct.image_url || "",
+        offUrl: rawProduct.code ? `https://world.openfoodfacts.org/product/${encodeURIComponent(rawProduct.code)}` : "",
+        nutriscore: rawProduct.nutriscore_grade || "",
+        novaGroup: rawProduct.nova_group || "",
+        categories: rawProduct.categories || ""
+      });
+    }
+
+    function inferFamilyFromOffProduct(product) {
+      const text = normalizeSearch([product.categories, product.productName, product.brand].join(" "));
+      if (text.includes("tomate") || text.includes("verdura") || text.includes("vegetal")) return "Verdura";
+      if (text.includes("fruta")) return "Fruta";
+      if (text.includes("yogur") || text.includes("leche") || text.includes("queso") || text.includes("lacteo")) return "Lácteos";
+      if (text.includes("pescado") || text.includes("carne") || text.includes("pollo")) return "Carne y pescado";
+      if (text.includes("congelado")) return "Congelados";
+      return "Despensa";
+    }
+
+    async function fetchOpenFoodFactsByBarcode(barcode) {
+      const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}?fields=${OPEN_FOOD_FACTS_FIELDS}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("No se pudo consultar Open Food Facts.");
+      const data = await response.json();
+      if (data.status !== 1 || !data.product) return null;
+      return productFromOpenFoodFacts({ ...data.product, code: data.code || barcode });
+    }
+
+    async function searchOpenFoodFactsProducts(query) {
+      const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20&fields=${OPEN_FOOD_FACTS_FIELDS}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("No se pudo buscar en Open Food Facts.");
+      const data = await response.json();
+      return (data.products || [])
+        .map(productFromOpenFoodFacts)
+        .filter(product => product && product.barcode);
+    }
+
+    function addProductToIngredient(product, ingredientId) {
+      const ingredient = ingredients.find(item => item.id === ingredientId);
+      if (!ingredient) return false;
+      if (!ingredient.products) ingredient.products = [];
+      const index = ingredient.products.findIndex(item => product.barcode && item.barcode === product.barcode);
+      if (index >= 0) ingredient.products[index] = { ...ingredient.products[index], ...product };
+      else ingredient.products.push(product);
+      if (!ingredient.unit || ingredient.unit === "unidades") ingredient.unit = product.packageUnit || ingredient.unit;
+      saveData();
+      renderAll();
+      fillScannerFromProduct(ingredient, product);
+      scannerStatus.textContent = `Producto guardado en “${ingredient.name}”.`;
+      return true;
+    }
+
+    function createIngredientFromOpenFoodFactsProduct(product, preferredName = "") {
+      const name = (preferredName || offSearchInput.value || product.productName || product.brand || "Ingrediente").trim();
+      const existing = ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(name));
+      const ingredient = existing || normalizeIngredient({
+        name,
+        qty: 0,
+        unit: product.packageUnit || "unidades",
+        available: false,
+        family: inferFamilyFromOffProduct(product),
+        products: []
+      });
+      if (!existing) ingredients.push(ingredient);
+      addProductToIngredient(product, ingredient.id);
+      quickIngredientSelect.value = ingredient.id;
+      return ingredient;
+    }
+
+    function renderOpenFoodFactsResults(products) {
+      if (!offResults) return;
+      offResults.innerHTML = "";
+      if (!products.length) {
+        offResults.innerHTML = '<div class="empty">No se han encontrado productos. Prueba con otro nombre o escanea un código.</div>';
+        return;
+      }
+      products.forEach((product, index) => {
+        const div = document.createElement("div");
+        div.className = "item";
+        const imageHtml = product.imageUrl ? `<img src="${escapeForAttr(product.imageUrl)}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:12px;border:1px solid var(--border);float:right;margin-left:10px">` : "";
+        div.innerHTML = `${imageHtml}<div class="item-top"><div><div class="item-name">${escapeHtml(product.productName || product.brand || "Producto")}</div><div class="muted">${escapeHtml(product.brand || "")}</div><div class="muted">Código: ${escapeHtml(product.barcode || "-")} · Envase: ${formatNumber(product.packageQty)} ${escapeHtml(product.packageUnit)}</div>${product.nutriscore ? `<span class="badge favorite">Nutri-Score ${escapeHtml(String(product.nutriscore).toUpperCase())}</span>` : ""} ${product.novaGroup ? `<span class="badge warn">NOVA ${escapeHtml(product.novaGroup)}</span>` : ""}</div><span class="badge ok">Open Food Facts</span></div><div class="mini-actions"><button class="ghost" onclick="useOffProductForSelectedIngredient(${index})">Añadir al ingrediente seleccionado</button><button class="secondary" onclick="createIngredientFromOffResult(${index})">Crear/usar ingrediente con esta búsqueda</button></div>`;
+        offResults.appendChild(div);
+      });
+    }
+
+    async function handleOpenFoodFactsSearch() {
+      const query = offSearchInput.value.trim();
+      if (!query) return alert("Escribe un alimento para buscar, por ejemplo tomate frito.");
+      scannerStatus.textContent = "Buscando en Open Food Facts...";
+      try {
+        lastOpenFoodFactsResults = await searchOpenFoodFactsProducts(query);
+        renderOpenFoodFactsResults(lastOpenFoodFactsResults);
+        scannerStatus.textContent = `${lastOpenFoodFactsResults.length} producto/s encontrados en Open Food Facts.`;
+      } catch (error) {
+        scannerStatus.textContent = error.message || "No se pudo buscar en Open Food Facts.";
+      }
+    }
+
+    window.useOffProductForSelectedIngredient = function(index) {
+      const product = lastOpenFoodFactsResults[index];
+      if (!product) return;
+      addProductToIngredient(product, quickIngredientSelect.value);
+    };
+
+    window.createIngredientFromOffResult = function(index) {
+      const product = lastOpenFoodFactsResults[index];
+      if (!product) return;
+      createIngredientFromOpenFoodFactsProduct(product);
+    };
+
     function renderBarcodeList() {
       barcodeList.innerHTML = "";
       const rows = [];
@@ -2913,7 +2949,9 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
       rows.forEach(({ ingredient, product }) => {
         const div = document.createElement("div");
         div.className = "item";
-        div.innerHTML = `<div class="item-top"><div><div class="item-name">${escapeHtml(ingredient.name)}</div><div class="muted">${escapeHtml(product.brand || "Producto")} ${product.barcode ? "· " + escapeHtml(product.barcode) : ""}</div><div class="muted">${formatNumber(product.packageQty)} ${escapeHtml(product.packageUnit)} · ${formatCurrency(product.price)}</div></div><span class="badge favorite">Código</span></div><div class="mini-actions"><button class="ghost" onclick="loadProductIntoScanner('${ingredient.id}', '${escapeForAttr(product.barcode)}')">Usar</button><button class="danger" onclick="deleteProductBarcode('${ingredient.id}', '${escapeForAttr(product.barcode)}', '${escapeForAttr(product.brand)}')">Eliminar</button></div>`;
+        const sourceBadge = product.source ? `<span class="badge ok">${escapeHtml(product.source)}</span>` : '<span class="badge favorite">Código</span>';
+        const extraInfo = [product.quantityText, product.nutriscore ? "Nutri-Score " + String(product.nutriscore).toUpperCase() : "", product.novaGroup ? "NOVA " + product.novaGroup : ""].filter(Boolean).join(" · ");
+        div.innerHTML = `<div class="item-top"><div><div class="item-name">${escapeHtml(ingredient.name)}</div><div class="muted">${escapeHtml(product.brand || "Producto")} ${product.barcode ? "· " + escapeHtml(product.barcode) : ""}</div><div class="muted">${formatNumber(product.packageQty)} ${escapeHtml(product.packageUnit)} · ${formatCurrency(product.price)}</div>${extraInfo ? `<div class="muted">${escapeHtml(extraInfo)}</div>` : ""}</div>${sourceBadge}</div><div class="mini-actions"><button class="ghost" onclick="loadProductIntoScanner('${ingredient.id}', '${escapeForAttr(product.barcode)}')">Usar</button><button class="danger" onclick="deleteProductBarcode('${ingredient.id}', '${escapeForAttr(product.barcode)}', '${escapeForAttr(product.brand)}')">Eliminar</button></div>`;
         barcodeList.appendChild(div);
       });
     }
@@ -2928,12 +2966,32 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
       scannerStatus.textContent = `Detectado: ${ingredient.name}${product.brand ? " · " + product.brand : ""}`;
     }
 
-    function handleBarcodeLookup() {
+    async function handleBarcodeLookup() {
       const barcode = scanBarcodeInput.value.trim();
       if (!barcode) return alert("Escribe o escanea un código.");
       const found = findBarcode(barcode);
-      if (found) fillScannerFromProduct(found.ingredient, found.product);
-      else scannerStatus.textContent = "Código no guardado. Selecciona un ingrediente y pulsa ‘Guardar código en ingrediente’.";
+      if (found) {
+        fillScannerFromProduct(found.ingredient, found.product);
+        return;
+      }
+
+      scannerStatus.textContent = "Código no guardado. Consultando Open Food Facts...";
+      try {
+        const product = await fetchOpenFoodFactsByBarcode(barcode);
+        if (!product) {
+          scannerStatus.textContent = "Código no encontrado. Selecciona un ingrediente y pulsa ‘Guardar código en ingrediente’ para registrarlo manualmente.";
+          return;
+        }
+        lastOpenFoodFactsResults = [product];
+        renderOpenFoodFactsResults(lastOpenFoodFactsResults);
+        scanBarcodeInput.value = product.barcode;
+        quickBrand.value = product.brand || product.productName || "";
+        quickPackageQty.value = product.packageQty || 1;
+        quickPackageUnit.value = product.packageUnit || "unidades";
+        scannerStatus.textContent = "Producto encontrado en Open Food Facts. Puedes añadirlo al ingrediente seleccionado o crear uno nuevo.";
+      } catch (error) {
+        scannerStatus.textContent = error.message || "No se pudo consultar Open Food Facts.";
+      }
     }
 
     function saveProductFromScanner() {
@@ -3004,6 +3062,19 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
     });
 
     document.getElementById("findBarcodeBtn").addEventListener("click", handleBarcodeLookup);
+    document.getElementById("searchOpenFoodFactsBtn").addEventListener("click", handleOpenFoodFactsSearch);
+    document.getElementById("createIngredientFromOffBtn").addEventListener("click", () => {
+      if (!lastOpenFoodFactsResults.length) return alert("Busca primero un alimento en Open Food Facts.");
+      createIngredientFromOpenFoodFactsProduct(lastOpenFoodFactsResults[0]);
+    });
+    if (offSearchInput) {
+      offSearchInput.addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          handleOpenFoodFactsSearch();
+        }
+      });
+    }
     document.getElementById("saveBarcodeBtn").addEventListener("click", saveProductFromScanner);
     document.getElementById("quickUpdateStockBtn").addEventListener("click", quickUpdateStock);
 
@@ -3184,7 +3255,11 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
         "typicalWeekPlan",
         "weeklyPlan",
         "foods",
-        "favoriteFoods"
+        "favoriteFoods",
+        "remotePacksPath",
+        "remoteRepoOwner",
+        "remoteRepoName",
+        "remoteRepoBranch"
       ].forEach(key => localStorage.removeItem(key));
       alert("Datos borrados. Recarga la página para empezar desde cero.");
     });
@@ -3240,15 +3315,42 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
         return alert("El JSON de ingredientes no es válido.");
       }
 
-      try {
-        const result = importIngredientsData(data, document.getElementById("mergeIngredientsByName").checked);
-        saveData();
-        renderAll();
-        switchTab("ingredients");
-        alert(`Importación completada. Añadidos: ${result.added}. Actualizados: ${result.updated}.`);
-      } catch (error) {
-        alert(error.message);
+      const importedItems = extractIngredientsFromImport(data);
+      if (!importedItems) {
+        return alert("No encuentro una lista de ingredientes. Usa un array JSON o un objeto con la clave ingredients.");
       }
+
+      const mergeByName = document.getElementById("mergeIngredientsByName").checked;
+      let added = 0;
+      let updated = 0;
+
+      importedItems.forEach(rawItem => {
+        const imported = normalizeImportedIngredient(rawItem);
+        const existing = mergeByName
+          ? ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(imported.name))
+          : null;
+
+        if (existing) {
+          Object.assign(existing, {
+            name: imported.name,
+            qty: imported.qty,
+            unit: imported.unit,
+            available: imported.available,
+            familyId: imported.familyId || existing.familyId,
+            approxPrice: imported.approxPrice || existing.approxPrice || 0,
+            products: imported.products && imported.products.length ? imported.products : (existing.products || [])
+          });
+          updated++;
+        } else {
+          ingredients.push(imported);
+          added++;
+        }
+      });
+
+      saveData();
+      renderAll();
+      switchTab("ingredients");
+      alert(`Importación completada. Añadidos: ${added}. Actualizados: ${updated}.`);
     });
 
     document.getElementById("exportIngredientsBtn").addEventListener("click", () => {
@@ -3594,7 +3696,11 @@ Guárdalo en packs/recetas/nombre-del-pack.json. Si es una lista de ingredientes
         "typicalWeekPlan",
         "weeklyPlan",
         "foods",
-        "favoriteFoods"
+        "favoriteFoods",
+        "remotePacksPath",
+        "remoteRepoOwner",
+        "remoteRepoName",
+        "remoteRepoBranch"
       ].forEach(key => localStorage.removeItem(key));
       location.reload();
     });
