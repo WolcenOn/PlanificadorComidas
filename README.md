@@ -14,10 +14,34 @@ Incluir al final de `index.html`, despues del script principal actual y antes de
 
 Actualmente carga:
 
-1. `stock-lifecycle.js`
-2. `meal-costing.js`
-3. `index-hardening.js`
-4. `pack-preview-fix.js`
+1. `data-store.js`
+2. `stock-lifecycle.js`
+3. `meal-costing.js`
+4. `index-hardening.js`
+5. `pack-preview-fix.js`
+
+## Capa segura de datos
+
+`data-store.js` centraliza lectura/escritura de `localStorage`, saneamiento de JSON, normalizacion de datos y migracion de backups.
+
+Objetivos:
+
+- evitar `JSON.parse` dispersos por `index.html`;
+- limpiar textos, fechas, cantidades y arrays antes de guardar;
+- normalizar ingredientes, productos, lotes, platos, recetas, semanas, miembros y comidas;
+- garantizar estructura minima aunque haya datos antiguos o incompletos;
+- preparar el modelo `stockLots` y `baseServings` para calculos mas precisos.
+
+Funciones principales:
+
+- `PlanificadorDataStore.normalizeBackup(data)`
+- `PlanificadorDataStore.loadAll()`
+- `PlanificadorDataStore.saveAll(data)`
+- `PlanificadorDataStore.buildBackup(data)`
+- `PlanificadorDataStore.normalizeIngredient(item)`
+- `PlanificadorDataStore.normalizeDish(item)`
+- `PlanificadorDataStore.normalizeStockLot(item, ingredient)`
+- `PlanificadorDataStore.runSelfTests()`
 
 ## Coste por racion y lotes de stock
 
