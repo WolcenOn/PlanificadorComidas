@@ -354,99 +354,83 @@
 
     .scanner-video {
       width: 100%;
-      max-height: 280px;
-      object-fit: cover;
+      max-height: 260px;
       border-radius: 16px;
-      border: 1px solid var(--border);
       background: #0f172a;
       display: none;
+      object-fit: cover;
       margin-top: 10px;
     }
 
-    .budget-box {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 10px;
-      margin: 12px 0;
-    }
-
-    .budget-card {
-      padding: 12px;
+    .barcode-result {
+      margin-top: 10px;
+      padding: 10px;
       border: 1px solid var(--border);
-      border-radius: 16px;
-      background: linear-gradient(135deg, #ffffff, #e6f3ff);
+      border-radius: 14px;
+      background: white;
     }
-
-    .budget-card strong {
-      display: block;
-      font-size: 1.25rem;
-      color: var(--primary-dark);
-    }
-
 
     .remote-pack-grid {
       display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
       gap: 10px;
       margin-top: 12px;
     }
 
     .remote-pack-card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      background: #ffffff;
       display: grid;
       grid-template-columns: auto 1fr;
       gap: 10px;
       align-items: start;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 12px;
-      background: linear-gradient(135deg, #ffffff, #eefaff);
     }
 
-    .remote-pack-card input { width: auto; margin-top: 4px; }
-    .remote-pack-card .item-name { margin-bottom: 3px; }
-
-    .code-block {
-      min-height: 190px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 0.82rem;
+    .pack-prompt {
+      font-family: "Courier New", monospace;
+      min-height: 260px;
       white-space: pre;
     }
 
-    @media (max-width: 1120px) {
-      .calendar { grid-template-columns: repeat(2, 1fr); }
-      .two-columns { grid-template-columns: 1fr; }
-      .tabs { grid-template-columns: repeat(2, 1fr); }
-      .week-selector { grid-template-columns: 1fr; }
+    .calendar-controls {
+      margin: 0 0 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #f8fffd;
     }
 
-    @media (max-width: 620px) {
+    .calendar-controls .row { align-items: end; }
+
+
+    .print-only { display: none; }
+
+    @media (max-width: 920px) {
+      .two-columns { grid-template-columns: 1fr; }
       .calendar { grid-template-columns: 1fr; }
-      .row { flex-direction: column; align-items: stretch; }
-      .tabs { grid-template-columns: 1fr; }
-      .shopping-item { grid-template-columns: auto 1fr; }
-      .shopping-item .badge { grid-column: 2; width: fit-content; }
+      .week-selector { grid-template-columns: 1fr; }
+      .calendar-toolbar { align-items: stretch; }
     }
 
     @media print {
-      body { background: white; }
-      header, .tabs, .no-print { display: none !important; }
-      main { width: 100%; margin: 0; }
-      .card { box-shadow: none; border: none; padding: 0; }
-      main > section { display: none !important; }
-      body.print-calendar #panel-calendar,
-      body.print-calendar #summary-card { display: block !important; }
-      body.print-shopping #panel-shopping { display: block !important; }
-      .calendar { grid-template-columns: repeat(7, 1fr); gap: 6px; }
-      .day { min-height: 190px; break-inside: avoid; }
-      select { border: none; appearance: none; padding: 0; background: transparent; }
-      .member-slot select option { display: none; }
-      .shopping-item, .item { break-inside: avoid; }
+      body { background: white; color: #111827; }
+      header, .no-print, .tabs, .tab-panel:not(#panel-shopping), #panel-shopping .actions, #panel-shopping .search-box { display: none !important; }
+      main { width: 100%; margin: 0; display: block; }
+      .card { box-shadow: none; border: 0; padding: 0; }
+      .print-only { display: block; }
+      #panel-shopping { display: block !important; }
+      #shoppingList { display: block; }
+      .item, .shopping-item { break-inside: avoid; border: 1px solid #d1d5db; margin-bottom: 8px; background: white; }
+      button, input[type="checkbox"] { display: none !important; }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Gestor de comidas, ingredientes y compra</h1>
-    <p>Crea ingredientes, guarda códigos de barras, calcula presupuesto y planifica varias semanas.</p>
+    <h1>Gestor de comidas, ingredientes, semanas y compra</h1>
+    <p>Crea ingredientes, guarda códigos de barras, calcula presupuesto y planifica varias semanas para toda la familia.</p>
   </header>
 
   <main>
@@ -462,6 +446,7 @@
       <button type="button" class="tab-btn" data-tab="calendar">Calendario</button>
       <button type="button" class="tab-btn" data-tab="shopping">Compra</button>
       <button type="button" class="tab-btn" data-tab="backup">Importar/Exportar</button>
+      <a id="expiryDashboardLink" href="caducidades.html" class="tab-btn" style="text-align:center;text-decoration:none">Caducidades</a>
     </nav>
 
     <section id="startup-error" class="card" style="display:none;border-color:#fecaca;background:#fff7f7">
@@ -508,6 +493,23 @@
             <div class="help">Formato: código | marca | cantidad del envase | unidad | precio. Un producto por línea.</div>
           </div>
 
+          <div class="row">
+            <div>
+              <label for="ingredientExpiryDate">Caducidad / consumo preferente</label>
+              <input id="ingredientExpiryDate" type="date" />
+              <div class="help">Opcional. Se usa para avisos de consumo y para reducir desperdicio.</div>
+            </div>
+            <div>
+              <label for="ingredientStorageType">Conservación</label>
+              <select id="ingredientStorageType">
+                <option value="pantry">Despensa</option>
+                <option value="fridge">Nevera</option>
+                <option value="freezer">Congelador</option>
+              </select>
+              <div class="help">Ayuda a calcular sugerencias de consumo.</div>
+            </div>
+          </div>
+
           <label class="check-row">
             <input id="ingredientAvailable" type="checkbox" checked />
             Lo tengo en casa
@@ -538,18 +540,15 @@
           <h2>Familias de ingredientes</h2>
           <p class="muted">Clasifica ingredientes por familias: verdura, fruta, lácteos, legumbres, despensa, congelados...</p>
           <input type="hidden" id="editingFamilyId" />
-
           <label for="familyName">Nombre de la familia</label>
-          <input id="familyName" placeholder="Ej. Verdura, Fruta, Lácteos..." />
-
+          <input id="familyName" placeholder="Ej. Verdura" />
           <div class="actions">
             <button id="saveFamilyBtn">Añadir familia</button>
             <button id="cancelFamilyEditBtn" class="secondary" style="display:none">Cancelar edición</button>
           </div>
         </div>
-
         <div>
-          <h2>Listado de familias</h2>
+          <h2>Familias creadas</h2>
           <div id="familyList" class="list"></div>
         </div>
       </div>
@@ -558,140 +557,87 @@
     <section id="panel-scanner" class="tab-panel card">
       <div class="two-columns">
         <div>
-          <h2>Actualizar stock rápido</h2>
-          <p class="muted">Escanea o escribe un código de barras. Si ya está asociado a un ingrediente, se detecta automáticamente. Para alimentos a granel, usa la selección manual.</p>
-
+          <h2>Escáner y stock por código</h2>
+          <p class="muted">Escanea o escribe un código para buscar si ya lo tienes registrado y asociarlo a ingredientes.</p>
           <div class="scanner-box">
-            <label for="scanBarcodeInput">Código de barras</label>
-            <input id="scanBarcodeInput" placeholder="Escanea o escribe el código" inputmode="numeric" />
+            <label for="barcodeInput">Código de barras</label>
+            <input id="barcodeInput" placeholder="Ej. 8412345678901" inputmode="numeric" />
             <div class="actions">
-              <button id="findBarcodeBtn" class="ghost">Buscar código</button>
-              <button id="startScannerBtn">Usar cámara</button>
-              <button id="stopScannerBtn" class="secondary">Detener cámara</button>
+              <button id="lookupBarcodeBtn">Buscar código</button>
+              <button id="startScannerBtn" class="secondary">Usar cámara</button>
+              <button id="stopScannerBtn" class="danger" style="display:none">Parar cámara</button>
             </div>
-
-            <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
-
-            <h3>Buscar en Open Food Facts</h3>
-            <p class="help">Puedes buscar por nombre, por ejemplo “tomate frito”, y asignar varios códigos de marcas distintas al mismo ingrediente.</p>
-            <label for="offSearchInput">Nombre del producto</label>
-            <input id="offSearchInput" placeholder="Ej. tomate frito, yogur natural, garbanzos cocidos..." />
-            <div class="actions">
-              <button id="searchOpenFoodFactsBtn" class="ghost">Buscar alimentos</button>
-              <button id="createIngredientFromOffBtn" class="secondary">Crear ingrediente con primer resultado</button>
-            </div>
-            <div id="offResults" class="list"></div>
-
-            <video id="scannerVideo" class="scanner-video" muted playsinline></video>
-            <div id="scannerStatus" class="help">La cámara necesita permiso del navegador y normalmente requiere abrir la página desde HTTPS o localhost. Si no funciona, usa la entrada manual.</div>
-            <div class="help">
-              Para activar cámara en ordenador: abre una terminal en la carpeta del archivo y ejecuta
-              <strong>python -m http.server 8000</strong>. Después entra en
-              <strong>http://localhost:8000/gestor_comidas_semanas_codigos.html</strong>.
-            </div>
-          </div>
-
-          <label for="quickIngredientSelect">Ingrediente</label>
-          <select id="quickIngredientSelect"></select>
-
-          <div class="row">
-            <div>
-              <label for="quickBrand">Marca / variante</label>
-              <input id="quickBrand" placeholder="Ej. Hacendado, Gallo, a granel..." />
-            </div>
-            <div>
-              <label for="quickPackages">Unidades compradas</label>
-              <input id="quickPackages" type="number" min="1" step="1" value="1" />
-            </div>
-          </div>
-
-          <div class="row">
-            <div>
-              <label for="quickPackageQty">Cantidad por envase</label>
-              <input id="quickPackageQty" type="number" min="0" step="0.01" value="1" />
-            </div>
-            <div>
-              <label for="quickPackageUnit">Unidad</label>
-              <input id="quickPackageUnit" placeholder="g, ml, unidades..." />
-            </div>
-          </div>
-
-          <label for="quickPrice">Precio por envase</label>
-          <input id="quickPrice" type="number" min="0" step="0.01" placeholder="Ej. 1.35" />
-
-          <div class="actions">
-            <button id="quickUpdateStockBtn">Sumar al stock</button>
-            <button id="saveBarcodeBtn" class="ghost">Guardar código en ingrediente</button>
+            <video id="scannerVideo" class="scanner-video" playsinline></video>
+            <div id="scannerStatus" class="help"></div>
+            <div id="barcodeResult" class="barcode-result"></div>
           </div>
         </div>
-
         <div>
-          <h2>Códigos guardados</h2>
-          <p class="muted">Un mismo ingrediente puede tener productos de diferentes marcas, formatos o precios.</p>
-          <div id="barcodeList" class="list"></div>
+          <h2>Cómo usarlo</h2>
+          <ul class="recipe-list">
+            <li>Escanea un producto del supermercado.</li>
+            <li>Si existe en tu stock, verás a qué ingrediente está asociado.</li>
+            <li>Si no existe, puedes crear un producto asociado a un ingrediente.</li>
+            <li>El precio por envase ayuda a calcular el presupuesto de la compra.</li>
+          </ul>
         </div>
       </div>
     </section>
-
 
     <section id="panel-packs" class="tab-panel card">
       <div class="two-columns">
         <div>
           <h2>Packs de platos</h2>
-          <p class="muted">Clasifica los platos por colecciones: dieta mediterránea, vegano, diabetes, cenas ligeras, básicos diarios...</p>
-
-          <div class="scanner-box">
-            <h3>Packs disponibles en GitHub</h3>
-            <p class="help">Guarda archivos JSON en una carpeta del repositorio, por ejemplo <strong>packs/recetas</strong>. La app puede leerlos desde GitHub Pages si existe un índice <strong>packs/index.json</strong> o desde la API pública de GitHub si el repositorio es público.</p>
-
-            <label for="remotePacksPath">Carpeta de packs JSON</label>
-            <input id="remotePacksPath" placeholder="packs/recetas" value="packs/recetas" />
-
-            <div class="row">
-              <div>
-                <label for="remoteRepoOwner">Usuario/organización GitHub</label>
-                <input id="remoteRepoOwner" placeholder="Ej. virjiprofe" />
-              </div>
-              <div>
-                <label for="remoteRepoName">Repositorio</label>
-                <input id="remoteRepoName" placeholder="Ej. gestor-comidas" />
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <label for="remoteRepoBranch">Rama</label>
-                <input id="remoteRepoBranch" placeholder="main" value="main" />
-              </div>
-              <div class="actions">
-                <button id="loadRemotePacksBtn" class="ghost" type="button">Buscar packs</button>
-              </div>
-            </div>
-
-            <div class="actions">
-              <button id="importSelectedRemotePacksBtn" type="button">Importar packs marcados</button>
-              <button id="selectAllRemotePacksBtn" class="ghost" type="button">Marcar todos</button>
-              <button id="copyPackPromptBtn" class="ghost" type="button">Copiar prompt ejemplo</button>
-            </div>
-
-            <div id="remotePacksStatus" class="help">Pulsa “Buscar packs” para cargar los JSON publicados.</div>
-            <div id="remotePacksList" class="remote-pack-grid"></div>
-          </div>
-
+          <p class="muted">Agrupa platos en colecciones: mediterránea, infantil, batch cooking, ahorro, diabetes, cenas rápidas...</p>
           <input type="hidden" id="editingPackId" />
-
           <label for="packName">Nombre del pack</label>
-          <input id="packName" placeholder="Ej. Mediterránea semanal, Vegano, Cenas rápidas..." />
-
+          <input id="packName" placeholder="Ej. Semana mediterránea" />
           <div class="actions">
             <button id="savePackBtn">Añadir pack</button>
             <button id="cancelPackEditBtn" class="secondary" style="display:none">Cancelar edición</button>
           </div>
-        </div>
 
+          <div class="scanner-box">
+            <h3>Publicar y cargar packs desde GitHub</h3>
+            <p class="help">Sube archivos JSON a una carpeta del repositorio, por ejemplo <strong>packs/recetas</strong>. La app puede leerlos desde GitHub Pages o desde la API pública de GitHub.</p>
+            <div class="row">
+              <div>
+                <label for="remoteRepoOwner">Usuario/organización</label>
+                <input id="remoteRepoOwner" placeholder="Ej. wolcenon" />
+              </div>
+              <div>
+                <label for="remoteRepoName">Repositorio</label>
+                <input id="remoteRepoName" placeholder="Ej. PlanificadorComidas" />
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="remoteRepoBranch">Rama</label>
+                <input id="remoteRepoBranch" value="main" />
+              </div>
+              <div>
+                <label for="remotePacksPath">Carpeta de packs</label>
+                <input id="remotePacksPath" value="packs/recetas" />
+              </div>
+            </div>
+            <div class="actions">
+              <button id="loadRemotePacksBtn">Cargar packs publicados</button>
+              <button id="importSelectedPacksBtn" class="secondary">Importar seleccionados</button>
+            </div>
+            <div id="remotePacksStatus" class="help"></div>
+            <div id="remotePacksList" class="remote-pack-grid"></div>
+          </div>
+        </div>
         <div>
-          <h2>Packs guardados</h2>
+          <h2>Packs creados</h2>
           <div id="packList" class="list"></div>
+
+          <div class="scanner-box">
+            <h3>Prompt para crear packs con IA</h3>
+            <p class="help">Copia este prompt en una IA generativa para crear un JSON compatible. Luego súbelo al repositorio o pégalo en Importar/Exportar.</p>
+            <textarea id="packPromptExample" class="pack-prompt" readonly></textarea>
+            <div class="actions"><button id="copyPackPromptBtn" class="ghost">Copiar prompt</button></div>
+          </div>
         </div>
       </div>
     </section>
@@ -699,11 +645,11 @@
     <section id="panel-dishes" class="tab-panel card">
       <div class="two-columns">
         <div>
-          <h2>Añadir o editar plato</h2>
+          <h2>Platos preparados y recetas</h2>
           <input type="hidden" id="editingDishId" />
 
           <label for="dishName">Nombre del plato</label>
-          <input id="dishName" placeholder="Ej. Salmorejo completo" />
+          <input id="dishName" placeholder="Ej. Plato de salmorejo con huevo y jamón" />
 
           <div class="row">
             <div>
@@ -712,27 +658,23 @@
             </div>
             <div>
               <label for="dishUnit">Unidad</label>
-              <input id="dishUnit" placeholder="raciones, tuppers..." value="raciones" />
+              <input id="dishUnit" value="raciones" />
             </div>
           </div>
 
-          <label for="dishPackSelect">Pack / colección</label>
+          <label for="dishPackSelect">Pack</label>
           <select id="dishPackSelect"></select>
 
-          <div class="row">
-            <div>
-              <label for="dishCategory">Categoría</label>
-              <input id="dishCategory" placeholder="Ej. Legumbres, pescado, cena ligera..." />
-            </div>
-            <div>
-              <label for="dishDietTags">Etiquetas</label>
-              <input id="dishDietTags" placeholder="Ej. vegano, diabetes, mediterránea" />
-            </div>
-          </div>
+          <label for="dishCategory">Categoría</label>
+          <input id="dishCategory" placeholder="Ej. Legumbres, Verduras, Pescado, Cenas ligeras..." />
+
+          <label for="dishDietTags">Etiquetas</label>
+          <input id="dishDietTags" placeholder="Ej. mediterránea, alta proteína, sin gluten, infantil" />
+          <div class="help">Separa etiquetas con comas. Ayudan a buscar y filtrar platos.</div>
 
           <div class="row">
             <div>
-              <label for="dishPrepTime">Tiempo aprox.</label>
+              <label for="dishPrepTime">Tiempo</label>
               <input id="dishPrepTime" placeholder="Ej. 25 min" />
             </div>
             <div>
@@ -744,8 +686,11 @@
           <label for="dishApproxPrice">Precio aprox. por ración</label>
           <input id="dishApproxPrice" type="number" min="0" step="0.01" placeholder="Ej. 2.50" />
 
+          <label for="dishNotes">Notas</label>
+          <textarea id="dishNotes" placeholder="Procedimiento de preparación, conservación, recalentado, variaciones..."></textarea>
+
           <div class="recipe-builder">
-            <h3>Ingredientes del plato</h3>
+            <h3>Receta por ración</h3>
             <div class="row">
               <div>
                 <label for="recipeIngredientSelect">Ingrediente</label>
@@ -756,14 +701,9 @@
                 <input id="recipeIngredientQty" type="number" min="0" step="0.01" value="1" />
               </div>
             </div>
-            <div class="actions">
-              <button id="addRecipeIngredientBtn" class="ghost">Añadir ingrediente al plato</button>
-            </div>
+            <div class="actions"><button id="addRecipeIngredientBtn" class="secondary">Añadir a receta</button></div>
             <ul id="currentRecipeList" class="recipe-list"></ul>
           </div>
-
-          <label for="dishNotes">Notas</label>
-          <textarea id="dishNotes" placeholder="Ej. el plato lleva salmorejo, huevo cocido y jamón en tacos..."></textarea>
 
           <div class="actions">
             <button id="saveDishBtn">Añadir plato</button>
@@ -772,14 +712,16 @@
         </div>
 
         <div>
-          <h2>Lista de platos</h2>
+          <h2>Platos guardados</h2>
           <div class="search-box">
             <label for="dishSearchInput">Buscar plato</label>
-            <input id="dishSearchInput" placeholder="Ej. salmorejo, pollo, fruta..." />
-
-            <label for="dishPackFilterSelect">Filtrar por pack</label>
-            <select id="dishPackFilterSelect"></select>
-
+            <input id="dishSearchInput" placeholder="Ej. lentejas, cena rápida, pescado, infantil..." />
+            <div class="row" style="margin-top:8px">
+              <div>
+                <label for="dishPackFilterSelect">Filtrar por pack</label>
+                <select id="dishPackFilterSelect"></select>
+              </div>
+            </div>
             <div id="dishSearchMeta" class="search-meta"></div>
           </div>
           <div id="dishList" class="list"></div>
@@ -790,55 +732,60 @@
     <section id="panel-weeks" class="tab-panel card">
       <div class="two-columns">
         <div>
-          <h2>Crear o duplicar semana</h2>
-          <label for="newWeekName">Nombre de la semana</label>
-          <input id="newWeekName" placeholder="Ej. Semana 1 junio, Semana vegetariana, Semana tipo cole..." />
-
-          <div class="actions">
-            <button id="createWeekBtn">Crear semana vacía</button>
-            <button id="duplicateWeekBtn" class="ghost">Duplicar semana actual</button>
-            <button id="makeTypicalWeekBtn" class="secondary">Guardar como semana tipo</button>
+          <h2>Semanas guardadas</h2>
+          <p class="muted">Crea varias semanas, duplica una planificación y marca una semana tipo para reutilizarla.</p>
+          <div class="week-selector">
+            <div>
+              <label for="activeWeekSelect">Semana activa</label>
+              <select id="activeWeekSelect"></select>
+            </div>
+            <div>
+              <label for="renameWeekInput">Nombre</label>
+              <input id="renameWeekInput" placeholder="Ej. Semana 1" />
+            </div>
+            <div class="actions" style="margin:0">
+              <button id="renameWeekBtn" class="secondary">Renombrar</button>
+            </div>
           </div>
-
-          <p class="help">La semana tipo es una plantilla reutilizable. Puedes aplicarla a una semana nueva y después modificarla.</p>
-
-          <label for="applyTypicalName">Crear semana desde semana tipo</label>
-          <input id="applyTypicalName" placeholder="Ej. Semana del 10 al 16 de junio" />
           <div class="actions">
-            <button id="applyTypicalWeekBtn">Crear desde semana tipo</button>
+            <button id="newWeekBtn">Nueva semana</button>
+            <button id="duplicateActiveWeekBtn" class="secondary">Duplicar activa</button>
+            <button id="applyTypicalWeekBtn" class="ghost">Aplicar semana tipo</button>
+            <button id="clearActiveWeekBtn" class="danger">Vaciar activa</button>
           </div>
         </div>
-
         <div>
-          <h2>Semanas guardadas</h2>
-          <p class="muted">Selecciona una semana para editarla en el calendario. Cada semana conserva su propia planificación.</p>
+          <h2>Lista de semanas</h2>
+          <div id="activeWeekInfo" class="muted"></div>
           <div id="weekList" class="list"></div>
         </div>
       </div>
     </section>
 
     <section id="panel-favorites" class="tab-panel card">
-      <h2>Favoritos</h2>
-      <p class="muted">Guarda platos habituales como favoritos para localizarlos rápido. Los favoritos conservan la receta del plato.</p>
+      <h2>Platos favoritos</h2>
       <div id="favoriteList" class="list"></div>
     </section>
 
     <section id="panel-config" class="tab-panel card">
       <div class="two-columns">
         <div>
-          <h2>Miembros del núcleo familiar</h2>
-          <label for="memberName">Nombre del miembro</label>
-          <input id="memberName" placeholder="Ej. Virginia, Leo, Mamá..." />
-          <div class="actions"><button id="addMemberBtn">Añadir miembro</button></div>
+          <h2>Miembros de la familia</h2>
+          <p class="muted">Crea miembros para planificar comidas diferentes por persona.</p>
+          <div class="row">
+            <input id="memberName" placeholder="Ej. Todos, Adultos, Niño, Persona 1..." />
+            <button id="addMemberBtn">Añadir</button>
+          </div>
           <div id="memberList" class="list"></div>
         </div>
-
         <div>
           <h2>Tipos de comida</h2>
-          <label for="mealName">Nombre de la comida</label>
-          <input id="mealName" placeholder="Ej. Desayuno, Merienda, Cena..." />
-          <div class="actions"><button id="addMealBtn">Añadir tipo de comida</button></div>
-          <div id="mealList" class="list"></div>
+          <p class="muted">Configura desayuno, comida, merienda, cena, batch cooking...</p>
+          <div class="row">
+            <input id="mealTypeName" placeholder="Ej. Comida" />
+            <button id="addMealTypeBtn">Añadir</button>
+          </div>
+          <div id="mealTypeList" class="list"></div>
         </div>
       </div>
     </section>
@@ -846,237 +793,255 @@
     <section id="panel-calendar" class="tab-panel card">
       <div class="calendar-toolbar">
         <div>
-          <div class="week-title">Planificador semanal</div>
-          <div id="activeWeekInfo" class="muted"></div>
+          <h2>Calendario semanal</h2>
+          <div id="weekTitle" class="week-title"></div>
         </div>
         <div class="actions no-print">
-          <button id="clearPlanBtn" class="ghost">Vaciar esta semana</button>
-          <button id="printCalendarBtn">Exportar calendario a PDF</button>
+          <button id="copyWeekBtn" class="ghost">Copiar semana</button>
+          <button id="printWeekBtn" class="secondary">Imprimir semana</button>
         </div>
       </div>
-
-      <div class="week-selector no-print">
-        <div>
-          <label for="activeWeekSelect">Semana activa</label>
-          <select id="activeWeekSelect"></select>
+      <div class="calendar-controls no-print">
+        <div class="row">
+          <div>
+            <label for="calendarDishSearchInput">Buscar platos para el calendario</label>
+            <input id="calendarDishSearchInput" placeholder="Ej. pescado, vegano, rápido, sin gluten..." />
+          </div>
+          <div>
+            <label for="calendarPackFilterSelect">Pack</label>
+            <select id="calendarPackFilterSelect"></select>
+          </div>
         </div>
-        <div>
-          <label for="renameWeekInput">Renombrar</label>
-          <input id="renameWeekInput" placeholder="Nuevo nombre" />
-        </div>
-        <div class="actions">
-          <button id="renameWeekBtn" class="ghost">Guardar nombre</button>
-        </div>
+        <div id="calendarDishSearchMeta" class="search-meta"></div>
       </div>
-
-      <div class="search-box no-print">
-        <label for="calendarDishSearchInput">Filtrar platos al planificar</label>
-        <input id="calendarDishSearchInput" placeholder="Ej. pollo, fruta, salmorejo..." />
-
-        <label for="calendarPackFilterSelect">Filtrar por pack</label>
-        <select id="calendarPackFilterSelect"></select>
-
-        <div id="calendarDishSearchMeta" class="search-meta">Este filtro reduce los platos que aparecen en los desplegables del calendario.</div>
-      </div>
-
       <div id="calendar" class="calendar"></div>
     </section>
 
     <section id="panel-shopping" class="tab-panel card">
+      <div class="print-only"><h1>Lista de la compra</h1></div>
       <div class="calendar-toolbar">
         <div>
-          <div class="week-title">Lista de la compra</div>
+          <h2>Lista de la compra</h2>
           <div id="shoppingWeekInfo" class="muted"></div>
         </div>
         <div class="actions no-print">
           <button id="copyShoppingBtn" class="ghost">Copiar lista</button>
-          <button id="shareShoppingBtn" class="ghost">Compartir / enviar a Tasks</button>
-          <button id="printShoppingBtn">Exportar compra a PDF</button>
+          <button id="printShoppingBtn" class="secondary">Imprimir compra</button>
+          <button id="shareShoppingBtn">Compartir</button>
         </div>
       </div>
-      <div id="budgetSummary" class="budget-box"></div>
+      <div class="summary" id="shoppingSummary"></div>
       <div id="shoppingList" class="list"></div>
     </section>
 
     <section id="panel-backup" class="tab-panel card">
       <div class="two-columns">
         <div>
-          <h2>Exportar datos en JSON</h2>
-          <p class="muted">Guarda una copia de seguridad con ingredientes, familias, platos, códigos de barras, precios, semanas y configuración.</p>
+          <h2>Exportar copia completa</h2>
+          <p class="muted">Guarda una copia JSON con ingredientes, familias, códigos, platos, packs, favoritos, miembros, tipos de comida, semanas y configuración.</p>
           <div class="actions">
             <button id="exportJsonBtn">Descargar copia JSON</button>
             <button id="copyJsonBtn" class="ghost">Copiar JSON</button>
           </div>
+          <label for="exportPreview">Vista previa</label>
+          <textarea id="exportPreview" readonly></textarea>
 
-          <label for="exportPreview">Vista previa del JSON</label>
-          <textarea id="exportPreview" readonly placeholder="Aquí aparecerá la copia de seguridad."></textarea>
-
-          <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
-
-          <h2>Prompt para crear packs de recetas</h2>
-          <p class="muted">Copia este prompt en ChatGPT para generar un archivo JSON compatible con la importación de platos e ingredientes.</p>
-          <textarea id="packPromptExample" class="code-block" readonly></textarea>
-          <div class="actions">
-            <button id="copyPackPromptBackupBtn" class="ghost" type="button">Copiar prompt</button>
-          </div>
-        </div>
-
-        <div>
-          <h2>Importar datos desde JSON</h2>
-          <p class="muted">Restaura una copia anterior o mueve tus datos a otro dispositivo. La importación reemplaza los datos actuales.</p>
-
-          <label for="importJsonFile">Archivo JSON completo</label>
+          <h2 style="margin-top:18px">Importar copia completa</h2>
           <input id="importJsonFile" type="file" accept="application/json,.json" />
-
-          <label for="importJsonText">O pega aquí el JSON completo</label>
-          <textarea id="importJsonText" placeholder="Pega aquí una copia JSON completa exportada desde esta app."></textarea>
-
-          <div class="actions">
-            <button id="importJsonBtn" class="secondary">Importar JSON completo</button>
-            <button id="clearAllDataBtn" class="danger">Borrar todos los datos</button>
-          </div>
-
-          <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
-
-          <h2>Importar solo ingredientes</h2>
-          <p class="muted">Esta opción añade o actualiza ingredientes sin tocar platos, semanas, miembros ni recetas. Sirve para importar una lista parcial.</p>
-
-          <label for="importIngredientsFile">Archivo JSON de ingredientes</label>
+          <textarea id="importJsonText" placeholder="Pega aquí el JSON de una copia completa"></textarea>
+          <button id="importJsonBtn" class="secondary">Importar JSON completo</button>
+          <button id="clearAllDataBtn" class="danger">Borrar todo</button>
+        </div>
+        <div>
+          <h2>Importar/exportar ingredientes</h2>
+          <p class="muted">Útil para cargar listas de ingredientes base sin tocar tus semanas ni platos.</p>
           <input id="importIngredientsFile" type="file" accept="application/json,.json" />
-
-          <label for="importIngredientsText">O pega aquí ingredientes en JSON</label>
-          <textarea id="importIngredientsText" placeholder='Ejemplo:
-[
-  {
-    "name": "Tomate",
-    "qty": 4,
-    "unit": "unidades",
-    "family": "Verdura",
-    "available": true
-  }
-]'></textarea>
-
-          <label class="check-row">
-            <input id="mergeIngredientsByName" type="checkbox" checked />
-            Fusionar por nombre si ya existe
-          </label>
-
+          <textarea id="importIngredientsText" placeholder='[{"name":"Tomate","qty":500,"unit":"g","family":"Verdura"}]'></textarea>
+          <label class="check-row"><input id="mergeIngredientsByName" type="checkbox" checked /> Fusionar por nombre</label>
           <div class="actions">
-            <button id="importIngredientsBtn">Importar solo ingredientes</button>
-            <button id="exportIngredientsBtn" class="ghost">Exportar solo ingredientes</button>
+            <button id="importIngredientsBtn" class="secondary">Importar ingredientes</button>
+            <button id="exportIngredientsBtn" class="ghost">Exportar ingredientes</button>
           </div>
 
-          <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
-
-          <h2>Importar platos con ingredientes</h2>
-          <p class="muted">Importa platos completos. Si algún ingrediente de la receta no existe, se crea automáticamente.</p>
-
-          <label for="importDishesFile">Archivo JSON de platos</label>
+          <h2 style="margin-top:18px">Importar/exportar platos con receta</h2>
+          <p class="muted">Formato recomendado: objeto con clave <strong>dishes</strong>, cada plato con <strong>ingredients</strong>.</p>
           <input id="importDishesFile" type="file" accept="application/json,.json" />
-
-          <label for="importDishesText">O pega aquí platos en JSON</label>
-          <textarea id="importDishesText" placeholder='Ejemplo:
-[
-  {
-    "name": "Salmorejo completo",
-    "qty": 0,
-    "unit": "raciones",
-    "notes": "Salmorejo con huevo y jamón",
-    "ingredients": [
-      { "name": "Salmorejo", "qty": 1, "unit": "ración", "family": "Verdura" },
-      { "name": "Huevo cocido", "qty": 1, "unit": "unidad", "family": "Huevos" },
-      { "name": "Jamón en tacos", "qty": 40, "unit": "g", "family": "Carne y pescado" }
-    ]
-  }
-]'></textarea>
-
-          <label class="check-row">
-            <input id="mergeDishesByName" type="checkbox" checked />
-            Fusionar platos por nombre si ya existen
-          </label>
-
+          <textarea id="importDishesText" placeholder='{"name":"Pack mediterráneo","dishes":[{"name":"Lentejas","qty":0,"unit":"raciones","pack":"Mediterráneo","category":"Legumbres","tags":["económica"],"ingredients":[{"name":"Lentejas","qty":80,"unit":"g","family":"Legumbre"}]}]}'></textarea>
+          <label class="check-row"><input id="mergeDishesByName" type="checkbox" checked /> Fusionar platos por nombre</label>
           <div class="actions">
-            <button id="importDishesBtn">Importar platos con ingredientes</button>
-            <button id="exportDishesBtn" class="ghost">Exportar solo platos</button>
+            <button id="importDishesBtn" class="secondary">Importar platos</button>
+            <button id="exportDishesBtn" class="ghost">Exportar platos</button>
           </div>
         </div>
       </div>
     </section>
-
-    <section id="summary-card" class="card">
-      <h2>Resumen de la semana activa</h2>
-      <div id="summary" class="summary"></div>
-    </section>
   </main>
 
   <script>
-    const days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+    const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+    const DEFAULT_FAMILIES = [
+      { id: "fam-verdura", name: "Verdura" },
+      { id: "fam-proteina", name: "Proteína" },
+      { id: "fam-despensa", name: "Despensa" },
+      { id: "fam-lacteos", name: "Lácteos" },
+      { id: "fam-fruta", name: "Fruta" }
+    ];
 
     function createId() {
-      if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
-      return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+      return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     }
 
-    function loadArray(key, fallback) {
+    function loadArray(key, fallback = []) {
       try {
-        const saved = JSON.parse(localStorage.getItem(key));
-        return Array.isArray(saved) ? saved : fallback;
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : fallback;
       } catch {
         return fallback;
       }
     }
 
-    function loadObject(key, fallback) {
+    function loadObject(key, fallback = null) {
       try {
-        const saved = JSON.parse(localStorage.getItem(key));
-        return saved && typeof saved === "object" && !Array.isArray(saved) ? saved : fallback;
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : fallback;
       } catch {
         return fallback;
       }
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function escapeForAttr(text) {
+      return escapeHtml(text).replaceAll("`", "&#096;");
+    }
+
+    function formatNumber(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return "0";
+      return number.toLocaleString("es-ES", { maximumFractionDigits: 2 });
+    }
+
+    function formatCurrency(value) {
+      const number = Number(value) || 0;
+      return number.toLocaleString("es-ES", { style: "currency", currency: "EUR" });
+    }
+
+    function normalizeSearch(text) {
+      return String(text || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    }
+
+    function matchesSearch(text, query) {
+      const cleanQuery = normalizeSearch(query);
+      if (!cleanQuery) return true;
+      return normalizeSearch(text).includes(cleanQuery);
+    }
+
+    function normalizeTags(value) {
+      if (Array.isArray(value)) return value.map(tag => String(tag).trim()).filter(Boolean);
+      if (typeof value === "string") return value.split(/[,;|]/).map(tag => tag.trim()).filter(Boolean);
+      return [];
+    }
+
+    function inferDishCategory(dish) {
+      const text = normalizeSearch([dish.name, dish.notes, dish.category, dish.categoria, ...(normalizeTags(dish.tags || dish.etiquetas))].join(" "));
+      const rules = [
+        ["Legumbres", ["lenteja", "garbanzo", "alubia", "judia", "legumbre"]],
+        ["Verduras", ["verdura", "calabacin", "berenjena", "pisto", "ensalada", "crema", "gazpacho", "salmorejo"]],
+        ["Pescado", ["pescado", "merluza", "salmon", "atun", "bacalao", "sardina"]],
+        ["Carne", ["pollo", "ternera", "cerdo", "pavo", "jamon", "carne"]],
+        ["Huevos", ["huevo", "tortilla", "revuelto"]],
+        ["Pasta y arroz", ["pasta", "arroz", "macarr", "espagueti", "noodle"]],
+        ["Desayunos", ["desayuno", "avena", "tostada", "yogur", "cafe"]],
+        ["Cenas ligeras", ["cena", "ligera", "sopa", "ensalada"]]
+      ];
+      const match = rules.find(([, terms]) => terms.some(term => text.includes(term)));
+      return match ? match[0] : "";
+    }
+
+    function inferDishTags(dish) {
+      const text = normalizeSearch([dish.name, dish.notes, dish.category, dish.categoria].join(" "));
+      const tags = [];
+      if (["mediterranea", "aceite", "verdura", "legumbre", "pescado"].some(term => text.includes(term))) tags.push("mediterránea");
+      if (["rapido", "facil", "cena", "tortilla", "ensalada"].some(term => text.includes(term))) tags.push("fácil");
+      if (["barato", "econom", "lenteja", "arroz", "pasta", "patata"].some(term => text.includes(term))) tags.push("económica");
+      if (["nino", "infantil", "colegio"].some(term => text.includes(term))) tags.push("infantil");
+      if (["batch", "congel", "tupper", "preparar"].some(term => text.includes(term))) tags.push("batch cooking");
+      return tags;
     }
 
     function migrateOldPlanToWeeks() {
-      const oldPlan = loadObject("weeklyPlan", {});
-      const defaultWeek = {
-        id: createId(),
-        name: "Semana actual",
-        plan: oldPlan,
-        createdAt: new Date().toISOString(),
-        isTypical: false
-      };
-      return [defaultWeek];
+      const oldPlan = loadObject("weeklyPlan", null);
+      if (oldPlan) return [{ id: createId(), name: "Semana 1", plan: oldPlan, createdAt: new Date().toISOString(), isTypical: true }];
+      return [{ id: createId(), name: "Semana 1", plan: {}, createdAt: new Date().toISOString(), isTypical: true }];
     }
 
-    let ingredientFamilies = loadArray("ingredientFamilies", [
-      { id: createId(), name: "Verdura" },
-      { id: createId(), name: "Fruta" },
-      { id: createId(), name: "Lácteos" },
-      { id: createId(), name: "Carne y pescado" },
-      { id: createId(), name: "Despensa" },
-      { id: createId(), name: "Congelados" },
-      { id: createId(), name: "Otros" }
-    ]).map(normalizeFamily);
+    function normalizeFamily(item) {
+      return { id: item.id || createId(), name: item.name || "Familia" };
+    }
 
-    let ingredients = loadArray("ingredients", [
-      { id: createId(), name: "Salmorejo", qty: 1, unit: "ración", available: true, products: [] },
-      { id: createId(), name: "Huevo cocido", qty: 2, unit: "unidades", available: true, products: [] },
-      { id: createId(), name: "Jamón en tacos", qty: 80, unit: "g", available: true, products: [] },
-      { id: createId(), name: "Pasta", qty: 0, unit: "g", available: false, products: [{ barcode: "", brand: "A granel", packageQty: 1000, packageUnit: "g", price: 1.50 }] }
-    ]).map(normalizeIngredient);
+    function seedDefaultData() {
+      const families = DEFAULT_FAMILIES.map(item => ({ ...item }));
+      const byName = name => families.find(family => family.name === name)?.id || "";
 
-    let dishPacks = loadArray("dishPacks", [
-      { id: createId(), name: "Sin clasificar" },
-      { id: createId(), name: "Dieta mediterránea" },
-      { id: createId(), name: "Vegano" },
-      { id: createId(), name: "Diabetes" },
-      { id: createId(), name: "Cenas ligeras" }
-    ]).map(normalizePack);
+      const salmorejo = {
+        id: createId(),
+        name: "Salmorejo",
+        qty: 2,
+        unit: "raciones",
+        available: true,
+        familyId: byName("Verdura"),
+        approxPrice: 2.2,
+        products: []
+      };
+      const huevo = {
+        id: createId(),
+        name: "Huevo cocido",
+        qty: 6,
+        unit: "unidades",
+        available: true,
+        familyId: byName("Proteína"),
+        approxPrice: 0.25,
+        products: []
+      };
+      const jamon = {
+        id: createId(),
+        name: "Jamón en tacos",
+        qty: 120,
+        unit: "g",
+        available: true,
+        familyId: byName("Proteína"),
+        approxPrice: 1.8,
+        products: []
+      };
 
-    let dishes = loadArray("dishes", []).map(normalizeDish);
-    if (dishes.length === 0) {
-      const salmorejo = ingredients.find(i => i.name === "Salmorejo");
-      const huevo = ingredients.find(i => i.name === "Huevo cocido");
-      const jamon = ingredients.find(i => i.name === "Jamón en tacos");
+      return { families, ingredients: [salmorejo, huevo, jamon], dishes: [] };
+    }
+
+    let ingredientFamilies = loadArray("ingredientFamilies", null);
+    let ingredients = loadArray("ingredients", null);
+    let dishPacks = loadArray("dishPacks", [{ id: "pack-general", name: "General" }]);
+    let dishes = loadArray("dishes", null);
+
+    if (!ingredientFamilies || !ingredients || !dishes) {
+      const seeded = seedDefaultData();
+      ingredientFamilies = ingredientFamilies || seeded.families;
+      ingredients = ingredients || seeded.ingredients;
       dishes = [{
         id: createId(),
         name: "Salmorejo completo",
@@ -1084,9 +1049,9 @@
         unit: "raciones",
         notes: "Compuesto por salmorejo, huevo cocido y jamón en tacos.",
         recipe: [
-          { ingredientId: salmorejo.id, qty: 1 },
-          { ingredientId: huevo.id, qty: 1 },
-          { ingredientId: jamon.id, qty: 40 }
+          { ingredientId: seeded.ingredients[0].id, qty: 1 },
+          { ingredientId: seeded.ingredients[1].id, qty: 1 },
+          { ingredientId: seeded.ingredients[2].id, qty: 40 }
         ]
       }];
     }
@@ -1106,6 +1071,8 @@
     const ingredientQty = document.getElementById("ingredientQty");
     const ingredientUnit = document.getElementById("ingredientUnit");
     const ingredientProducts = document.getElementById("ingredientProducts");
+    const ingredientExpiryDate = document.getElementById("ingredientExpiryDate");
+    const ingredientStorageType = document.getElementById("ingredientStorageType");
     const ingredientAvailable = document.getElementById("ingredientAvailable");
     const saveIngredientBtn = document.getElementById("saveIngredientBtn");
     const cancelIngredientEditBtn = document.getElementById("cancelIngredientEditBtn");
@@ -1145,124 +1112,138 @@
     const dishDifficulty = document.getElementById("dishDifficulty");
     const dishApproxPrice = document.getElementById("dishApproxPrice");
     const dishNotes = document.getElementById("dishNotes");
-    const recipeIngredientSelect = document.getElementById("recipeIngredientSelect");
-    const recipeIngredientQty = document.getElementById("recipeIngredientQty");
-    const currentRecipeList = document.getElementById("currentRecipeList");
     const saveDishBtn = document.getElementById("saveDishBtn");
     const cancelDishEditBtn = document.getElementById("cancelDishEditBtn");
     const dishList = document.getElementById("dishList");
     const dishSearchInput = document.getElementById("dishSearchInput");
     const dishSearchMeta = document.getElementById("dishSearchMeta");
     const dishPackFilterSelect = document.getElementById("dishPackFilterSelect");
+    const recipeIngredientSelect = document.getElementById("recipeIngredientSelect");
+    const recipeIngredientQty = document.getElementById("recipeIngredientQty");
+    const currentRecipeList = document.getElementById("currentRecipeList");
+
+    const activeWeekSelect = document.getElementById("activeWeekSelect");
+    const renameWeekInput = document.getElementById("renameWeekInput");
+    const weekList = document.getElementById("weekList");
+    const activeWeekInfo = document.getElementById("activeWeekInfo");
+    const weekTitle = document.getElementById("weekTitle");
+    const shoppingWeekInfo = document.getElementById("shoppingWeekInfo");
+    const calendar = document.getElementById("calendar");
+    const favoriteList = document.getElementById("favoriteList");
+    const memberList = document.getElementById("memberList");
+    const mealList = document.getElementById("mealTypeList");
+    const shoppingList = document.getElementById("shoppingList");
+    const shoppingSummary = document.getElementById("shoppingSummary");
+    const barcodeInput = document.getElementById("barcodeInput");
+    const barcodeResult = document.getElementById("barcodeResult");
+    const scannerStatus = document.getElementById("scannerStatus");
+    const scannerVideo = document.getElementById("scannerVideo");
     const calendarDishSearchInput = document.getElementById("calendarDishSearchInput");
     const calendarDishSearchMeta = document.getElementById("calendarDishSearchMeta");
     const calendarPackFilterSelect = document.getElementById("calendarPackFilterSelect");
-    const favoriteList = document.getElementById("favoriteList");
 
-    const memberName = document.getElementById("memberName");
-    const mealName = document.getElementById("mealName");
-    const memberList = document.getElementById("memberList");
-    const mealList = document.getElementById("mealList");
-    const calendar = document.getElementById("calendar");
-    const shoppingList = document.getElementById("shoppingList");
-    const summary = document.getElementById("summary");
-    const quickIngredientSelect = document.getElementById("quickIngredientSelect");
-    const scanBarcodeInput = document.getElementById("scanBarcodeInput");
-    const offSearchInput = document.getElementById("offSearchInput");
-    const offResults = document.getElementById("offResults");
-    let lastOpenFoodFactsResults = [];
-    const OPEN_FOOD_FACTS_FIELDS = "code,product_name,generic_name,brands,quantity,serving_size,categories,categories_tags,image_small_url,image_url,nutriscore_grade,nova_group,nutriments";
-    const quickBrand = document.getElementById("quickBrand");
-    const quickPackages = document.getElementById("quickPackages");
-    const quickPackageQty = document.getElementById("quickPackageQty");
-    const quickPackageUnit = document.getElementById("quickPackageUnit");
-    const quickPrice = document.getElementById("quickPrice");
-    const barcodeList = document.getElementById("barcodeList");
-    const scannerVideo = document.getElementById("scannerVideo");
-    const scannerStatus = document.getElementById("scannerStatus");
-    const budgetSummary = document.getElementById("budgetSummary");
-    let scannerStream = null;
-    let scannerTimer = null;
+    let mediaStream = null;
+    let scanTimer = null;
+    let lastScannedCode = "";
 
-    const newWeekName = document.getElementById("newWeekName");
-    const applyTypicalName = document.getElementById("applyTypicalName");
-    const weekList = document.getElementById("weekList");
-    const activeWeekSelect = document.getElementById("activeWeekSelect");
-    const renameWeekInput = document.getElementById("renameWeekInput");
-    const activeWeekInfo = document.getElementById("activeWeekInfo");
-    const shoppingWeekInfo = document.getElementById("shoppingWeekInfo");
+    ingredientFamilies = ingredientFamilies.map(normalizeFamily);
+    ingredients = ingredients.map(normalizeIngredient);
+    dishPacks = dishPacks.map(normalizePack);
+    dishes = dishes.map(normalizeDish);
+    familyMembers = familyMembers.map(member => ({ id: member.id || createId(), name: member.name || "Miembro" }));
+    mealTypes = mealTypes.map(meal => ({ id: meal.id || createId(), name: meal.name || "Comida" }));
 
-    function normalizeFamily(item) {
-      return {
-        id: item.id || createId(),
-        name: item.name || "Familia"
-      };
+    function showStartupError(error) {
+      const box = document.getElementById("startup-error");
+      const msg = document.getElementById("startup-error-message");
+      if (box) box.style.display = "block";
+      if (msg) msg.textContent = error?.message || String(error || "Error desconocido");
+      console.error(error);
     }
 
-
-    function normalizeTags(value) {
-      if (!value) return [];
-      if (Array.isArray(value)) return value.map(tag => String(tag).trim()).filter(Boolean);
-      return String(value)
-        .split(/[;,|]/)
-        .map(tag => tag.trim())
-        .filter(Boolean);
+    function exportEmergencyData() {
+      const keys = [
+        "ingredientFamilies",
+        "ingredients",
+        "dishPacks",
+        "dishes",
+        "favoriteDishIds",
+        "familyMembers",
+        "mealTypes",
+        "savedWeeks",
+        "activeWeekId",
+        "typicalWeekPlan",
+        "remotePacksPath",
+        "remoteRepoOwner",
+        "remoteRepoName",
+        "remoteRepoBranch"
+      ];
+      const data = { exportedAt: new Date().toISOString(), app: "gestor-comidas-emergency", localStorage: {} };
+      keys.forEach(key => data.localStorage[key] = localStorage.getItem(key));
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `gestor-comidas-emergency-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     }
 
-    function inferDishTags(item) {
-      const text = normalizeSearch([
-        item.name,
-        item.nombre,
-        item.notes,
-        item.notas,
-        item.pack,
-        item.packName,
-        item.collection,
-        item.coleccion,
-        item.description,
-        item.descripcion
-      ].join(" "));
-
-      const tags = [];
-      if (text.includes("vegano") || text.includes("vegan")) tags.push("vegano");
-      if (text.includes("vegetariano")) tags.push("vegetariano");
-      if (text.includes("diabet")) tags.push("diabetes");
-      if (text.includes("mediterr")) tags.push("mediterránea");
-      if (text.includes("huelva") || text.includes("onubense")) tags.push("Huelva");
-      if (text.includes("cena")) tags.push("cena ligera");
-      if (text.includes("sin gluten")) tags.push("sin gluten");
-      if (text.includes("legumbre")) tags.push("legumbres");
-      if (text.includes("pescado") || text.includes("mar")) tags.push("pescado");
-      return tags;
-    }
-
-    function inferDishCategory(item) {
-      const text = normalizeSearch([
-        item.name,
-        item.nombre,
-        item.notes,
-        item.notas,
-        item.pack,
-        item.packName,
-        item.collection,
-        item.coleccion,
-        item.description,
-        item.descripcion
-      ].join(" "));
-
-      if (text.includes("legumbre") || text.includes("lenteja") || text.includes("garbanzo") || text.includes("alubia")) return "Legumbres";
-      if (text.includes("pescado") || text.includes("sardina") || text.includes("caballa") || text.includes("atun") || text.includes("merluza") || text.includes("choco") || text.includes("mar")) return "Pescado y mar";
-      if (text.includes("verdura") || text.includes("crema") || text.includes("ensalada") || text.includes("pisto")) return "Verduras";
-      if (text.includes("desayuno") || text.includes("tostada")) return "Desayunos";
-      if (text.includes("cena")) return "Cenas ligeras";
-      if (text.includes("pollo") || text.includes("carne")) return "Carne";
-      return "";
-    }
+    document.getElementById("exportEmergencyBtn")?.addEventListener("click", exportEmergencyData);
+    document.getElementById("clearEmergencyBtn")?.addEventListener("click", () => {
+      if (!confirm("Esto borrará los datos locales de la app en este navegador. Exporta una copia primero si quieres conservarlos. ¿Continuar?")) return;
+      [
+        "ingredientFamilies",
+        "ingredients",
+        "dishPacks",
+        "dishes",
+        "favoriteDishIds",
+        "familyMembers",
+        "mealTypes",
+        "savedWeeks",
+        "activeWeekId",
+        "typicalWeekPlan",
+        "weeklyPlan",
+        "foods",
+        "favoriteFoods",
+        "remotePacksPath",
+        "remoteRepoOwner",
+        "remoteRepoName",
+        "remoteRepoBranch"
+      ].forEach(key => localStorage.removeItem(key));
+      location.reload();
+    });
 
     function tagsHtml(tags) {
       const cleanTags = normalizeTags(tags);
       if (!cleanTags.length) return "";
       return `<div class="tag-list">${cleanTags.map(tag => `<span class="badge favorite">${escapeHtml(tag)}</span>`).join("")}</div>`;
+    }
+
+    function cleanDateString(value) {
+      const text = String(value || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return "";
+      const date = new Date(`${text}T00:00:00`);
+      return Number.isNaN(date.getTime()) ? "" : text;
+    }
+
+    function normalizeStorageType(value, fallback = "pantry") {
+      const text = String(value || fallback).trim().toLowerCase();
+      return ["pantry", "fridge", "freezer"].includes(text) ? text : fallback;
+    }
+
+    function lifecycleBadges(item) {
+      const badges = [];
+      if (item.expiryDate) badges.push(`<span class="badge warn">Caduca: ${escapeHtml(item.expiryDate)}</span>`);
+      if (item.preparedDate) badges.push(`<span class="badge favorite">Preparado: ${escapeHtml(item.preparedDate)}</span>`);
+      if (item.frozenDate) badges.push(`<span class="badge favorite">Congelado: ${escapeHtml(item.frozenDate)}</span>`);
+      if (item.storageType) {
+        const labels = { pantry: "Despensa", fridge: "Nevera", freezer: "Congelador" };
+        badges.push(`<span class="badge">${escapeHtml(labels[item.storageType] || item.storageType)}</span>`);
+      }
+      return badges.length ? `<div class="tag-list">${badges.join("")}</div>` : "";
     }
 
     function normalizeIngredient(item) {
@@ -1286,6 +1267,14 @@
         available: item.available !== false && item.disponible !== false,
         familyId,
         approxPrice: Number(item.approxPrice ?? item.priceApprox ?? item.precioAproximado ?? item.price ?? 0) || 0,
+        expiryDate: cleanDateString(item.expiryDate || item.caducidad || item.bestBeforeDate || item.fechaCaducidad),
+        openedDate: cleanDateString(item.openedDate || item.fechaApertura),
+        preparedDate: cleanDateString(item.preparedDate || item.fechaPreparacion),
+        frozenDate: cleanDateString(item.frozenDate || item.fechaCongelado),
+        storageType: normalizeStorageType(item.storageType || item.conservacion, item.frozenDate ? "freezer" : "pantry"),
+        discardedDate: cleanDateString(item.discardedDate || item.fechaDesperdicio),
+        discardedQty: Math.max(0, Number(item.discardedQty ?? item.cantidadDesperdiciada ?? 0) || 0),
+        wasteReason: item.wasteReason || item.motivoDesperdicio || "",
         products: Array.isArray(item.products) ? item.products.map(normalizeProduct).filter(Boolean) : []
       };
     }
@@ -1378,6 +1367,13 @@
         prepTime: item.prepTime || item.tiempo || item.time || "",
         difficulty: item.difficulty || item.dificultad || "",
         approxPrice: Number(item.approxPrice ?? item.priceApprox ?? item.precioAproximado ?? item.price ?? 0) || 0,
+        expiryDate: cleanDateString(item.expiryDate || item.caducidad || item.bestBeforeDate || item.fechaCaducidad),
+        preparedDate: cleanDateString(item.preparedDate || item.fechaPreparacion || item.cookedDate),
+        frozenDate: cleanDateString(item.frozenDate || item.fechaCongelado),
+        storageType: normalizeStorageType(item.storageType || item.conservacion, item.frozenDate ? "freezer" : "fridge"),
+        discardedDate: cleanDateString(item.discardedDate || item.fechaDesperdicio),
+        discardedQty: Math.max(0, Number(item.discardedQty ?? item.cantidadDesperdiciada ?? 0) || 0),
+        wasteReason: item.wasteReason || item.motivoDesperdicio || "",
         recipe: Array.isArray(item.recipe) ? item.recipe : []
       };
     }
@@ -1393,10 +1389,8 @@
     }
 
     function getActiveWeek() {
-      if (!weeks.length) {
-        const week = normalizeWeek({ name: "Semana actual", plan: {} });
-        weeks.push(week);
-        activeWeekId = week.id;
+      if (weeks.length === 0) {
+        weeks.push(normalizeWeek({ name: "Semana 1", plan: {} }));
       }
       let week = weeks.find(item => item.id === activeWeekId);
       if (!week) {
@@ -1454,48 +1448,35 @@
     function getIngredientRequiredFromPlan(plan = getPlan()) {
       const planned = getPlannedDishCounts(plan);
       const required = {};
-      dishes.forEach(dish => {
-        const used = planned[dish.id] || 0;
-        if (used <= 0) return;
-        const servingsToCook = Math.max(0, used - dish.qty);
-        if (servingsToCook <= 0) return;
+
+      Object.entries(planned).forEach(([dishId, count]) => {
+        const dish = dishes.find(item => item.id === dishId);
+        if (!dish) return;
         dish.recipe.forEach(row => {
           const ingredient = ingredients.find(item => item.id === row.ingredientId);
           if (!ingredient) return;
           const key = ingredient.id;
-          if (!required[key]) required[key] = { ingredient, qty: 0, dishDetails: [] };
-          const amount = servingsToCook * (Number(row.qty) || 0);
-          required[key].qty += amount;
-          required[key].dishDetails.push(`${dish.name}: ${formatNumber(amount)} ${ingredient.unit}`);
+          if (!required[key]) required[key] = { ingredient, qty: 0 };
+          required[key].qty += Number(row.qty || 0) * count;
         });
       });
+
       return required;
     }
 
-    function cleanPlan() {
-      const validDishIds = new Set(dishes.map(dish => dish.id));
-      const validMealIds = new Set(mealTypes.map(meal => meal.id));
-      const validMemberIds = new Set(familyMembers.map(member => member.id));
-
-      weeks.forEach(week => {
-        Object.keys(week.plan).forEach(slot => {
-          const parts = slot.split("__");
-          const mealId = parts[1];
-          const memberId = parts[2];
-
-          if (!validMealIds.has(mealId) || !validMemberIds.has(memberId)) {
-            delete week.plan[slot];
-            return;
-          }
-
-          const currentValue = week.plan[slot];
-          const dishIds = Array.isArray(currentValue) ? currentValue : (currentValue ? [currentValue] : []);
-          const cleaned = dishIds.filter(dishId => validDishIds.has(dishId));
-
-          if (cleaned.length > 0) week.plan[slot] = cleaned;
-          else delete week.plan[slot];
-        });
+    function computeShoppingList() {
+      const required = getIngredientRequiredFromPlan();
+      const items = [];
+      Object.values(required).forEach(({ ingredient, qty }) => {
+        const availableQty = ingredient.available ? ingredient.qty : 0;
+        const missing = qty - availableQty;
+        if (missing > 0.0001) {
+          const best = bestProductForIngredient(ingredient);
+          const estimatedCost = best ? (missing / best.packageQty) * best.price : (ingredient.approxPrice || 0);
+          items.push({ ingredient, requiredQty: qty, availableQty, missingQty: missing, bestProduct: best, estimatedCost });
+        }
       });
+      return items.sort((a, b) => a.ingredient.name.localeCompare(b.ingredient.name, "es"));
     }
 
     function switchTab(tabName) {
@@ -1692,7 +1673,7 @@ Formato obligatorio:
       "prepTime": "25 min",
       "difficulty": "Fácil",
       "approxPrice": 2.5,
-      "notes": "Notas de preparación o conservación",
+      "notes": "Procedimiento de preparación paso a paso. Incluye también conservación, congelación, preparación anticipada y recalentado si aplica.",
       "ingredients": [
         { "name": "Ingrediente", "qty": 100, "unit": "g", "family": "Verdura", "approxPrice": 1.2 }
       ]
@@ -1707,6 +1688,8 @@ Reglas:
 - No inventes IDs.
 - No uses unidades mezcladas para el mismo ingrediente dentro del pack.
 - Crea entre 10 y 20 recetas variadas.
+- En notes debe aparecer siempre el procedimiento de preparación paso a paso, no solo notas sueltas.
+- Si el plato admite conservación, incluye en notes una frase sobre nevera, congelación y recalentado.
 Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, batch cooking, infantil, etc.]`;
 
     function setupRemotePackDefaults() {
@@ -1819,13 +1802,23 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
     }
 
     async function previewRemotePack(index) {
+      if (window.PackPreviewFix && typeof window.PackPreviewFix.previewPackByIndex === "function") {
+        try {
+          await window.PackPreviewFix.previewPackByIndex(index);
+          return;
+        } catch (error) {
+          console.warn("Vista previa avanzada no disponible, usando vista previa básica", error);
+        }
+      }
+
       const pack = remotePackFiles[index];
       if (!pack) return;
       try {
         const data = await fetchJson(pack.url);
         const items = extractDishesFromImport(data) || [];
         const title = data.name || data.nombre || pack.name;
-        alert(`${title}\n${items.length} plato/s\n${data.description || data.descripcion || "Sin descripción"}`);
+        const sample = items.slice(0, 5).map(item => `- ${item.name || item.nombre || "Plato"}`).join("\n");
+        alert(`${title}\n${items.length} plato/s\n${data.description || data.descripcion || "Sin descripción"}${sample ? "\n\n" + sample : ""}`);
       } catch (error) {
         alert(`No se pudo leer el pack: ${error.message}`);
       }
@@ -1854,152 +1847,45 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
             name: imported.name,
             qty: imported.qty,
             unit: imported.unit,
-            packId: imported.packId,
-            category: imported.category,
-            tags: imported.tags,
-            prepTime: imported.prepTime,
-            difficulty: imported.difficulty,
-            approxPrice: imported.approxPrice,
+            packId: imported.packId || existing.packId,
+            category: imported.category || existing.category || "",
+            tags: imported.tags || existing.tags || [],
+            prepTime: imported.prepTime || existing.prepTime || "",
+            difficulty: imported.difficulty || existing.difficulty || "",
+            approxPrice: imported.approxPrice || existing.approxPrice || 0,
             notes: imported.notes,
             recipe: imported.recipe
           });
-          updatedDishes++;
+          updatedDishes += 1;
         } else {
           dishes.push(imported);
-          addedDishes++;
+          addedDishes += 1;
         }
       });
 
       return { addedDishes, updatedDishes, addedIngredients: ingredients.length - ingredientsBefore };
     }
 
-    async function importSelectedRemotePacks() {
-      const checks = Array.from(document.querySelectorAll(".remote-pack-check:checked"));
-      if (!checks.length) return alert("Marca al menos un pack para importar.");
-
-      const mergeByName = true;
-      let totalAdded = 0;
-      let totalUpdated = 0;
-      let totalIngredients = 0;
-      const errors = [];
-
-      for (const check of checks) {
-        const pack = remotePackFiles[Number(check.dataset.index)];
-        if (!pack) continue;
-        try {
-          const data = await fetchJson(pack.url);
-          const result = importDishesData(data, mergeByName);
-          totalAdded += result.addedDishes;
-          totalUpdated += result.updatedDishes;
-          totalIngredients += result.addedIngredients;
-        } catch (error) {
-          errors.push(`${pack.name || pack.filename}: ${error.message}`);
-        }
-      }
-
-      saveData();
-      renderAll();
-      switchTab("dishes");
-      alert(`Importación completada. Platos añadidos: ${totalAdded}. Platos actualizados: ${totalUpdated}. Ingredientes creados: ${totalIngredients}.${errors.length ? "\n\nErrores:\n" + errors.join("\n") : ""}`);
-    }
-
-    async function copyPackPrompt() {
-      const text = packPromptText;
-      try {
-        await navigator.clipboard.writeText(text);
-        alert("Prompt copiado.");
-      } catch {
-        if (packPromptExample) {
-          packPromptExample.focus();
-          packPromptExample.select();
-        }
-        alert("No se pudo copiar automáticamente. Puedes seleccionarlo y copiarlo manualmente.");
-      }
-    }
-
-    function renderIngredientSelect() {
-      recipeIngredientSelect.innerHTML = "";
-      quickIngredientSelect.innerHTML = "";
-      if (ingredients.length === 0) {
-        recipeIngredientSelect.innerHTML = '<option value="">Añade ingredientes primero</option>';
-        quickIngredientSelect.innerHTML = '<option value="">Añade ingredientes primero</option>';
-        return;
-      }
-      ingredients.forEach(ingredient => {
-        const option = document.createElement("option");
-        option.value = ingredient.id;
-        option.textContent = `${ingredient.name} (${ingredient.unit})`;
-        recipeIngredientSelect.appendChild(option);
-        const quickOption = document.createElement("option");
-        quickOption.value = ingredient.id;
-        quickOption.textContent = `${ingredient.name} (${ingredient.unit})`;
-        quickIngredientSelect.appendChild(quickOption);
-      });
-    }
-
-    function renderCurrentRecipe() {
-      currentRecipeList.innerHTML = "";
-      if (currentRecipe.length === 0) {
-        currentRecipeList.innerHTML = '<li>No hay ingredientes añadidos al plato.</li>';
-        return;
-      }
-      currentRecipe.forEach((row, index) => {
-        const ingredient = ingredients.find(item => item.id === row.ingredientId);
-        const li = document.createElement("li");
-        li.innerHTML = `${escapeHtml(ingredient ? ingredient.name : "Ingrediente eliminado")}: ${formatNumber(row.qty)} ${escapeHtml(ingredient ? ingredient.unit : "")} por ración <button class="danger" style="padding:3px 7px;margin-left:6px" onclick="removeRecipeIngredient(${index})">Quitar</button>`;
-        currentRecipeList.appendChild(li);
-      });
-    }
-
-
-    function normalizeSearch(text) {
-      return String(text || "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, " ")
-        .trim();
-    }
-
-    function containsSearchText(text, query) {
-      const cleanQuery = normalizeSearch(query);
-      if (!cleanQuery) return true;
-      return normalizeSearch(text).includes(cleanQuery);
-    }
-
-    function ingredientMatchesSearch(ingredient, query) {
-      const familyName = typeof getFamilyName === "function" ? getFamilyName(ingredient.familyId) : "";
-      const productText = (ingredient.products || [])
-        .map(product => `${product.barcode || ""} ${product.brand || ""}`)
-        .join(" ");
-
-      return containsSearchText([
-        ingredient.name,
-        ingredient.unit,
-        familyName,
-        productText
-      ].join(" "), query);
-    }
-
     function dishMatchesSearch(dish, query) {
-      const recipeText = (dish.recipe || [])
-        .map(row => {
-          const ingredient = ingredients.find(item => item.id === row.ingredientId);
-          return ingredient ? ingredient.name : "";
-        })
-        .join(" ");
-
-      return containsSearchText([
+      const recipeText = (dish.recipe || []).map(row => {
+        const ingredient = ingredients.find(item => item.id === row.ingredientId);
+        return ingredient ? ingredient.name : "";
+      }).join(" ");
+      return matchesSearch([
         dish.name,
-        dish.unit,
-        dish.notes,
         getPackName(dish.packId),
         dish.category,
         normalizeTags(dish.tags).join(" "),
+        dish.notes,
         dish.prepTime,
         dish.difficulty,
         recipeText
       ].join(" "), query);
+    }
+
+    function ingredientMatchesSearch(ingredient, query) {
+      const productsText = (ingredient.products || []).map(product => [product.barcode, product.brand, product.productName, product.categories].join(" ")).join(" ");
+      return matchesSearch([ingredient.name, getFamilyName(ingredient.familyId), ingredient.unit, productsText].join(" "), query);
     }
 
     function renderIngredients() {
@@ -2044,6 +1930,7 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
               <div class="item-name">${escapeHtml(ingredient.name)}</div>
               <div class="muted">Familia: ${escapeHtml(getFamilyName(ingredient.familyId))}</div>
               ${ingredient.approxPrice ? `<div class="muted">Precio aprox.: ${formatCurrency(ingredient.approxPrice)}</div>` : ""}
+              ${lifecycleBadges(ingredient)}
               <div class="muted">Tienes: ${ingredient.available ? formatNumber(ingredient.qty) : "0"} ${escapeHtml(ingredient.unit)} · Necesario para cocinar esta semana: ${formatNumber(needed)} ${escapeHtml(ingredient.unit)}</div>
               <div class="muted">${ingredient.available ? "Marcado como disponible" : "Marcado como no disponible"}</div>
               ${(ingredient.products || []).length ? `<ul class="recipe-list">${ingredient.products.map(product => `<li>${escapeHtml(product.brand || "Producto")} ${product.barcode ? "· " + escapeHtml(product.barcode) : ""}: ${formatNumber(product.packageQty)} ${escapeHtml(product.packageUnit)} · ${formatCurrency(product.price)}</li>`).join("")}</ul>` : `<div class="muted">Sin códigos de barras asociados.</div>`}
@@ -2107,6 +1994,7 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
               ${dish.category ? `<div class="muted">Categoría: ${escapeHtml(dish.category)}</div>` : ""}
               ${tagsHtml(dish.tags)}
               ${(dish.prepTime || dish.difficulty || dish.approxPrice) ? `<div class="muted">${dish.prepTime ? "Tiempo: " + escapeHtml(dish.prepTime) + " · " : ""}${dish.difficulty ? "Dificultad: " + escapeHtml(dish.difficulty) + " · " : ""}${dish.approxPrice ? "Precio aprox.: " + formatCurrency(dish.approxPrice) : ""}</div>` : ""}
+              ${lifecycleBadges(dish)}
               <div class="muted">Raciones preparadas: ${dish.qty} ${escapeHtml(dish.unit)} · Planificadas esta semana: ${used}</div>
               ${dish.notes ? `<div class="muted">${escapeHtml(dish.notes)}</div>` : ""}
             </div>
@@ -2175,234 +2063,112 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
           .filter(dish => dishMatchesSearch(dish, rawCalendarQueryForMeta))
           .filter(dish => !selectedCalendarPackId || dish.packId === selectedCalendarPackId)
           .length;
-        const packText = selectedCalendarPackId ? ` · pack: ${getPackName(selectedCalendarPackId)}` : "";
         calendarDishSearchMeta.textContent = rawCalendarQueryForMeta.trim() || selectedCalendarPackId
-          ? `${count} de ${dishes.length} plato/s disponibles${packText}${rawCalendarQueryForMeta.trim() ? ` · búsqueda: "${rawCalendarQueryForMeta}"` : ""}`
-          : "Este filtro reduce los platos que aparecen en los desplegables del calendario.";
+          ? `${count} plato/s disponibles para el filtro actual`
+          : `${dishes.length} plato/s disponibles`;
       }
 
-      days.forEach(day => {
-        const dayDiv = document.createElement("div");
-        dayDiv.className = "day";
-        dayDiv.innerHTML = `<h3>${day}</h3>`;
-
-        mealTypes.forEach(meal => {
-          const mealBlock = document.createElement("div");
-          mealBlock.className = "meal-block";
-          mealBlock.innerHTML = `<span class="meal-title">${escapeHtml(meal.name)}</span>`;
-
-          familyMembers.forEach(member => {
+      weekTitle.textContent = getActiveWeek().name;
+      DAYS.forEach(day => {
+        const div = document.createElement("div");
+        div.className = "day";
+        const mealHtml = mealTypes.map(meal => {
+          const membersHtml = familyMembers.map(member => {
             const slotId = makeSlotId(day, meal.id, member.id);
-            const selectedDishIds = getSlotDishIds(slotId);
-
-            const memberSlot = document.createElement("div");
-            memberSlot.className = "member-slot";
-
-            const label = document.createElement("label");
-            label.textContent = member.name;
-            memberSlot.appendChild(label);
-
-            const selectedList = document.createElement("div");
-            selectedList.className = "selected-dishes";
-
-            if (selectedDishIds.length === 0) {
-              selectedList.innerHTML = '<div class="muted">Sin platos añadidos.</div>';
-            } else {
-              selectedDishIds.forEach((dishId, index) => {
-                const dish = dishes.find(item => item.id === dishId);
-                const row = document.createElement("div");
-                row.className = "selected-dish-row";
-                row.innerHTML = `
-                  <span class="badge favorite">${escapeHtml(dish ? dish.name : "Plato eliminado")}</span>
-                  <button type="button" class="danger" onclick="removeDishFromSlot('${slotId}', ${index})">×</button>
-                `;
-                selectedList.appendChild(row);
-              });
-            }
-
-            const select = document.createElement("select");
-            select.dataset.slot = slotId;
-            select.innerHTML = `<option value="">Añadir plato...</option>`;
-
-            const rawCalendarQuery = calendarDishSearchInput ? calendarDishSearchInput.value : "";
-            const selectedCalendarPackId = calendarPackFilterSelect ? calendarPackFilterSelect.value : "";
-            const filteredCalendarDishes = dishes
-              .filter(dish => dishMatchesSearch(dish, rawCalendarQuery))
-              .filter(dish => !selectedCalendarPackId || dish.packId === selectedCalendarPackId)
-              .sort((a, b) => {
-                const packCompare = getPackName(a.packId).localeCompare(getPackName(b.packId), "es");
-                return packCompare || a.name.localeCompare(b.name, "es");
-              });
-
-            filteredCalendarDishes.forEach(dish => {
-              const remaining = getDishRemaining(dish.id);
-              const option = document.createElement("option");
-              option.value = dish.id;
-              option.textContent = `${dish.name} (${remaining >= 0 ? remaining + " preparadas" : "cocinar " + Math.abs(remaining)})`;
-              select.appendChild(option);
-            });
-
-            select.addEventListener("change", event => {
-              const dishId = event.target.value;
-              if (!dishId) return;
-
-              const activePlan = getPlan();
-              const slotDishes = getSlotDishIds(event.target.dataset.slot);
-              slotDishes.push(dishId);
-              activePlan[event.target.dataset.slot] = slotDishes;
-
-              saveData();
-              renderAll();
-            });
-
-            memberSlot.appendChild(selectedList);
-            memberSlot.appendChild(select);
-            mealBlock.appendChild(memberSlot);
-          });
-
-          dayDiv.appendChild(mealBlock);
-        });
-
-        calendar.appendChild(dayDiv);
+            const selectedIds = Array.isArray(plan[slotId]) ? plan[slotId] : (plan[slotId] ? [plan[slotId]] : []);
+            const selectedHtml = selectedIds.length ? `<div class="selected-dishes">${selectedIds.map((dishId, idx) => {
+              const dish = dishes.find(item => item.id === dishId);
+              return `<div class="selected-dish-row"><span class="badge ${dish && getDishRemaining(dishId) <= 0 ? "warn" : "favorite"}">${escapeHtml(dish ? dish.name : "Plato eliminado")}</span><button class="danger" type="button" onclick="removeDishFromSlot('${slotId}', ${idx})">×</button></div>`;
+            }).join("")}</div>` : "";
+            const rawQuery = calendarDishSearchInput ? calendarDishSearchInput.value : "";
+            const selectedPackId = calendarPackFilterSelect ? calendarPackFilterSelect.value : "";
+            const availableOptions = dishes
+              .filter(dish => dishMatchesSearch(dish, rawQuery))
+              .filter(dish => !selectedPackId || dish.packId === selectedPackId)
+              .sort((a, b) => a.name.localeCompare(b.name, "es"));
+            return `<div class="member-slot">
+              <label>${escapeHtml(member.name)}</label>
+              ${selectedHtml}
+              <select onchange="addDishToSlot('${slotId}', this.value); this.value='';">
+                <option value="">Añadir plato...</option>
+                ${availableOptions.map(dish => `<option value="${dish.id}">${escapeHtml(dish.name)} (${getDishRemaining(dish.id)} disp.)</option>`).join("")}
+              </select>
+            </div>`;
+          }).join("");
+          return `<div class="meal-block"><span class="meal-title">${escapeHtml(meal.name)}</span>${membersHtml}</div>`;
+        }).join("");
+        div.innerHTML = `<h3>${day}</h3>${mealHtml}`;
+        calendar.appendChild(div);
       });
     }
 
-    function getSlotDishIds(slotId) {
-      const value = getPlan()[slotId];
-      if (Array.isArray(value)) return value.slice();
-      if (value) return [value];
-      return [];
-    }
-
-    window.removeDishFromSlot = function(slotId, index) {
-      const activePlan = getPlan();
-      const slotDishes = getSlotDishIds(slotId);
-      slotDishes.splice(index, 1);
-
-      if (slotDishes.length > 0) activePlan[slotId] = slotDishes;
-      else delete activePlan[slotId];
-
-      saveData();
-      renderAll();
-    };
-
-
-    function getIngredientEstimatedPrice(ingredient, missingQty) {
-      if (!ingredient) return 0;
-
-      const products = Array.isArray(ingredient.products) ? ingredient.products : [];
-      const validProducts = products
-        .map(product => ({
-          price: Number(product.price) || 0,
-          packageQty: Number(product.packageQty) || 0
-        }))
-        .filter(product => product.price > 0 && product.packageQty > 0);
-
-      if (validProducts.length) {
-        const best = validProducts
-          .map(product => ({ unitPrice: product.price / product.packageQty, product }))
-          .sort((a, b) => a.unitPrice - b.unitPrice)[0];
-        return best.unitPrice * missingQty;
-      }
-
-      if (ingredient.approxPrice && ingredient.qty > 0) {
-        return (Number(ingredient.approxPrice) / Number(ingredient.qty)) * missingQty;
-      }
-
-      return 0;
-    }
-
-    function buildShoppingList() {
-      const planned = getPlannedDishCounts();
-      const items = [];
-      const ingredientNeeds = {};
-      dishes.forEach(dish => {
-        const used = planned[dish.id] || 0;
-        if (used <= 0) return;
-        const servingsToCook = Math.max(0, used - dish.qty);
-        if (servingsToCook > 0 && dish.recipe.length === 0) {
-          items.push({ name: dish.name, qty: servingsToCook, unit: dish.unit, type: "Plato sin stock", detail: `Planificado ${used}, preparado ${dish.qty}. No tiene receta para calcular ingredientes.`, estimatedCost: 0 });
-        }
-        dish.recipe.forEach(row => {
-          const ingredient = ingredients.find(item => item.id === row.ingredientId);
-          if (!ingredient || servingsToCook <= 0) return;
-          if (!ingredientNeeds[ingredient.id]) ingredientNeeds[ingredient.id] = { ingredient, required: 0, details: [] };
-          const amount = servingsToCook * (Number(row.qty) || 0);
-          ingredientNeeds[ingredient.id].required += amount;
-          ingredientNeeds[ingredient.id].details.push(`${dish.name}: ${servingsToCook} ración/es × ${formatNumber(row.qty)} ${ingredient.unit}`);
-        });
+    function renderShopping() {
+      const items = computeShoppingList();
+      shoppingSummary.innerHTML = "";
+      const totalCost = items.reduce((sum, item) => sum + (item.estimatedCost || 0), 0);
+      const summaryItems = [
+        ["Productos a comprar", items.length],
+        ["Presupuesto estimado", formatCurrency(totalCost)],
+        ["Semana", getActiveWeek().name]
+      ];
+      summaryItems.forEach(([label, value]) => {
+        const div = document.createElement("div");
+        div.className = "summary-item";
+        div.innerHTML = `<strong>${escapeHtml(value)}</strong><span class="muted">${escapeHtml(label)}</span>`;
+        shoppingSummary.appendChild(div);
       });
-      Object.values(ingredientNeeds).forEach(row => {
-        const available = row.ingredient.available ? row.ingredient.qty : 0;
-        const missing = Math.max(0, row.required - available);
-        if (missing > 0) {
-          const bestProduct = bestProductForIngredient(row.ingredient);
-          const estimatedCost = bestProduct ? missing * (bestProduct.price / bestProduct.packageQty) : 0;
-          items.push({ name: row.ingredient.name, qty: missing, unit: row.ingredient.unit, type: "Ingrediente", detail: `Necesitas ${formatNumber(row.required)} y tienes ${formatNumber(available)}. ${row.details.join(" · ")}`, ingredientId: row.ingredient.id, estimatedCost, priceSource: bestProduct ? `${bestProduct.brand || "Producto"}: ${formatCurrency(bestProduct.price)} / ${formatNumber(bestProduct.packageQty)} ${bestProduct.packageUnit}` : "Sin precio compatible" });
-        }
-      });
-      return items;
-    }
 
-    function shoppingText() {
-      const active = getActiveWeek();
-      const items = buildShoppingList();
-      if (items.length === 0) return `Lista de la compra · ${active.name}\n\nNo falta nada según la planificación actual.`;
-      const total = items.reduce((sum, item) => sum + (Number(item.estimatedCost) || 0), 0);
-      return `Lista de la compra · ${active.name}\nPresupuesto estimado: ${formatCurrency(total)}\n\n` + items.map(item => `- ${item.name}: ${formatNumber(item.qty)} ${item.unit} (${item.type})${item.estimatedCost ? " · aprox. " + formatCurrency(item.estimatedCost) : ""}`).join("\n");
-    }
-
-    function renderShoppingList() {
-      const items = buildShoppingList();
       shoppingList.innerHTML = "";
-      const total = items.reduce((sum, item) => sum + (Number(item.estimatedCost) || 0), 0);
-      const pricedItems = items.filter(item => Number(item.estimatedCost) > 0).length;
-      budgetSummary.innerHTML = `<div class="budget-card"><span class="muted">Presupuesto estimado</span><strong>${formatCurrency(total)}</strong></div><div class="budget-card"><span class="muted">Artículos con precio</span><strong>${pricedItems} / ${items.length}</strong></div>`;
       if (items.length === 0) {
-        budgetSummary.innerHTML = `<div class="budget-card"><span class="muted">Presupuesto estimado</span><strong>0,00 €</strong></div>`;
-        shoppingList.innerHTML = '<div class="empty">No falta nada según la planificación actual.</div>';
+        shoppingList.innerHTML = '<div class="empty">No falta ningún ingrediente para la planificación actual.</div>';
         return;
       }
       items.forEach(item => {
         const div = document.createElement("div");
         div.className = "item shopping-item";
-        div.innerHTML = `<input type="checkbox" /><div><strong>${escapeHtml(item.name)}</strong><div>${formatNumber(item.qty)} ${escapeHtml(item.unit)}${item.estimatedCost ? " · aprox. " + formatCurrency(item.estimatedCost) : ""}</div><small>${escapeHtml(item.detail)}</small><small>${escapeHtml(item.priceSource || "")}</small></div><span class="badge missing">${escapeHtml(item.type)}</span>`;
+        const bestText = item.bestProduct ? `${item.bestProduct.brand || "Producto"} · ${formatNumber(item.bestProduct.packageQty)} ${item.bestProduct.packageUnit} · ${formatCurrency(item.bestProduct.price)}` : "Sin producto con precio; usa precio aprox. manual si existe.";
+        div.innerHTML = `<input type="checkbox" /><div><strong>${escapeHtml(item.ingredient.name)}</strong><small>Necesitas ${formatNumber(item.requiredQty)} ${escapeHtml(item.ingredient.unit)} · tienes ${formatNumber(item.availableQty)} · falta ${formatNumber(item.missingQty)}</small><small>${escapeHtml(bestText)}</small></div><span class="badge missing">${formatCurrency(item.estimatedCost)}</span>`;
         shoppingList.appendChild(div);
       });
     }
 
-    function renderSummary() {
-      summary.innerHTML = "";
-      const planned = getPlannedDishCounts();
-      dishes.forEach(dish => {
-        const used = planned[dish.id] || 0;
-        const remaining = dish.qty - used;
-        const div = document.createElement("div");
-        div.className = "summary-item";
-        div.innerHTML = `<strong>${escapeHtml(dish.name)}</strong><span>${remaining >= 0 ? remaining + " " + dish.unit + " preparadas restantes" : "hay que cocinar " + Math.abs(remaining) + " " + dish.unit}</span>`;
-        summary.appendChild(div);
+    function renderCurrentRecipe() {
+      currentRecipeList.innerHTML = "";
+      recipeIngredientSelect.innerHTML = '<option value="">Selecciona ingrediente</option>';
+      ingredients.slice().sort((a, b) => a.name.localeCompare(b.name, "es")).forEach(ingredient => {
+        const option = document.createElement("option");
+        option.value = ingredient.id;
+        option.textContent = `${ingredient.name} (${ingredient.unit})`;
+        recipeIngredientSelect.appendChild(option);
       });
-      if (dishes.length === 0) summary.innerHTML = '<div class="empty">Añade platos para ver el resumen.</div>';
+
+      if (currentRecipe.length === 0) {
+        currentRecipeList.innerHTML = '<li>Sin ingredientes en la receta.</li>';
+        return;
+      }
+      currentRecipe.forEach((row, index) => {
+        const ingredient = ingredients.find(item => item.id === row.ingredientId);
+        const li = document.createElement("li");
+        li.innerHTML = `${escapeHtml(ingredient ? ingredient.name : "Ingrediente eliminado")}: ${formatNumber(row.qty)} ${escapeHtml(ingredient ? ingredient.unit : "")} <button class="danger" type="button" onclick="removeRecipeIngredient(${index})">Quitar</button>`;
+        currentRecipeList.appendChild(li);
+      });
     }
 
     function renderAll() {
-      cleanPlan();
-      renderWeekControls();
       renderFamilySelect();
-      renderFamilies();
       renderPackSelects();
+      renderFamilies();
       renderPacks();
-      renderIngredientSelect();
-      renderCurrentRecipe();
       renderIngredients();
-      renderBarcodeList();
       renderDishes();
       renderFavorites();
       renderConfig();
+      renderWeekControls();
       renderCalendar();
-      renderShoppingList();
-      renderSummary();
+      renderShopping();
+      renderCurrentRecipe();
       saveData();
+      updateExportPreview();
     }
 
     function resetIngredientForm() {
@@ -2413,6 +2179,8 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
       ingredientFamilySelect.value = "";
       ingredientApproxPrice.value = "";
       ingredientProducts.value = "";
+      if (ingredientExpiryDate) ingredientExpiryDate.value = "";
+      if (ingredientStorageType) ingredientStorageType.value = "pantry";
       ingredientAvailable.checked = true;
       saveIngredientBtn.textContent = "Añadir ingrediente";
       cancelIngredientEditBtn.style.display = "none";
@@ -2443,14 +2211,16 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
       const familyId = ingredientFamilySelect.value;
       const approxPrice = Number(ingredientApproxPrice.value) || 0;
       const products = parseProducts(ingredientProducts.value);
+      const expiryDate = cleanDateString(ingredientExpiryDate?.value || "");
+      const storageType = normalizeStorageType(ingredientStorageType?.value || "pantry");
       const available = ingredientAvailable.checked;
       if (!name) return alert("Escribe el nombre del ingrediente.");
       if (Number.isNaN(qty) || qty < 0) return alert("La cantidad debe ser igual o mayor que 0.");
       if (editingIngredientId.value) {
         const ingredient = ingredients.find(item => item.id === editingIngredientId.value);
-        if (ingredient) Object.assign(ingredient, { name, qty, unit, familyId, approxPrice, available, products });
+        if (ingredient) Object.assign(ingredient, { name, qty, unit, familyId, approxPrice, expiryDate, storageType, available, products });
       } else {
-        ingredients.push({ id: createId(), name, qty, unit, familyId, approxPrice, available, products });
+        ingredients.push({ id: createId(), name, qty, unit, familyId, approxPrice, expiryDate, storageType, available, products });
       }
       resetIngredientForm();
       renderAll();
@@ -2470,236 +2240,6 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
       renderCurrentRecipe();
     });
 
-    saveDishBtn.addEventListener("click", () => {
-      const name = dishName.value.trim();
-      const qty = Number(dishQty.value);
-      const unit = dishUnit.value.trim() || "raciones";
-      const packId = dishPackSelect.value;
-      const category = dishCategory.value.trim();
-      const tags = normalizeTags(dishDietTags.value);
-      const prepTime = dishPrepTime.value.trim();
-      const difficulty = dishDifficulty.value.trim();
-      const approxPrice = Number(dishApproxPrice.value) || 0;
-      const notes = dishNotes.value.trim();
-      if (!name) return alert("Escribe el nombre del plato.");
-      if (Number.isNaN(qty) || qty < 0) return alert("Las raciones preparadas deben ser iguales o mayores que 0.");
-      if (editingDishId.value) {
-        const dish = dishes.find(item => item.id === editingDishId.value);
-        if (dish) Object.assign(dish, { name, qty, unit, packId, category, tags, prepTime, difficulty, approxPrice, notes, recipe: [...currentRecipe] });
-      } else {
-        dishes.push({ id: createId(), name, qty, unit, packId, category, tags, prepTime, difficulty, approxPrice, notes, recipe: [...currentRecipe] });
-      }
-      resetDishForm();
-      renderAll();
-    });
-
-    cancelDishEditBtn.addEventListener("click", resetDishForm);
-
-    document.getElementById("createWeekBtn").addEventListener("click", () => {
-      const name = newWeekName.value.trim() || `Semana ${weeks.length + 1}`;
-      const week = normalizeWeek({ name, plan: {} });
-      weeks.push(week);
-      activeWeekId = week.id;
-      newWeekName.value = "";
-      renderAll();
-      switchTab("calendar");
-    });
-
-    document.getElementById("duplicateWeekBtn").addEventListener("click", () => {
-      duplicateWeek(activeWeekId, newWeekName.value.trim());
-    });
-
-    document.getElementById("makeTypicalWeekBtn").addEventListener("click", () => {
-      markTypicalWeek(activeWeekId);
-    });
-
-    document.getElementById("applyTypicalWeekBtn").addEventListener("click", () => {
-      if (!typicalWeekPlan) return alert("Aún no has guardado ninguna semana tipo.");
-      const name = applyTypicalName.value.trim() || `Semana desde tipo ${weeks.length + 1}`;
-      const week = normalizeWeek({ name, plan: structuredCloneFallback(typicalWeekPlan) });
-      weeks.push(week);
-      activeWeekId = week.id;
-      applyTypicalName.value = "";
-      renderAll();
-      switchTab("calendar");
-    });
-
-    activeWeekSelect.addEventListener("change", () => {
-      activeWeekId = activeWeekSelect.value;
-      renderAll();
-    });
-
-    document.getElementById("renameWeekBtn").addEventListener("click", () => {
-      const name = renameWeekInput.value.trim();
-      if (!name) return alert("Escribe un nombre para la semana.");
-      getActiveWeek().name = name;
-      renderAll();
-    });
-
-    saveFamilyBtn.addEventListener("click", () => {
-      const name = familyName.value.trim();
-      if (!name) return alert("Escribe el nombre de la familia.");
-      if (ingredientFamilies.some(family => family.name.toLowerCase() === name.toLowerCase() && family.id !== editingFamilyId.value)) {
-        return alert("Esa familia ya existe.");
-      }
-      if (editingFamilyId.value) {
-        const family = ingredientFamilies.find(item => item.id === editingFamilyId.value);
-        if (family) family.name = name;
-      } else {
-        ingredientFamilies.push({ id: createId(), name });
-      }
-      resetFamilyForm();
-      renderAll();
-    });
-
-    cancelFamilyEditBtn.addEventListener("click", resetFamilyForm);
-
-    function resetFamilyForm() {
-      editingFamilyId.value = "";
-      familyName.value = "";
-      saveFamilyBtn.textContent = "Añadir familia";
-      cancelFamilyEditBtn.style.display = "none";
-    }
-
-    window.editFamily = function(id) {
-      const family = ingredientFamilies.find(item => item.id === id);
-      if (!family) return;
-      editingFamilyId.value = family.id;
-      familyName.value = family.name;
-      saveFamilyBtn.textContent = "Guardar familia";
-      cancelFamilyEditBtn.style.display = "inline-block";
-      switchTab("families");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    };
-
-    window.deleteFamily = function(id) {
-      const family = ingredientFamilies.find(item => item.id === id);
-      if (!family) return;
-      const count = ingredients.filter(ingredient => ingredient.familyId === id).length;
-      const message = count > 0
-        ? `"${family.name}" tiene ${count} ingrediente/s. Si la eliminas, esos ingredientes quedarán sin familia. ¿Continuar?`
-        : `¿Eliminar la familia "${family.name}"?`;
-      if (!confirm(message)) return;
-      ingredientFamilies = ingredientFamilies.filter(item => item.id !== id);
-      ingredients.forEach(ingredient => {
-        if (ingredient.familyId === id) ingredient.familyId = "";
-      });
-      renderAll();
-    };
-
-    savePackBtn.addEventListener("click", () => {
-      const name = packName.value.trim();
-      if (!name) return alert("Escribe el nombre del pack.");
-      if (dishPacks.some(pack => normalizeSearch(pack.name) === normalizeSearch(name) && pack.id !== editingPackId.value)) {
-        return alert("Ese pack ya existe.");
-      }
-
-      if (editingPackId.value) {
-        const pack = dishPacks.find(item => item.id === editingPackId.value);
-        if (pack) pack.name = name;
-      } else {
-        dishPacks.push({ id: createId(), name });
-      }
-
-      resetPackForm();
-      renderAll();
-    });
-
-    cancelPackEditBtn.addEventListener("click", resetPackForm);
-
-    function resetPackForm() {
-      editingPackId.value = "";
-      packName.value = "";
-      savePackBtn.textContent = "Añadir pack";
-      cancelPackEditBtn.style.display = "none";
-    }
-
-    window.editPack = function(id) {
-      const pack = dishPacks.find(item => item.id === id);
-      if (!pack) return;
-      editingPackId.value = pack.id;
-      packName.value = pack.name;
-      savePackBtn.textContent = "Guardar pack";
-      cancelPackEditBtn.style.display = "inline-block";
-      switchTab("packs");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    };
-
-    window.deletePack = function(id) {
-      const pack = dishPacks.find(item => item.id === id);
-      if (!pack) return;
-      const count = dishes.filter(dish => dish.packId === id).length;
-      const message = count > 0
-        ? `"${pack.name}" tiene ${count} plato/s. Si lo eliminas, esos platos quedarán sin clasificar. ¿Continuar?`
-        : `¿Eliminar el pack "${pack.name}"?`;
-      if (!confirm(message)) return;
-
-      dishPacks = dishPacks.filter(item => item.id !== id);
-      dishes.forEach(dish => {
-        if (dish.packId === id) dish.packId = "";
-      });
-      renderAll();
-    };
-
-    document.getElementById("addMemberBtn").addEventListener("click", () => {
-      const name = memberName.value.trim();
-      if (!name) return alert("Escribe el nombre del miembro.");
-      if (familyMembers.some(member => member.name.toLowerCase() === name.toLowerCase())) return alert("Ese miembro ya existe.");
-      familyMembers.push({ id: createId(), name });
-      memberName.value = "";
-      renderAll();
-    });
-
-    document.getElementById("addMealBtn").addEventListener("click", () => {
-      const name = mealName.value.trim();
-      if (!name) return alert("Escribe el nombre del tipo de comida.");
-      if (mealTypes.some(meal => meal.name.toLowerCase() === name.toLowerCase())) return alert("Ese tipo de comida ya existe.");
-      mealTypes.push({ id: createId(), name });
-      mealName.value = "";
-      renderAll();
-    });
-
-    window.selectWeek = function(id) {
-      activeWeekId = id;
-      renderAll();
-      switchTab("calendar");
-    };
-
-    window.duplicateWeek = function(id, customName = "") {
-      const source = weeks.find(week => week.id === id);
-      if (!source) return;
-      const name = customName || `${source.name} copia`;
-      const week = normalizeWeek({
-        name,
-        plan: structuredCloneFallback(source.plan),
-        isTypical: false
-      });
-      weeks.push(week);
-      activeWeekId = week.id;
-      newWeekName.value = "";
-      renderAll();
-      switchTab("calendar");
-    };
-
-    window.markTypicalWeek = function(id) {
-      const week = weeks.find(item => item.id === id);
-      if (!week) return;
-      weeks.forEach(item => item.isTypical = false);
-      week.isTypical = true;
-      typicalWeekPlan = structuredCloneFallback(week.plan);
-      alert(`"${week.name}" se ha guardado como semana tipo.`);
-      renderAll();
-    };
-
-    window.deleteWeek = function(id) {
-      if (weeks.length === 1) return alert("Debe quedar al menos una semana.");
-      const week = weeks.find(item => item.id === id);
-      if (!week || !confirm(`¿Eliminar "${week.name}"?`)) return;
-      weeks = weeks.filter(item => item.id !== id);
-      if (activeWeekId === id) activeWeekId = weeks[0].id;
-      renderAll();
-    };
-
     window.removeRecipeIngredient = function(index) {
       currentRecipe.splice(index, 1);
       renderCurrentRecipe();
@@ -2713,7 +2253,10 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
       ingredientQty.value = ingredient.qty;
       ingredientUnit.value = ingredient.unit;
       ingredientFamilySelect.value = ingredient.familyId || "";
+      ingredientApproxPrice.value = ingredient.approxPrice || "";
       ingredientProducts.value = stringifyProducts(ingredient.products || []);
+      if (ingredientExpiryDate) ingredientExpiryDate.value = ingredient.expiryDate || "";
+      if (ingredientStorageType) ingredientStorageType.value = normalizeStorageType(ingredient.storageType || "pantry");
       ingredientAvailable.checked = ingredient.available;
       saveIngredientBtn.textContent = "Guardar ingrediente";
       cancelIngredientEditBtn.style.display = "inline-block";
@@ -2732,6 +2275,161 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
       renderAll();
     };
 
+    saveFamilyBtn.addEventListener("click", () => {
+      const name = familyName.value.trim();
+      if (!name) return alert("Escribe el nombre de la familia.");
+      if (editingFamilyId.value) {
+        const family = ingredientFamilies.find(item => item.id === editingFamilyId.value);
+        if (family) family.name = name;
+      } else {
+        ingredientFamilies.push({ id: createId(), name });
+      }
+      editingFamilyId.value = "";
+      familyName.value = "";
+      saveFamilyBtn.textContent = "Añadir familia";
+      cancelFamilyEditBtn.style.display = "none";
+      renderAll();
+    });
+
+    cancelFamilyEditBtn.addEventListener("click", () => {
+      editingFamilyId.value = "";
+      familyName.value = "";
+      saveFamilyBtn.textContent = "Añadir familia";
+      cancelFamilyEditBtn.style.display = "none";
+    });
+
+    window.editFamily = function(id) {
+      const family = ingredientFamilies.find(item => item.id === id);
+      if (!family) return;
+      editingFamilyId.value = family.id;
+      familyName.value = family.name;
+      saveFamilyBtn.textContent = "Guardar familia";
+      cancelFamilyEditBtn.style.display = "inline-block";
+    };
+
+    window.deleteFamily = function(id) {
+      const family = ingredientFamilies.find(item => item.id === id);
+      if (!family) return;
+      if (!confirm(`¿Eliminar la familia "${family.name}"? Los ingredientes quedarán sin familia.`)) return;
+      ingredientFamilies = ingredientFamilies.filter(item => item.id !== id);
+      ingredients.forEach(ingredient => { if (ingredient.familyId === id) ingredient.familyId = ""; });
+      renderAll();
+    };
+
+    savePackBtn.addEventListener("click", () => {
+      const name = packName.value.trim();
+      if (!name) return alert("Escribe el nombre del pack.");
+      if (editingPackId.value) {
+        const pack = dishPacks.find(item => item.id === editingPackId.value);
+        if (pack) pack.name = name;
+      } else {
+        findOrCreatePackByName(name);
+      }
+      editingPackId.value = "";
+      packName.value = "";
+      savePackBtn.textContent = "Añadir pack";
+      cancelPackEditBtn.style.display = "none";
+      renderAll();
+    });
+
+    cancelPackEditBtn.addEventListener("click", () => {
+      editingPackId.value = "";
+      packName.value = "";
+      savePackBtn.textContent = "Añadir pack";
+      cancelPackEditBtn.style.display = "none";
+    });
+
+    window.editPack = function(id) {
+      const pack = dishPacks.find(item => item.id === id);
+      if (!pack) return;
+      editingPackId.value = pack.id;
+      packName.value = pack.name;
+      savePackBtn.textContent = "Guardar pack";
+      cancelPackEditBtn.style.display = "inline-block";
+    };
+
+    window.deletePack = function(id) {
+      const pack = dishPacks.find(item => item.id === id);
+      if (!pack) return;
+      if (!confirm(`¿Eliminar el pack "${pack.name}"? Los platos quedarán sin clasificar.`)) return;
+      dishPacks = dishPacks.filter(item => item.id !== id);
+      dishes.forEach(dish => { if (dish.packId === id) dish.packId = ""; });
+      renderAll();
+    };
+
+    document.getElementById("loadRemotePacksBtn")?.addEventListener("click", loadRemotePacks);
+
+    document.getElementById("importSelectedPacksBtn")?.addEventListener("click", async () => {
+      const selected = Array.from(document.querySelectorAll(".remote-pack-check:checked"))
+        .map(input => remotePackFiles[Number(input.dataset.index)])
+        .filter(Boolean);
+      if (!selected.length) return alert("Marca al menos un pack para importar.");
+
+      let added = 0;
+      let updated = 0;
+      let createdIngredients = 0;
+      for (const pack of selected) {
+        try {
+          const data = await fetchJson(pack.url);
+          const result = importDishesData(data, true);
+          added += result.addedDishes;
+          updated += result.updatedDishes;
+          createdIngredients += result.addedIngredients;
+        } catch (error) {
+          alert(`No se pudo importar ${pack.name || pack.filename}: ${error.message}`);
+        }
+      }
+      renderAll();
+      switchTab("dishes");
+      alert(`Packs importados. Platos añadidos: ${added}. Platos actualizados: ${updated}. Ingredientes creados: ${createdIngredients}.`);
+    });
+
+    document.getElementById("copyPackPromptBtn")?.addEventListener("click", async () => {
+      const text = packPromptText;
+      try {
+        await navigator.clipboard.writeText(text);
+        alert("Prompt copiado al portapapeles.");
+      } catch {
+        if (packPromptExample) {
+          packPromptExample.focus();
+          packPromptExample.select();
+        }
+        alert("No se pudo copiar automáticamente. Puedes copiarlo desde el cuadro de texto.");
+      }
+    });
+
+    saveDishBtn.addEventListener("click", () => {
+      const name = dishName.value.trim();
+      const qty = Number(dishQty.value);
+      const unit = dishUnit.value.trim() || "raciones";
+      const notes = dishNotes.value.trim();
+      if (!name) return alert("Escribe el nombre del plato.");
+      if (Number.isNaN(qty) || qty < 0) return alert("Las raciones deben ser igual o mayor que 0.");
+      const data = {
+        name,
+        qty,
+        unit,
+        notes,
+        packId: dishPackSelect.value,
+        category: dishCategory.value.trim(),
+        tags: normalizeTags(dishDietTags.value),
+        prepTime: dishPrepTime.value.trim(),
+        difficulty: dishDifficulty.value.trim(),
+        approxPrice: Number(dishApproxPrice.value) || 0,
+        recipe: currentRecipe.map(row => ({ ...row }))
+      };
+      if (editingDishId.value) {
+        const dish = dishes.find(item => item.id === editingDishId.value);
+        if (dish) Object.assign(dish, data);
+      } else {
+        dishes.push({ id: createId(), ...data });
+      }
+      resetDishForm();
+      renderAll();
+    });
+
+    cancelDishEditBtn.addEventListener("click", resetDishForm);
+
     window.editDish = function(id) {
       const dish = dishes.find(item => item.id === id);
       if (!dish) return;
@@ -2745,7 +2443,7 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
       dishPrepTime.value = dish.prepTime || "";
       dishDifficulty.value = dish.difficulty || "";
       dishApproxPrice.value = dish.approxPrice || "";
-      dishNotes.value = dish.notes || "";
+      dishNotes.value = dish.notes;
       currentRecipe = dish.recipe.map(row => ({ ...row }));
       saveDishBtn.textContent = "Guardar plato";
       cancelDishEditBtn.style.display = "inline-block";
@@ -2756,402 +2454,316 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
 
     window.deleteDish = function(id) {
       const dish = dishes.find(item => item.id === id);
-      if (!dish || !confirm(`¿Eliminar "${dish.name}" del listado y de todas las semanas?`)) return;
+      if (!dish) return;
+      if (!confirm(`¿Eliminar "${dish.name}"?`)) return;
       dishes = dishes.filter(item => item.id !== id);
-      favoriteIds = favoriteIds.filter(favId => favId !== id);
+      favoriteIds = favoriteIds.filter(fav => fav !== id);
       weeks.forEach(week => {
-        Object.keys(week.plan).forEach(slot => {
-          const slotDishes = Array.isArray(week.plan[slot]) ? week.plan[slot] : (week.plan[slot] ? [week.plan[slot]] : []);
-          const cleaned = slotDishes.filter(dishId => dishId !== id);
-          if (cleaned.length > 0) week.plan[slot] = cleaned;
-          else delete week.plan[slot];
+        Object.keys(week.plan).forEach(slotId => {
+          const value = week.plan[slotId];
+          if (Array.isArray(value)) week.plan[slotId] = value.filter(dishId => dishId !== id);
+          else if (value === id) delete week.plan[slotId];
         });
       });
       renderAll();
     };
 
     window.toggleFavorite = function(id) {
-      if (favoriteIds.includes(id)) favoriteIds = favoriteIds.filter(favId => favId !== id);
+      if (favoriteIds.includes(id)) favoriteIds = favoriteIds.filter(item => item !== id);
       else favoriteIds.push(id);
       renderAll();
     };
 
-    window.deleteMember = function(id) {
-      const member = familyMembers.find(item => item.id === id);
-      if (!member) return;
-      if (familyMembers.length === 1) return alert("Debe quedar al menos un miembro para poder usar el calendario.");
-      if (!confirm(`¿Eliminar a "${member.name}" y sus comidas planificadas en todas las semanas?`)) return;
-      familyMembers = familyMembers.filter(item => item.id !== id);
+    window.addDishToSlot = function(slotId, dishId) {
+      if (!dishId) return;
+      const plan = getPlan();
+      const current = Array.isArray(plan[slotId]) ? plan[slotId] : (plan[slotId] ? [plan[slotId]] : []);
+      current.push(dishId);
+      plan[slotId] = current;
       renderAll();
     };
+
+    window.removeDishFromSlot = function(slotId, index) {
+      const plan = getPlan();
+      const current = Array.isArray(plan[slotId]) ? plan[slotId] : (plan[slotId] ? [plan[slotId]] : []);
+      current.splice(index, 1);
+      if (current.length) plan[slotId] = current;
+      else delete plan[slotId];
+      renderAll();
+    };
+
+    document.getElementById("addMemberBtn").addEventListener("click", () => {
+      const input = document.getElementById("memberName");
+      const name = input.value.trim();
+      if (!name) return;
+      familyMembers.push({ id: createId(), name });
+      input.value = "";
+      renderAll();
+    });
+
+    window.deleteMember = function(id) {
+      if (familyMembers.length <= 1) return alert("Debe quedar al menos un miembro.");
+      familyMembers = familyMembers.filter(member => member.id !== id);
+      weeks.forEach(week => Object.keys(week.plan).forEach(slot => { if (slot.endsWith(`__${id}`)) delete week.plan[slot]; }));
+      renderAll();
+    };
+
+    document.getElementById("addMealTypeBtn").addEventListener("click", () => {
+      const input = document.getElementById("mealTypeName");
+      const name = input.value.trim();
+      if (!name) return;
+      mealTypes.push({ id: createId(), name });
+      input.value = "";
+      renderAll();
+    });
 
     window.deleteMeal = function(id) {
-      const meal = mealTypes.find(item => item.id === id);
-      if (!meal) return;
-      if (mealTypes.length === 1) return alert("Debe quedar al menos un tipo de comida para poder usar el calendario.");
-      if (!confirm(`¿Eliminar "${meal.name}" y sus comidas planificadas en todas las semanas?`)) return;
-      mealTypes = mealTypes.filter(item => item.id !== id);
+      if (mealTypes.length <= 1) return alert("Debe quedar al menos un tipo de comida.");
+      mealTypes = mealTypes.filter(meal => meal.id !== id);
+      weeks.forEach(week => Object.keys(week.plan).forEach(slot => { if (slot.includes(`__${id}__`)) delete week.plan[slot]; }));
       renderAll();
     };
 
-    document.getElementById("clearPlanBtn").addEventListener("click", () => {
-      if (!confirm("¿Vaciar la planificación de esta semana?")) return;
+    function selectWeek(id) {
+      activeWeekId = id;
+      renderAll();
+    }
+    window.selectWeek = selectWeek;
+
+    window.duplicateWeek = function(id) {
+      const source = weeks.find(week => week.id === id);
+      if (!source) return;
+      const clone = normalizeWeek({ name: `${source.name} copia`, plan: JSON.parse(JSON.stringify(source.plan || {})) });
+      weeks.push(clone);
+      activeWeekId = clone.id;
+      renderAll();
+    };
+
+    window.markTypicalWeek = function(id) {
+      weeks.forEach(week => week.isTypical = week.id === id);
+      const week = weeks.find(item => item.id === id);
+      typicalWeekPlan = week ? JSON.parse(JSON.stringify(week.plan || {})) : null;
+      renderAll();
+    };
+
+    window.deleteWeek = function(id) {
+      if (weeks.length <= 1) return alert("Debe quedar al menos una semana.");
+      const week = weeks.find(item => item.id === id);
+      if (!week) return;
+      if (!confirm(`¿Eliminar "${week.name}"?`)) return;
+      weeks = weeks.filter(item => item.id !== id);
+      if (activeWeekId === id) activeWeekId = weeks[0].id;
+      if (week.isTypical) typicalWeekPlan = null;
+      renderAll();
+    };
+
+    activeWeekSelect.addEventListener("change", () => {
+      activeWeekId = activeWeekSelect.value;
+      renderAll();
+    });
+
+    document.getElementById("renameWeekBtn").addEventListener("click", () => {
+      const active = getActiveWeek();
+      const name = renameWeekInput.value.trim();
+      if (!name) return;
+      active.name = name;
+      renderAll();
+    });
+
+    document.getElementById("newWeekBtn").addEventListener("click", () => {
+      const week = normalizeWeek({ name: `Semana ${weeks.length + 1}`, plan: {} });
+      weeks.push(week);
+      activeWeekId = week.id;
+      renderAll();
+    });
+
+    document.getElementById("duplicateActiveWeekBtn").addEventListener("click", () => duplicateWeek(activeWeekId));
+
+    document.getElementById("applyTypicalWeekBtn").addEventListener("click", () => {
+      if (!typicalWeekPlan) return alert("Marca primero una semana como tipo.");
+      if (!confirm("Esto reemplazará la planificación de la semana activa. ¿Continuar?")) return;
+      setPlan(JSON.parse(JSON.stringify(typicalWeekPlan)));
+      renderAll();
+    });
+
+    document.getElementById("clearActiveWeekBtn").addEventListener("click", () => {
+      if (!confirm("¿Vaciar la planificación de la semana activa?")) return;
       setPlan({});
       renderAll();
     });
 
-    function parseOpenFoodFactsQuantity(text) {
-      const raw = String(text || "").toLowerCase().replace(",", ".");
-      const match = raw.match(/(\d+(?:\.\d+)?)\s*(kg|g|l|ml|cl|unidad|unidades|ud|uds)/i);
-      if (!match) return { packageQty: 1, packageUnit: "unidades" };
-      let value = Number(match[1]) || 1;
-      let unit = match[2].toLowerCase();
-      if (unit === "kg") { value *= 1000; unit = "g"; }
-      if (unit === "l") { value *= 1000; unit = "ml"; }
-      if (unit === "cl") { value *= 10; unit = "ml"; }
-      if (["unidad", "ud", "uds"].includes(unit)) unit = "unidades";
-      return { packageQty: value, packageUnit: unit };
-    }
-
-    function productFromOpenFoodFacts(rawProduct) {
-      const quantity = parseOpenFoodFactsQuantity(rawProduct.quantity || rawProduct.serving_size || "");
-      const name = rawProduct.product_name || rawProduct.generic_name || "Producto sin nombre";
-      const brand = [name, rawProduct.brands, rawProduct.quantity].filter(Boolean).join(" · ");
-      return normalizeProduct({
-        barcode: rawProduct.code,
-        brand,
-        packageQty: quantity.packageQty,
-        packageUnit: quantity.packageUnit,
-        price: 0,
-        source: "Open Food Facts",
-        productName: name,
-        quantityText: rawProduct.quantity || rawProduct.serving_size || "",
-        imageUrl: rawProduct.image_small_url || rawProduct.image_url || "",
-        offUrl: rawProduct.code ? `https://world.openfoodfacts.org/product/${encodeURIComponent(rawProduct.code)}` : "",
-        nutriscore: rawProduct.nutriscore_grade || "",
-        novaGroup: rawProduct.nova_group || "",
-        categories: rawProduct.categories || ""
-      });
-    }
-
-    function inferFamilyFromOffProduct(product) {
-      const text = normalizeSearch([product.categories, product.productName, product.brand].join(" "));
-      if (text.includes("tomate") || text.includes("verdura") || text.includes("vegetal")) return "Verdura";
-      if (text.includes("fruta")) return "Fruta";
-      if (text.includes("yogur") || text.includes("leche") || text.includes("queso") || text.includes("lacteo")) return "Lácteos";
-      if (text.includes("pescado") || text.includes("carne") || text.includes("pollo")) return "Carne y pescado";
-      if (text.includes("congelado")) return "Congelados";
-      return "Despensa";
-    }
-
-    async function fetchOpenFoodFactsByBarcode(barcode) {
-      const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}?fields=${OPEN_FOOD_FACTS_FIELDS}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("No se pudo consultar Open Food Facts.");
-      const data = await response.json();
-      if (data.status !== 1 || !data.product) return null;
-      return productFromOpenFoodFacts({ ...data.product, code: data.code || barcode });
-    }
-
-    async function searchOpenFoodFactsProducts(query) {
-      const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20&fields=${OPEN_FOOD_FACTS_FIELDS}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("No se pudo buscar en Open Food Facts.");
-      const data = await response.json();
-      return (data.products || [])
-        .map(productFromOpenFoodFacts)
-        .filter(product => product && product.barcode);
-    }
-
-    function addProductToIngredient(product, ingredientId) {
-      const ingredient = ingredients.find(item => item.id === ingredientId);
-      if (!ingredient) return false;
-      if (!ingredient.products) ingredient.products = [];
-      const index = ingredient.products.findIndex(item => product.barcode && item.barcode === product.barcode);
-      if (index >= 0) ingredient.products[index] = { ...ingredient.products[index], ...product };
-      else ingredient.products.push(product);
-      if (!ingredient.unit || ingredient.unit === "unidades") ingredient.unit = product.packageUnit || ingredient.unit;
-      saveData();
-      renderAll();
-      fillScannerFromProduct(ingredient, product);
-      scannerStatus.textContent = `Producto guardado en “${ingredient.name}”.`;
-      return true;
-    }
-
-    function createIngredientFromOpenFoodFactsProduct(product, preferredName = "") {
-      const name = (preferredName || offSearchInput.value || product.productName || product.brand || "Ingrediente").trim();
-      const existing = ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(name));
-      const ingredient = existing || normalizeIngredient({
-        name,
-        qty: 0,
-        unit: product.packageUnit || "unidades",
-        available: false,
-        family: inferFamilyFromOffProduct(product),
-        products: []
-      });
-      if (!existing) ingredients.push(ingredient);
-      addProductToIngredient(product, ingredient.id);
-      quickIngredientSelect.value = ingredient.id;
-      return ingredient;
-    }
-
-    function renderOpenFoodFactsResults(products) {
-      if (!offResults) return;
-      offResults.innerHTML = "";
-      if (!products.length) {
-        offResults.innerHTML = '<div class="empty">No se han encontrado productos. Prueba con otro nombre o escanea un código.</div>';
-        return;
-      }
-      products.forEach((product, index) => {
-        const div = document.createElement("div");
-        div.className = "item";
-        const imageHtml = product.imageUrl ? `<img src="${escapeForAttr(product.imageUrl)}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:12px;border:1px solid var(--border);float:right;margin-left:10px">` : "";
-        div.innerHTML = `${imageHtml}<div class="item-top"><div><div class="item-name">${escapeHtml(product.productName || product.brand || "Producto")}</div><div class="muted">${escapeHtml(product.brand || "")}</div><div class="muted">Código: ${escapeHtml(product.barcode || "-")} · Envase: ${formatNumber(product.packageQty)} ${escapeHtml(product.packageUnit)}</div>${product.nutriscore ? `<span class="badge favorite">Nutri-Score ${escapeHtml(String(product.nutriscore).toUpperCase())}</span>` : ""} ${product.novaGroup ? `<span class="badge warn">NOVA ${escapeHtml(product.novaGroup)}</span>` : ""}</div><span class="badge ok">Open Food Facts</span></div><div class="mini-actions"><button class="ghost" onclick="useOffProductForSelectedIngredient(${index})">Añadir al ingrediente seleccionado</button><button class="secondary" onclick="createIngredientFromOffResult(${index})">Crear/usar ingrediente con esta búsqueda</button></div>`;
-        offResults.appendChild(div);
-      });
-    }
-
-    async function handleOpenFoodFactsSearch() {
-      const query = offSearchInput.value.trim();
-      if (!query) return alert("Escribe un alimento para buscar, por ejemplo tomate frito.");
-      scannerStatus.textContent = "Buscando en Open Food Facts...";
-      try {
-        lastOpenFoodFactsResults = await searchOpenFoodFactsProducts(query);
-        renderOpenFoodFactsResults(lastOpenFoodFactsResults);
-        scannerStatus.textContent = `${lastOpenFoodFactsResults.length} producto/s encontrados en Open Food Facts.`;
-      } catch (error) {
-        scannerStatus.textContent = error.message || "No se pudo buscar en Open Food Facts.";
-      }
-    }
-
-    window.useOffProductForSelectedIngredient = function(index) {
-      const product = lastOpenFoodFactsResults[index];
-      if (!product) return;
-      addProductToIngredient(product, quickIngredientSelect.value);
-    };
-
-    window.createIngredientFromOffResult = function(index) {
-      const product = lastOpenFoodFactsResults[index];
-      if (!product) return;
-      createIngredientFromOpenFoodFactsProduct(product);
-    };
-
-    function renderBarcodeList() {
-      barcodeList.innerHTML = "";
-      const rows = [];
-      ingredients.forEach(ingredient => {
-        (ingredient.products || []).forEach(product => rows.push({ ingredient, product }));
-      });
-      if (!rows.length) {
-        barcodeList.innerHTML = '<div class="empty">Todavía no hay códigos guardados. Puedes añadirlos desde esta pestaña o desde la ficha de cada ingrediente.</div>';
-        return;
-      }
-      rows.forEach(({ ingredient, product }) => {
-        const div = document.createElement("div");
-        div.className = "item";
-        const sourceBadge = product.source ? `<span class="badge ok">${escapeHtml(product.source)}</span>` : '<span class="badge favorite">Código</span>';
-        const extraInfo = [product.quantityText, product.nutriscore ? "Nutri-Score " + String(product.nutriscore).toUpperCase() : "", product.novaGroup ? "NOVA " + product.novaGroup : ""].filter(Boolean).join(" · ");
-        div.innerHTML = `<div class="item-top"><div><div class="item-name">${escapeHtml(ingredient.name)}</div><div class="muted">${escapeHtml(product.brand || "Producto")} ${product.barcode ? "· " + escapeHtml(product.barcode) : ""}</div><div class="muted">${formatNumber(product.packageQty)} ${escapeHtml(product.packageUnit)} · ${formatCurrency(product.price)}</div>${extraInfo ? `<div class="muted">${escapeHtml(extraInfo)}</div>` : ""}</div>${sourceBadge}</div><div class="mini-actions"><button class="ghost" onclick="loadProductIntoScanner('${ingredient.id}', '${escapeForAttr(product.barcode)}')">Usar</button><button class="danger" onclick="deleteProductBarcode('${ingredient.id}', '${escapeForAttr(product.barcode)}', '${escapeForAttr(product.brand)}')">Eliminar</button></div>`;
-        barcodeList.appendChild(div);
-      });
-    }
-
-    function fillScannerFromProduct(ingredient, product) {
-      quickIngredientSelect.value = ingredient.id;
-      scanBarcodeInput.value = product.barcode || scanBarcodeInput.value;
-      quickBrand.value = product.brand || "";
-      quickPackageQty.value = product.packageQty || 1;
-      quickPackageUnit.value = product.packageUnit || ingredient.unit;
-      quickPrice.value = product.price || "";
-      scannerStatus.textContent = `Detectado: ${ingredient.name}${product.brand ? " · " + product.brand : ""}`;
-    }
-
-    async function handleBarcodeLookup() {
-      const barcode = scanBarcodeInput.value.trim();
-      if (!barcode) return alert("Escribe o escanea un código.");
-      const found = findBarcode(barcode);
-      if (found) {
-        fillScannerFromProduct(found.ingredient, found.product);
-        return;
-      }
-
-      scannerStatus.textContent = "Código no guardado. Consultando Open Food Facts...";
-      try {
-        const product = await fetchOpenFoodFactsByBarcode(barcode);
-        if (!product) {
-          scannerStatus.textContent = "Código no encontrado. Selecciona un ingrediente y pulsa ‘Guardar código en ingrediente’ para registrarlo manualmente.";
-          return;
-        }
-        lastOpenFoodFactsResults = [product];
-        renderOpenFoodFactsResults(lastOpenFoodFactsResults);
-        scanBarcodeInput.value = product.barcode;
-        quickBrand.value = product.brand || product.productName || "";
-        quickPackageQty.value = product.packageQty || 1;
-        quickPackageUnit.value = product.packageUnit || "unidades";
-        scannerStatus.textContent = "Producto encontrado en Open Food Facts. Puedes añadirlo al ingrediente seleccionado o crear uno nuevo.";
-      } catch (error) {
-        scannerStatus.textContent = error.message || "No se pudo consultar Open Food Facts.";
-      }
-    }
-
-    function saveProductFromScanner() {
-      const ingredient = ingredients.find(item => item.id === quickIngredientSelect.value);
-      if (!ingredient) return alert("Selecciona un ingrediente.");
-      const product = normalizeProduct({
-        barcode: scanBarcodeInput.value.trim(),
-        brand: quickBrand.value.trim(),
-        packageQty: Number(quickPackageQty.value),
-        packageUnit: quickPackageUnit.value.trim() || ingredient.unit,
-        price: Number(quickPrice.value)
-      });
-      if (!product.barcode && !product.brand) return alert("Añade al menos un código o una marca/variante.");
-      if (product.packageQty <= 0) return alert("La cantidad por envase debe ser mayor que 0.");
-      const index = (ingredient.products || []).findIndex(item => product.barcode && item.barcode === product.barcode);
-      if (!ingredient.products) ingredient.products = [];
-      if (index >= 0) ingredient.products[index] = product;
-      else ingredient.products.push(product);
-      ingredient.unit = ingredient.unit || product.packageUnit;
-      saveData();
-      renderAll();
-      scannerStatus.textContent = "Código/producto guardado.";
-    }
-
-    function quickUpdateStock() {
-      const ingredient = ingredients.find(item => item.id === quickIngredientSelect.value);
-      if (!ingredient) return alert("Selecciona un ingrediente.");
-      const packages = Number(quickPackages.value) || 1;
-      const packageQty = Number(quickPackageQty.value);
-      const packageUnit = quickPackageUnit.value.trim() || ingredient.unit;
-      if (packageQty <= 0) return alert("La cantidad por envase debe ser mayor que 0.");
-      if (!sameUnit(packageUnit, ingredient.unit)) {
-        if (!confirm(`La unidad del producto (${packageUnit}) no coincide con la del ingrediente (${ingredient.unit}). ¿Quieres cambiar la unidad del ingrediente a ${packageUnit}?`)) return;
-        ingredient.unit = packageUnit;
-      }
-      ingredient.qty = (Number(ingredient.qty) || 0) + packages * packageQty;
-      ingredient.available = true;
-      if (scanBarcodeInput.value.trim() || quickBrand.value.trim()) saveProductFromScanner();
-      else {
-        saveData();
-        renderAll();
-      }
-      scannerStatus.textContent = `Stock actualizado: ${ingredient.name} +${formatNumber(packages * packageQty)} ${ingredient.unit}`;
-    }
-
-    window.loadProductIntoScanner = function(ingredientId, barcode) {
-      const ingredient = ingredients.find(item => item.id === ingredientId);
-      if (!ingredient) return;
-      const product = (ingredient.products || []).find(item => item.barcode === barcode) || (ingredient.products || [])[0];
-      if (product) fillScannerFromProduct(ingredient, product);
-      switchTab("scanner");
-    };
-
-    window.deleteProductBarcode = function(ingredientId, barcode, brand) {
-      const ingredient = ingredients.find(item => item.id === ingredientId);
-      if (!ingredient) return;
-      if (!confirm("¿Eliminar este código/producto guardado?")) return;
-      ingredient.products = (ingredient.products || []).filter(item => !(item.barcode === barcode && item.brand === brand));
-      renderAll();
-    };
-
-    quickIngredientSelect.addEventListener("change", () => {
-      const ingredient = ingredients.find(item => item.id === quickIngredientSelect.value);
-      if (!ingredient) return;
-      quickPackageUnit.value = ingredient.unit;
-      const product = bestProductForIngredient(ingredient) || (ingredient.products || [])[0];
-      if (product) fillScannerFromProduct(ingredient, product);
-    });
-
-    document.getElementById("findBarcodeBtn").addEventListener("click", handleBarcodeLookup);
-    document.getElementById("searchOpenFoodFactsBtn").addEventListener("click", handleOpenFoodFactsSearch);
-    document.getElementById("createIngredientFromOffBtn").addEventListener("click", () => {
-      if (!lastOpenFoodFactsResults.length) return alert("Busca primero un alimento en Open Food Facts.");
-      createIngredientFromOpenFoodFactsProduct(lastOpenFoodFactsResults[0]);
-    });
-    if (offSearchInput) {
-      offSearchInput.addEventListener("keydown", event => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          handleOpenFoodFactsSearch();
-        }
-      });
-    }
-    document.getElementById("saveBarcodeBtn").addEventListener("click", saveProductFromScanner);
-    document.getElementById("quickUpdateStockBtn").addEventListener("click", quickUpdateStock);
-
-    document.getElementById("startScannerBtn").addEventListener("click", async () => {
-      const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
-      const isSecure = window.isSecureContext || isLocalhost;
-
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        scannerStatus.textContent = "Este navegador no ofrece acceso a cámara desde esta página. Usa la entrada manual o abre el archivo desde localhost.";
-        return;
-      }
-
-      if (!isSecure) {
-        scannerStatus.textContent = "La cámara está bloqueada porque la página no está en un contexto seguro. Abre el archivo desde localhost o HTTPS. Mientras tanto puedes escribir el código manualmente.";
-        return;
-      }
-
-      if (!("BarcodeDetector" in window)) {
-        scannerStatus.textContent = "La cámara puede funcionar, pero este navegador no soporta BarcodeDetector para leer códigos. Usa Chrome/Edge en Android o introduce el código manualmente.";
-        return;
-      }
-
-      try {
-        scannerStatus.textContent = "Solicitando permiso de cámara...";
-        scannerStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: false
+    document.getElementById("copyWeekBtn").addEventListener("click", async () => {
+      const active = getActiveWeek();
+      const lines = [active.name];
+      DAYS.forEach(day => {
+        lines.push(`\n${day}`);
+        mealTypes.forEach(meal => {
+          familyMembers.forEach(member => {
+            const slot = makeSlotId(day, meal.id, member.id);
+            const ids = Array.isArray(active.plan[slot]) ? active.plan[slot] : (active.plan[slot] ? [active.plan[slot]] : []);
+            if (ids.length) lines.push(`- ${meal.name} · ${member.name}: ${ids.map(id => dishes.find(d => d.id === id)?.name || "Plato eliminado").join(", ")}`);
+          });
         });
-
-        scannerVideo.srcObject = scannerStream;
-        scannerVideo.style.display = "block";
-        await scannerVideo.play();
-
-        const detector = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"] });
-        scannerStatus.textContent = "Escaneando... apunta al código de barras y manténlo centrado.";
-
-        scannerTimer = setInterval(async () => {
-          try {
-            const codes = await detector.detect(scannerVideo);
-            if (codes.length) {
-              scanBarcodeInput.value = codes[0].rawValue;
-              handleBarcodeLookup();
-              stopScanner();
-            }
-          } catch {}
-        }, 700);
-      } catch (error) {
-        let message = "No se pudo acceder a la cámara.";
-
-        if (error && error.name === "NotAllowedError") {
-          message = "Permiso de cámara denegado. Pulsa el candado de la barra de direcciones, permite la cámara y recarga la página.";
-        } else if (error && error.name === "NotFoundError") {
-          message = "No se encontró ninguna cámara disponible en este dispositivo.";
-        } else if (error && error.name === "NotReadableError") {
-          message = "La cámara está ocupada por otra aplicación. Ciérrala y prueba de nuevo.";
-        } else if (error && error.name === "SecurityError") {
-          message = "El navegador bloqueó la cámara por seguridad. Abre la página desde HTTPS o localhost.";
-        }
-
-        scannerStatus.textContent = message + " También puedes introducir el código manualmente.";
+      });
+      try {
+        await navigator.clipboard.writeText(lines.join("\n"));
+        alert("Semana copiada al portapapeles.");
+      } catch {
+        alert("No se pudo copiar la semana.");
       }
     });
 
-    document.getElementById("stopScannerBtn").addEventListener("click", stopScanner);
+    document.getElementById("printWeekBtn").addEventListener("click", () => window.print());
+
+    document.getElementById("copyShoppingBtn").addEventListener("click", async () => {
+      const items = computeShoppingList();
+      const lines = [`Lista de la compra · ${getActiveWeek().name}`];
+      items.forEach(item => lines.push(`- ${item.ingredient.name}: ${formatNumber(item.missingQty)} ${item.ingredient.unit} (${formatCurrency(item.estimatedCost)})`));
+      if (items.length === 0) lines.push("No falta ningún ingrediente.");
+      try {
+        await navigator.clipboard.writeText(lines.join("\n"));
+        alert("Lista copiada al portapapeles.");
+      } catch {
+        alert("No se pudo copiar la lista.");
+      }
+    });
+
+    document.getElementById("printShoppingBtn").addEventListener("click", () => window.print());
+
+    document.getElementById("shareShoppingBtn").addEventListener("click", async () => {
+      const items = computeShoppingList();
+      const text = [`Lista de la compra · ${getActiveWeek().name}`, ...items.map(item => `- ${item.ingredient.name}: ${formatNumber(item.missingQty)} ${item.ingredient.unit}`)].join("\n");
+      if (navigator.share) {
+        try { await navigator.share({ title: "Lista de la compra", text }); }
+        catch { /* user cancelled */ }
+      } else {
+        try {
+          await navigator.clipboard.writeText(text);
+          alert("Tu navegador no soporta compartir, pero la lista se ha copiado.");
+        } catch {
+          alert("Tu navegador no soporta compartir.");
+        }
+      }
+    });
+
+    async function lookupBarcode() {
+      const code = barcodeInput.value.trim();
+      barcodeResult.innerHTML = "";
+      if (!code) return alert("Escribe o escanea un código.");
+      const found = findBarcode(code);
+      if (found) {
+        barcodeResult.innerHTML = `<strong>Código encontrado</strong><div class="muted">Ingrediente: ${escapeHtml(found.ingredient.name)}</div><div class="muted">Producto: ${escapeHtml(found.product.brand || "Sin marca")} · ${formatNumber(found.product.packageQty)} ${escapeHtml(found.product.packageUnit)} · ${formatCurrency(found.product.price)}</div>`;
+        return;
+      }
+
+      barcodeResult.innerHTML = `<div class="muted">Código no registrado. Buscando en Open Food Facts...</div>`;
+      try {
+        const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`);
+        const data = await response.json();
+        if (data.status === 1 && data.product) {
+          const product = data.product;
+          const parsed = parseQuantity(product.quantity || "");
+          barcodeResult.innerHTML = `
+            <strong>${escapeHtml(product.product_name || "Producto encontrado")}</strong>
+            <div class="muted">Marca: ${escapeHtml(product.brands || "Sin marca")}</div>
+            <div class="muted">Cantidad: ${escapeHtml(product.quantity || "No indicada")}</div>
+            ${product.image_small_url ? `<img src="${escapeForAttr(product.image_small_url)}" alt="Producto" style="max-width:120px;border-radius:12px;margin-top:8px" />` : ""}
+            <div class="actions">
+              <button type="button" onclick="createIngredientFromBarcode('${escapeForAttr(code)}', '${escapeForAttr(product.product_name || "Producto")}', '${escapeForAttr(product.brands || "")}', ${parsed.qty}, '${escapeForAttr(parsed.unit)}')">Crear ingrediente con este código</button>
+            </div>`;
+        } else {
+          barcodeResult.innerHTML = `<div class="muted">No encontrado en Open Food Facts. Puedes asociarlo manualmente desde Ingredientes.</div>`;
+        }
+      } catch (error) {
+        barcodeResult.innerHTML = `<div class="muted">No se pudo consultar Open Food Facts: ${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    function parseQuantity(quantity) {
+      const text = String(quantity || "").toLowerCase().replace(",", ".");
+      const match = text.match(/([0-9]+(?:\.[0-9]+)?)\s*(kg|g|l|ml|cl|unidades|unidad|u)/i);
+      if (!match) return { qty: 0, unit: "unidades" };
+      let qty = Number(match[1]);
+      let unit = match[2].toLowerCase();
+      if (unit === "kg") { qty *= 1000; unit = "g"; }
+      if (unit === "l") { qty *= 1000; unit = "ml"; }
+      if (unit === "cl") { qty *= 10; unit = "ml"; }
+      if (unit === "unidad" || unit === "u") unit = "unidades";
+      return { qty, unit };
+    }
+
+    window.createIngredientFromBarcode = function(code, productName, brand, packageQty, packageUnit) {
+      const existing = ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(productName));
+      const product = normalizeProduct({ barcode: code, brand, packageQty, packageUnit, price: 0, source: "openfoodfacts", productName });
+      if (existing) {
+        existing.products = existing.products || [];
+        existing.products.push(product);
+      } else {
+        ingredients.push(normalizeIngredient({ name: productName, qty: 0, unit: packageUnit || "unidades", available: false, products: [product] }));
+      }
+      barcodeResult.innerHTML = `<div class="muted">Producto asociado. Puedes ajustar precio y cantidad desde Ingredientes.</div>`;
+      renderAll();
+    };
+
+    document.getElementById("lookupBarcodeBtn").addEventListener("click", lookupBarcode);
+    barcodeInput.addEventListener("keydown", event => { if (event.key === "Enter") lookupBarcode(); });
+
+    async function startScanner() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        scannerStatus.textContent = "Tu navegador no permite usar la cámara desde esta página.";
+        return;
+      }
+      if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+        scannerStatus.textContent = "La cámara requiere HTTPS o localhost. Usa la app publicada en GitHub Pages o escribe el código manualmente.";
+        return;
+      }
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+        scannerVideo.srcObject = mediaStream;
+        scannerVideo.style.display = "block";
+        document.getElementById("startScannerBtn").style.display = "none";
+        document.getElementById("stopScannerBtn").style.display = "inline-block";
+        await scannerVideo.play();
+        scannerStatus.textContent = "Cámara activa. Enfoca el código de barras.";
+
+        if ("BarcodeDetector" in window) {
+          const detector = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"] });
+          scanTimer = setInterval(async () => {
+            try {
+              const codes = await detector.detect(scannerVideo);
+              if (codes.length) {
+                const value = codes[0].rawValue;
+                if (value && value !== lastScannedCode) {
+                  lastScannedCode = value;
+                  barcodeInput.value = value;
+                  scannerStatus.textContent = `Código detectado: ${value}`;
+                  lookupBarcode();
+                }
+              }
+            } catch { /* detector can fail on some frames */ }
+          }, 900);
+        } else {
+          scannerStatus.textContent = "Cámara activa, pero tu navegador no soporta detección automática. Escribe el código si no se detecta.";
+        }
+      } catch (error) {
+        scannerStatus.textContent = `No se pudo iniciar la cámara: ${error.message}`;
+      }
+    }
 
     function stopScanner() {
-      if (scannerTimer) clearInterval(scannerTimer);
-      scannerTimer = null;
-      if (scannerStream) scannerStream.getTracks().forEach(track => track.stop());
-      scannerStream = null;
+      if (scanTimer) clearInterval(scanTimer);
+      scanTimer = null;
+      if (mediaStream) mediaStream.getTracks().forEach(track => track.stop());
+      mediaStream = null;
+      scannerVideo.srcObject = null;
       scannerVideo.style.display = "none";
+      document.getElementById("startScannerBtn").style.display = "inline-block";
+      document.getElementById("stopScannerBtn").style.display = "none";
+      scannerStatus.textContent = "Cámara parada.";
     }
 
+    document.getElementById("startScannerBtn").addEventListener("click", startScanner);
+    document.getElementById("stopScannerBtn").addEventListener("click", stopScanner);
 
     function buildBackupData() {
       return {
@@ -3224,6 +2836,10 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
       }
       if (!confirm("La importación reemplazará los datos actuales. ¿Continuar?")) return;
 
+      if (window.PlanificadorHardening && typeof window.PlanificadorHardening.cleanBackup === "function") {
+        data = window.PlanificadorHardening.cleanBackup(data);
+      }
+
       ingredientFamilies = Array.isArray(data.ingredientFamilies) ? data.ingredientFamilies.map(normalizeFamily) : ingredientFamilies;
       ingredients = Array.isArray(data.ingredients) ? data.ingredients.map(normalizeIngredient) : [];
       dishPacks = Array.isArray(data.dishPacks) ? data.dishPacks.map(normalizePack) : dishPacks;
@@ -3286,6 +2902,14 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
         available: item.available ?? item.disponible ?? true,
         familyId,
         approxPrice: Number(item.approxPrice ?? item.priceApprox ?? item.precioAproximado ?? item.price ?? 0) || 0,
+        expiryDate: cleanDateString(item.expiryDate || item.caducidad || item.bestBeforeDate || item.fechaCaducidad),
+        openedDate: cleanDateString(item.openedDate || item.fechaApertura),
+        preparedDate: cleanDateString(item.preparedDate || item.fechaPreparacion),
+        frozenDate: cleanDateString(item.frozenDate || item.fechaCongelado),
+        storageType: normalizeStorageType(item.storageType || item.conservacion, item.frozenDate ? "freezer" : "pantry"),
+        discardedDate: cleanDateString(item.discardedDate || item.fechaDesperdicio),
+        discardedQty: Math.max(0, Number(item.discardedQty ?? item.cantidadDesperdiciada ?? 0) || 0),
+        wasteReason: item.wasteReason || item.motivoDesperdicio || "",
         products: Array.isArray(item.products) ? item.products : (Array.isArray(item.barcodes) ? item.barcodes : [])
       });
     }
@@ -3307,46 +2931,32 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
     document.getElementById("importIngredientsBtn").addEventListener("click", () => {
       const text = document.getElementById("importIngredientsText").value.trim();
       if (!text) return alert("Selecciona un archivo JSON o pega una lista de ingredientes.");
-
       let data;
       try {
         data = JSON.parse(text);
       } catch {
         return alert("El JSON de ingredientes no es válido.");
       }
-
-      const importedItems = extractIngredientsFromImport(data);
-      if (!importedItems) {
-        return alert("No encuentro una lista de ingredientes. Usa un array JSON o un objeto con la clave ingredients.");
-      }
-
-      const mergeByName = document.getElementById("mergeIngredientsByName").checked;
+      const imported = extractIngredientsFromImport(data);
+      if (!imported) return alert("No encuentro una lista de ingredientes. Usa un array JSON o un objeto con la clave ingredients.");
+      const merge = document.getElementById("mergeIngredientsByName").checked;
       let added = 0;
       let updated = 0;
-
-      importedItems.forEach(rawItem => {
-        const imported = normalizeImportedIngredient(rawItem);
-        const existing = mergeByName
-          ? ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(imported.name))
-          : null;
-
+      imported.forEach(raw => {
+        const normalized = normalizeImportedIngredient(raw);
+        const existing = merge ? ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(normalized.name)) : null;
         if (existing) {
           Object.assign(existing, {
-            name: imported.name,
-            qty: imported.qty,
-            unit: imported.unit,
-            available: imported.available,
-            familyId: imported.familyId || existing.familyId,
-            approxPrice: imported.approxPrice || existing.approxPrice || 0,
-            products: imported.products && imported.products.length ? imported.products : (existing.products || [])
+            ...normalized,
+            id: existing.id,
+            products: [...(existing.products || []), ...(normalized.products || [])]
           });
-          updated++;
+          updated += 1;
         } else {
-          ingredients.push(imported);
-          added++;
+          ingredients.push(normalized);
+          added += 1;
         }
       });
-
       saveData();
       renderAll();
       switchTab("ingredients");
@@ -3392,30 +3002,20 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
     }
 
     function findOrCreateIngredientFromRecipe(rawIngredient) {
-      const name = String(rawIngredient.name || rawIngredient.nombre || "").trim();
+      if (!rawIngredient || typeof rawIngredient !== "object") return null;
+      const name = rawIngredient.name || rawIngredient.nombre;
       if (!name) return null;
-
       let ingredient = ingredients.find(item => normalizeSearch(item.name) === normalizeSearch(name));
+      const familyId = rawIngredient.familyId || findOrCreateFamilyByName(rawIngredient.family || rawIngredient.familia || rawIngredient.familyName || "Sin familia");
       const unit = rawIngredient.unit || rawIngredient.unidad || "unidades";
-      const familyId = rawIngredient.familyId || findOrCreateFamilyByName(rawIngredient.family || rawIngredient.familyName || rawIngredient.familia || "");
-
+      const approxPrice = Number(rawIngredient.approxPrice ?? rawIngredient.priceApprox ?? rawIngredient.precioAproximado ?? rawIngredient.price ?? 0) || 0;
       if (!ingredient) {
-        ingredient = normalizeIngredient({
-          id: createId(),
-          name,
-          qty: Number(rawIngredient.stock ?? rawIngredient.have ?? rawIngredient.tengo ?? rawIngredient.availableQty ?? 0) || 0,
-          unit,
-          available: rawIngredient.available ?? rawIngredient.disponible ?? true,
-          familyId,
-          approxPrice: Number(rawIngredient.approxPrice ?? rawIngredient.priceApprox ?? rawIngredient.precioAproximado ?? rawIngredient.price ?? 0) || 0,
-          products: Array.isArray(rawIngredient.products) ? rawIngredient.products : []
-        });
+        ingredient = normalizeIngredient({ id: createId(), name, qty: 0, unit, available: false, familyId, approxPrice, products: [] });
         ingredients.push(ingredient);
       } else {
         if (!ingredient.familyId && familyId) ingredient.familyId = familyId;
-        if (!ingredient.unit && unit) ingredient.unit = unit;
+        if (!ingredient.approxPrice && approxPrice) ingredient.approxPrice = approxPrice;
       }
-
       return ingredient;
     }
 
@@ -3444,6 +3044,13 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
         difficulty: rawDish.difficulty || rawDish.dificultad || "",
         approxPrice: Number(rawDish.approxPrice ?? rawDish.priceApprox ?? rawDish.precioAproximado ?? rawDish.price ?? 0) || 0,
         notes: rawDish.notes || rawDish.notas || "",
+        expiryDate: cleanDateString(rawDish.expiryDate || rawDish.caducidad || rawDish.bestBeforeDate || rawDish.fechaCaducidad),
+        preparedDate: cleanDateString(rawDish.preparedDate || rawDish.fechaPreparacion || rawDish.cookedDate),
+        frozenDate: cleanDateString(rawDish.frozenDate || rawDish.fechaCongelado),
+        storageType: normalizeStorageType(rawDish.storageType || rawDish.conservacion, rawDish.frozenDate ? "freezer" : "fridge"),
+        discardedDate: cleanDateString(rawDish.discardedDate || rawDish.fechaDesperdicio),
+        discardedQty: Math.max(0, Number(rawDish.discardedQty ?? rawDish.cantidadDesperdiciada ?? 0) || 0),
+        wasteReason: rawDish.wasteReason || rawDish.motivoDesperdicio || "",
         recipe
       });
     }
@@ -3503,6 +3110,13 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
           difficulty: dish.difficulty || "",
           approxPrice: dish.approxPrice || 0,
           notes: dish.notes,
+          expiryDate: dish.expiryDate || "",
+          preparedDate: dish.preparedDate || "",
+          frozenDate: dish.frozenDate || "",
+          storageType: dish.storageType || "fridge",
+          discardedDate: dish.discardedDate || "",
+          discardedQty: dish.discardedQty || 0,
+          wasteReason: dish.wasteReason || "",
           ingredients: (dish.recipe || []).map(row => {
             const ingredient = ingredients.find(item => item.id === row.ingredientId);
             return {
@@ -3528,182 +3142,13 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
       URL.revokeObjectURL(url);
     });
 
+    if (ingredientSearchInput) ingredientSearchInput.addEventListener("input", renderIngredients);
+    if (dishSearchInput) dishSearchInput.addEventListener("input", renderDishes);
+    if (dishPackFilterSelect) dishPackFilterSelect.addEventListener("change", renderDishes);
+    if (calendarDishSearchInput) calendarDishSearchInput.addEventListener("input", renderCalendar);
+    if (calendarPackFilterSelect) calendarPackFilterSelect.addEventListener("change", renderCalendar);
 
-    document.getElementById("loadRemotePacksBtn")?.addEventListener("click", loadRemotePacks);
-    document.getElementById("importSelectedRemotePacksBtn")?.addEventListener("click", importSelectedRemotePacks);
-    document.getElementById("selectAllRemotePacksBtn")?.addEventListener("click", () => {
-      document.querySelectorAll(".remote-pack-check").forEach(check => check.checked = true);
-    });
-    document.getElementById("copyPackPromptBtn")?.addEventListener("click", copyPackPrompt);
-    document.getElementById("copyPackPromptBackupBtn")?.addEventListener("click", copyPackPrompt);
-
-    document.getElementById("printCalendarBtn").addEventListener("click", () => printMode("print-calendar"));
-    document.getElementById("printShoppingBtn").addEventListener("click", () => printMode("print-shopping"));
-
-    function printMode(mode) {
-      document.body.classList.remove("print-calendar", "print-shopping");
-      document.body.classList.add(mode);
-      window.print();
-      setTimeout(() => document.body.classList.remove(mode), 500);
-    }
-
-    document.getElementById("copyShoppingBtn").addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(shoppingText());
-        alert("Lista copiada. Puedes pegarla en Tasks, WhatsApp, Notas o donde quieras.");
-      } catch {
-        alert("No se pudo copiar automáticamente. Puedes usar el botón de exportar a PDF.");
-      }
-    });
-
-    document.getElementById("shareShoppingBtn").addEventListener("click", async () => {
-      const text = shoppingText();
-      if (navigator.share) {
-        try { await navigator.share({ title: "Lista de la compra", text }); } catch {}
-      } else {
-        try {
-          await navigator.clipboard.writeText(text);
-          alert("Tu navegador no permite compartir directamente. He copiado la lista para pegarla en Tasks.");
-        } catch {
-          alert("Tu navegador no permite compartir directamente. Puedes exportar la lista a PDF.");
-        }
-      }
-    });
-
-    function structuredCloneFallback(value) {
-      if (typeof structuredClone === "function") return structuredClone(value);
-      return JSON.parse(JSON.stringify(value));
-    }
-
-    function formatNumber(value) {
-      const number = Number(value) || 0;
-      return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(".", ",").replace(/,?0+$/, "");
-    }
-
-    function formatCurrency(value) {
-      return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(Number(value) || 0);
-    }
-
-    function escapeForAttr(text) {
-      return String(text || "").replaceAll("\\", "\\\\").replaceAll("'", "\\'");
-    }
-
-    function escapeHtml(text) {
-      return String(text)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-
-    if (ingredientSearchInput) {
-      ingredientSearchInput.addEventListener("input", () => {
-        renderIngredients();
-      });
-    }
-
-    if (dishSearchInput) {
-      dishSearchInput.addEventListener("input", () => {
-        renderDishes();
-      });
-    }
-
-    if (dishPackFilterSelect) {
-      dishPackFilterSelect.addEventListener("change", () => {
-        renderDishes();
-      });
-    }
-
-    if (calendarPackFilterSelect) {
-      calendarPackFilterSelect.addEventListener("change", () => {
-        renderCalendar();
-      });
-    }
-
-    if (calendarDishSearchInput) {
-      calendarDishSearchInput.addEventListener("input", () => {
-        renderCalendar();
-      });
-    }
-
-    function showStartupError(error) {
-      console.error(error);
-      const box = document.getElementById("startup-error");
-      const msg = document.getElementById("startup-error-message");
-      if (box) box.style.display = "block";
-      if (msg) msg.textContent = "Error: " + (error && error.message ? error.message : String(error));
-    }
-
-    function emergencyBackupJson() {
-      const keys = [
-        "ingredientFamilies",
-        "ingredients",
-        "dishPacks",
-        "dishes",
-        "favoriteDishIds",
-        "familyMembers",
-        "mealTypes",
-        "savedWeeks",
-        "activeWeekId",
-        "typicalWeekPlan",
-        "weeklyPlan",
-        "foods",
-        "favoriteFoods"
-      ];
-
-      const data = {
-        app: "gestor-comidas",
-        type: "emergency-backup",
-        exportedAt: new Date().toISOString(),
-        localStorage: {}
-      };
-
-      keys.forEach(key => {
-        data.localStorage[key] = localStorage.getItem(key);
-      });
-
-      return JSON.stringify(data, null, 2);
-    }
-
-    document.getElementById("exportEmergencyBtn")?.addEventListener("click", () => {
-      const json = emergencyBackupJson();
-      const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const date = new Date().toISOString().slice(0, 10);
-      a.href = url;
-      a.download = `gestor-comidas-emergencia-${date}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    });
-
-    document.getElementById("clearEmergencyBtn")?.addEventListener("click", () => {
-      if (!confirm("Esto borrará los datos guardados solo en este navegador. Exporta antes una copia de emergencia si quieres conservarlos. ¿Continuar?")) return;
-      [
-        "ingredientFamilies",
-        "ingredients",
-        "dishPacks",
-        "dishes",
-        "favoriteDishIds",
-        "familyMembers",
-        "mealTypes",
-        "savedWeeks",
-        "activeWeekId",
-        "typicalWeekPlan",
-        "weeklyPlan",
-        "foods",
-        "favoriteFoods",
-        "remotePacksPath",
-        "remoteRepoOwner",
-        "remoteRepoName",
-        "remoteRepoBranch"
-      ].forEach(key => localStorage.removeItem(key));
-      location.reload();
-    });
+    window.addEventListener("beforeunload", stopScanner);
 
     setupRemotePackDefaults();
 
@@ -3717,5 +3162,6 @@ Tema del pack: [ESCRIBE AQUÍ EL TEMA: cenas rápidas, mediterránea, diabetes, 
       scannerStatus.textContent = "Aviso: la cámara puede estar bloqueada porque esta página no está en HTTPS ni localhost. Puedes seguir usando códigos manuales.";
     }
   </script>
+  <script src="app-bootstrap.js"></script>
 </body>
 </html>
