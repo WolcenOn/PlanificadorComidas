@@ -25,6 +25,25 @@ Funciones principales:
 - `StockLifecycle.calculateWasteScore(data, options)`
 - `StockLifecycle.runSelfTests()`
 
+## Hardening de index
+
+`index-hardening.js` es una integracion progresiva para `index.html`. Debe cargarse despues del script principal de la app y despues de `stock-lifecycle.js`.
+
+Uso recomendado antes de `</body>`:
+
+```html
+<script src="stock-lifecycle.js"></script>
+<script src="index-hardening.js"></script>
+```
+
+Aporta:
+
+- campo de caducidad y conservacion al crear o editar ingredientes;
+- saneamiento de JSON antes de importar copias completas, ingredientes o platos;
+- limites de tamano y longitud para reducir datos corruptos o excesivos;
+- normalizacion de fechas, cantidades, textos, productos y recetas;
+- enlace rapido al panel `caducidades.html`.
+
 ## Campo notes en recetas
 
 El campo `notes` se debe usar para guardar tanto las notas generales como el procedimiento de elaboracion del plato. Esto mantiene la compatibilidad con el importador actual.
