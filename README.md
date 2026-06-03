@@ -34,6 +34,7 @@ Uso recomendado antes de `</body>`:
 ```html
 <script src="stock-lifecycle.js"></script>
 <script src="index-hardening.js"></script>
+<script src="pack-preview-fix.js"></script>
 ```
 
 Aporta:
@@ -43,6 +44,10 @@ Aporta:
 - limites de tamano y longitud para reducir datos corruptos o excesivos;
 - normalizacion de fechas, cantidades, textos, productos y recetas;
 - enlace rapido al panel `caducidades.html`.
+
+## Vista previa de packs
+
+`pack-preview-fix.js` corrige la vista previa de packs remotos de forma progresiva. Intercepta el boton `Vista previa`, resuelve rutas locales, rutas de GitHub y URLs raw, y muestra un modal con platos detectados, categoria, tiempo, dificultad, numero de ingredientes y notas.
 
 ## Campo notes en recetas
 
