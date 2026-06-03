@@ -1,8 +1,3 @@
-/*
- * Bootstrap loader for extracted PlanificadorComidas modules.
- * Include this file once from index.html, after the current inline script:
- * <script src="app-bootstrap.js"></script>
- */
 (function bootstrapPlanificadorModules() {
   "use strict";
 
@@ -10,6 +5,7 @@
     "data-store.js",
     "import-export.js",
     "stock-lifecycle.js",
+    "expiry-date-guard.js",
     "meal-costing.js",
     "shopping-planner.js",
     "index-hardening.js",
@@ -42,11 +38,5 @@
 
   loadAll().catch(error => {
     console.error(error);
-    const box = document.getElementById("startup-error");
-    const msg = document.getElementById("startup-error-message");
-    if (box && msg) {
-      box.style.display = "block";
-      msg.textContent = `Error cargando modulos externos: ${error.message}`;
-    }
   });
 })();
