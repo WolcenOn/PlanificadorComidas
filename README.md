@@ -21,10 +21,19 @@ Funciones principales:
 - `StockLifecycle.normalizeDishStock(item)`
 - `StockLifecycle.migrateStockDatabase(data)`
 - `StockLifecycle.buildExpiryAlerts(data, options)`
+- `StockLifecycle.buildConsumptionRecommendations(data, options)`
 - `StockLifecycle.calculateWasteScore(data, options)`
 - `StockLifecycle.runSelfTests()`
 
+## Panel de caducidades
+
+`caducidades.html` es una página complementaria que usa el mismo `localStorage` que la app principal. Permite:
+
+- editar caducidad, fecha de apertura/preparación, congelado y conservación;
+- ver avisos de consumo prioritario;
+- consultar una puntuación de desperdicio de 0 a 100;
+- registrar cantidades desperdiciadas y descontarlas del stock.
+
 ## Tests
 
-Abre `tests/stock-lifecycle.test.html` en el navegador para ejecutar los tests mínimos de normalización, caducidades, congelado y puntuación de desperdicio.
-
+Abre `tests/stock-lifecycle.test.html` en el navegador para ejecutar los tests mínimos de normalización, caducidades, congelado, recomendaciones y puntuación de desperdicio.
