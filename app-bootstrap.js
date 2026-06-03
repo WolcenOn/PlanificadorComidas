@@ -8,6 +8,7 @@
 
   const modules = [
     "data-store.js",
+    "import-export.js",
     "stock-lifecycle.js",
     "meal-costing.js",
     "index-hardening.js",
