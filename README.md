@@ -15,10 +15,11 @@ Incluir al final de `index.html`, despues del script principal actual y antes de
 Actualmente carga:
 
 1. `data-store.js`
-2. `stock-lifecycle.js`
-3. `meal-costing.js`
-4. `index-hardening.js`
-5. `pack-preview-fix.js`
+2. `import-export.js`
+3. `stock-lifecycle.js`
+4. `meal-costing.js`
+5. `index-hardening.js`
+6. `pack-preview-fix.js`
 
 ## Capa segura de datos
 
@@ -42,6 +43,27 @@ Funciones principales:
 - `PlanificadorDataStore.normalizeDish(item)`
 - `PlanificadorDataStore.normalizeStockLot(item, ingredient)`
 - `PlanificadorDataStore.runSelfTests()`
+
+## Importacion y exportacion segura
+
+`import-export.js` centraliza validacion, normalizacion y utilidades de importacion/exportacion.
+
+Funciones principales:
+
+- `PlanificadorImportExport.safeJsonParse(text)`
+- `PlanificadorImportExport.normalizeImportPayload(data, mode)`
+- `PlanificadorImportExport.validateImportText(text, mode)`
+- `PlanificadorImportExport.summarizePayload(payload, mode)`
+- `PlanificadorImportExport.buildBackupFromState(state)`
+- `PlanificadorImportExport.downloadJson(filename, data)`
+- `PlanificadorImportExport.copyJson(data)`
+- `PlanificadorImportExport.runSelfTests()`
+
+Modos soportados:
+
+- `backup`: copia completa.
+- `ingredients`: lista de ingredientes.
+- `dishes`: lista de platos o recetas.
 
 ## Coste por racion y lotes de stock
 
