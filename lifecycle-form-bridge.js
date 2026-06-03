@@ -1,12 +1,15 @@
 /*
  * Lifecycle form bridge for PlanificadorComidas.
  * Ensures ingredient and dish lifecycle dates are captured from index.html forms.
+ * It also merges pending lifecycle values into localStorage writes so the main
+ * monolithic index state cannot accidentally overwrite them.
  */
 (function attachLifecycleFormBridge(global) {
   "use strict";
 
   const pendingIngredient = { values: null };
   const pendingDish = { values: null };
+  let storagePatched = false;
 
   function byId(id) {
     return document.getElementById(id);
@@ -35,6 +38,15 @@
 
   function saveArray(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function parseArrayText(value) {
+    try {
+      const parsed = JSON.parse(String(value || "[]"));
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
   }
 
   function insertAfter(reference, node) {
@@ -131,30 +143,83 @@
     return null;
   }
 
-  function applyIngredientLifecycle(values) {
-    if (!values || (!values.expiryDate && !values.storageType)) return;
-    const list = parseArray("ingredients");
-    const item = values.editingId
-      ? list.find(entry => entry && entry.id === values.editingId)
-      : findLastByName(list, values.name);
-    if (!item) return;
-    item.expiryDate = values.expiryDate || item.expiryDate || "";
-    item.storageType = values.storageType || item.storageType || "pantry";
-    saveArray("ingredients", list);
+  function findTarget(list, values) {
+    if (!Array.isArray(list) || !values) return null;
+    if (values.editingId) {
+      const byIdMatch = list.find(entry => entry && entry.id === values.editingId);
+      if (byIdMatch) return byIdMatch;
+    }
+    return findLastByName(list, values.name);
   }
 
-  function applyDishLifecycle(values) {
-    if (!values || (!values.preparedDate && !values.expiryDate && !values.frozenDate && !values.storageType)) return;
-    const list = parseArray("dishes");
-    const item = values.editingId
-      ? list.find(entry => entry && entry.id === values.editingId)
-      : findLastByName(list, values.name);
-    if (!item) return;
+  function mergeIngredientLifecycle(list, values) {
+    if (!values || (!values.expiryDate && !values.storageType)) return list;
+    const item = findTarget(list, values);
+    if (!item) return list;
+    item.expiryDate = values.expiryDate || item.expiryDate || "";
+    item.storageType = values.storageType || item.storageType || "pantry";
+    return list;
+  }
+
+  function mergeDishLifecycle(list, values) {
+    if (!values || (!values.preparedDate && !values.expiryDate && !values.frozenDate && !values.storageType)) return list;
+    const item = findTarget(list, values);
+    if (!item) return list;
     item.preparedDate = values.preparedDate || item.preparedDate || "";
     item.expiryDate = values.expiryDate || item.expiryDate || "";
     item.frozenDate = values.frozenDate || item.frozenDate || "";
     item.storageType = values.storageType || item.storageType || (values.frozenDate ? "freezer" : "fridge");
+    return list;
+  }
+
+  function applyIngredientLifecycle(values) {
+    const list = parseArray("ingredients");
+    mergeIngredientLifecycle(list, values);
+    saveArray("ingredients", list);
+  }
+
+  function applyDishLifecycle(values) {
+    const list = parseArray("dishes");
+    mergeDishLifecycle(list, values);
     saveArray("dishes", list);
+  }
+
+  function patchLocalStorageWrites() {
+    if (storagePatched || !global.localStorage) return;
+    const originalSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function patchedSetItem(key, value) {
+      try {
+        if (key === "ingredients" && pendingIngredient.values) {
+          const list = parseArrayText(value);
+          if (list) value = JSON.stringify(mergeIngredientLifecycle(list, pendingIngredient.values));
+        }
+        if (key === "dishes" && pendingDish.values) {
+          const list = parseArrayText(value);
+          if (list) value = JSON.stringify(mergeDishLifecycle(list, pendingDish.values));
+        }
+      } catch (error) {
+        console.warn("No se pudo fusionar fechas de caducidad antes de guardar", error);
+      }
+      return originalSetItem.call(this, key, value);
+    };
+    storagePatched = true;
+  }
+
+  function scheduleApply(kind) {
+    const values = kind === "ingredient" ? pendingIngredient.values : pendingDish.values;
+    const apply = kind === "ingredient" ? applyIngredientLifecycle : applyDishLifecycle;
+    [0, 50, 250, 800, 1600].forEach(delay => setTimeout(() => apply(values), delay));
+  }
+
+  function fillIngredientFormFromStorage() {
+    const editingId = byId("editingIngredientId")?.value || "";
+    if (!editingId) return;
+    const item = parseArray("ingredients").find(entry => entry && entry.id === editingId);
+    if (!item) return;
+    const expiry = byId("ingredientExpiryDate");
+    const storage = byId("ingredientStorageType");
+    if (expiry) expiry.value = item.expiryDate || "";
+    if (storage) storage.value = storageType(item.storageType, item.frozenDate ? "freezer" : "pantry");
   }
 
   function fillDishFormFromStorage() {
@@ -184,16 +249,25 @@
   function install() {
     ensureIngredientFields();
     ensureDishFields();
+    patchLocalStorageWrites();
 
-    byId("saveIngredientBtn")?.addEventListener("click", () => {
-      pendingIngredient.values = readIngredientFormValues();
-      setTimeout(() => applyIngredientLifecycle(pendingIngredient.values), 30);
-    }, true);
+    const saveIngredient = byId("saveIngredientBtn");
+    if (saveIngredient && saveIngredient.dataset.lifecycleBridge !== "true") {
+      saveIngredient.dataset.lifecycleBridge = "true";
+      saveIngredient.addEventListener("click", () => {
+        pendingIngredient.values = readIngredientFormValues();
+        scheduleApply("ingredient");
+      }, true);
+    }
 
-    byId("saveDishBtn")?.addEventListener("click", () => {
-      pendingDish.values = readDishFormValues();
-      setTimeout(() => applyDishLifecycle(pendingDish.values), 30);
-    }, true);
+    const saveDish = byId("saveDishBtn");
+    if (saveDish && saveDish.dataset.lifecycleBridge !== "true") {
+      saveDish.dataset.lifecycleBridge = "true";
+      saveDish.addEventListener("click", () => {
+        pendingDish.values = readDishFormValues();
+        scheduleApply("dish");
+      }, true);
+    }
 
     byId("cancelDishEditBtn")?.addEventListener("click", () => setTimeout(clearDishFormLifecycle, 0));
 
@@ -201,7 +275,10 @@
       const editButton = event.target.closest("button");
       if (!editButton) return;
       if (!/Editar/.test(editButton.textContent || "")) return;
-      setTimeout(fillDishFormFromStorage, 60);
+      setTimeout(() => {
+        fillIngredientFormFromStorage();
+        fillDishFormFromStorage();
+      }, 80);
     }, true);
 
     const frozen = byId("dishFrozenDate");
@@ -213,10 +290,14 @@
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install);
   else install();
+  document.addEventListener?.("planificador:modules-ready", install);
+  setTimeout(install, 500);
 
   global.LifecycleFormBridge = {
     install,
     applyIngredientLifecycle,
-    applyDishLifecycle
+    applyDishLifecycle,
+    mergeIngredientLifecycle,
+    mergeDishLifecycle
   };
 })(typeof window !== "undefined" ? window : globalThis);
