@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Caducidades y desperdicio · PlanificadorComidas</title>
+  <style>
+    :root {
+      --bg: #eefaf6;
+      --card: #ffffff;
+      --text: #12302b;
+      --muted: #5d7972;
+      --primary: #0f9f77;
+      --secondary: #0ea5c6;
+      --danger: #c24141;
+      --warning: #b7791f;
+      --ok: #157347;
+      --border: #cfe7df;
+      --soft: #e4f7f1;
+      --shadow: 0 14px 35px rgba(13, 116, 104, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #eefaf6 0%, #eaf8ff 100%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    header {
+      padding: 32px 20px 64px;
+      background: linear-gradient(135deg, #0f9f77 0%, #0ea5c6 55%, #2563eb 100%);
+      color: white;
+      text-align: center;
+    }
+    header h1 { margin: 0 0 8px; font-size: clamp(1.8rem, 4vw, 2.7rem); }
+    header p { margin: 0; opacity: 0.95; }
+    main { width: min(1200px, calc(100% - 28px)); margin: -36px auto 48px; display: grid; gap: 18px; }
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .metric { border: 1px solid var(--border); border-radius: 16px; padding: 14px; background: #f8fffd; }
+    .metric span { display: block; color: var(--muted); font-size: 0.9rem; }
+    .metric strong { display: block; font-size: 2rem; margin-top: 4px; }
+    h2 { margin: 0 0 12px; }
+    h3 { margin: 18px 0 8px; }
+    label { display: block; margin: 8px 0 4px; font-weight: 800; font-size: 0.9rem; }
+    input, select, button, textarea { font: inherit; }
+    input, select, textarea {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: white;
+      color: var(--text);
+    }
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 13px;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-weight: 800;
+    }
+    button.secondary { background: linear-gradient(135deg, #64748b, #0ea5c6); }
+    button.danger { background: linear-gradient(135deg, var(--danger), #ef4444); }
+    button.ghost { background: linear-gradient(135deg, #e4f7f1, #e6f3ff); color: var(--text); border: 1px solid var(--border); }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .muted { color: var(--muted); font-size: 0.92rem; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 99px; font-weight: 800; font-size: 0.82rem; background: var(--soft); }
+    .badge.expired { background: #fde4e4; color: #991b1b; }
+    .badge.today { background: #fff4d7; color: #92400e; }
+    .badge.soon { background: #e0f2fe; color: #0369a1; }
+    .badge.freezer { background: #ede9fe; color: #5b21b6; }
+    .alert-list, .item-list { display: grid; gap: 10px; }
+    .item { border: 1px solid var(--border); border-radius: 16px; padding: 12px; background: #ffffff; }
+    .item-top { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+    .edit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 8px; margin-top: 10px; }
+    .empty { border: 1px dashed var(--border); border-radius: 16px; padding: 14px; color: var(--muted); text-align: center; background: #f8fffd; }
+    .two-columns { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr); gap: 18px; }
+    @media (max-width: 760px) { .two-columns { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Caducidades y desperdicio</h1>
+    <p>Gestiona fechas de caducidad, preparación y congelado usando los mismos datos locales del planificador.</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="actions">
+        <a href="./"><button type="button" class="ghost">Volver al planificador</button></a>
+        <button id="saveBtn" type="button">Guardar cambios</button>
+        <button id="refreshBtn" type="button" class="secondary">Recalcular</button>
+      </div>
+      <p class="muted">Los cambios se guardan en el navegador mediante las mismas claves <code>ingredients</code> y <code>dishes</code> que usa la app principal.</p>
+    </section>
+
+    <section class="card">
+      <h2>Puntuación de desperdicio</h2>
+      <div id="scoreGrid" class="grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Prioridad de consumo</h2>
+      <div id="alerts" class="alert-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>Registrar desperdicio</h2>
+      <div class="grid">
+        <div>
+          <label for="wasteItem">Producto o plato</label>
+          <select id="wasteItem"></select>
+        </div>
+        <div>
+          <label for="wasteQty">Cantidad desperdiciada</label>
+          <input id="wasteQty" type="number" min="0" step="0.1" placeholder="0" />
+        </div>
+        <div>
+          <label for="wasteDate">Fecha</label>
+          <input id="wasteDate" type="date" />
+        </div>
+        <div>
+          <label for="wasteReason">Motivo</label>
+          <input id="wasteReason" placeholder="Caducado, sobras, mal estado..." />
+        </div>
+      </div>
+      <div class="actions">
+        <button id="registerWasteBtn" type="button" class="danger">Registrar desperdicio</button>
+      </div>
+    </section>
+
+    <section class="two-columns">
+      <div class="card">
+        <h2>Ingredientes del stock</h2>
+        <div id="ingredientsList" class="item-list"></div>
+      </div>
+      <div class="card">
+        <h2>Platos preparados</h2>
+        <div id="dishesList" class="item-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="stock-lifecycle.js"></script>
+  <script>
+    const storageLabels = {
+      pantry: "Despensa",
+      fridge: "Nevera",
+      freezer: "Congelador"
+    };
+
+    let ingredients = [];
+    let dishes = [];
+
+    function parseArray(key) {
+      try {
+        const value = JSON.parse(localStorage.getItem(key));
+        return Array.isArray(value) ? value : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function todayString() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function loadData() {
+      ingredients = parseArray("ingredients").map(StockLifecycle.normalizeIngredientStock);
+      dishes = parseArray("dishes").map(StockLifecycle.normalizeDishStock);
+      if (!document.getElementById("wasteDate").value) document.getElementById("wasteDate").value = todayString();
+    }
+
+    function saveData() {
+      localStorage.setItem("ingredients", JSON.stringify(ingredients));
+      localStorage.setItem("dishes", JSON.stringify(dishes));
+    }
+
+    function findItem(type, id) {
+      const list = type === "ingredient" ? ingredients : dishes;
+      return list.find(item => item.id === id);
+    }
+
+    function scoreClass(score) {
+      if (score < 40) return "expired";
+      if (score < 70) return "today";
+      if (score < 90) return "soon";
+      return "freezer";
+    }
+
+    function renderScore() {
+      const result = StockLifecycle.calculateWasteScore({ ingredients, dishes });
+      const grid = document.getElementById("scoreGrid");
+      grid.innerHTML = `
+        <div class="metric"><span>Índice</span><strong>${result.score}/100</strong><span class="badge ${scoreClass(result.score)}">${escapeHtml(result.label)}</span></div>
+        <div class="metric"><span>Caducados</span><strong>${result.expiredCount}</strong></div>
+        <div class="metric"><span>Caducan hoy</span><strong>${result.todayCount}</strong></div>
+        <div class="metric"><span>Próximos</span><strong>${result.soonCount}</strong></div>
+        <div class="metric"><span>Congelados antiguos</span><strong>${result.freezerCount}</strong></div>
+        <div class="metric"><span>Cantidad desperdiciada</span><strong>${result.discardedQty}</strong></div>
+      `;
+    }
+
+    function renderAlerts() {
+      const alerts = StockLifecycle.buildExpiryAlerts({ ingredients, dishes });
+      const box = document.getElementById("alerts");
+      box.innerHTML = "";
+      if (!alerts.length) {
+        box.innerHTML = '<div class="empty">No hay avisos de caducidad o congelado antiguo.</div>';
+        return;
+      }
+      alerts.forEach(alert => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <div class="item-top">
+            <div>
+              <strong>${escapeHtml(alert.name)}</strong>
+              <div class="muted">${escapeHtml(alert.itemType)} · ${escapeHtml(alert.message)}</div>
+              <div class="muted">Acción recomendada: ${escapeHtml(alert.action)}</div>
+            </div>
+            <span class="badge ${escapeHtml(alert.severity)}">${escapeHtml(alert.severity)}</span>
+          </div>`;
+        box.appendChild(div);
+      });
+    }
+
+    function dateInput(type, id, field, value, label) {
+      return `
+        <div>
+          <label>${label}</label>
+          <input type="date" data-type="${type}" data-id="${escapeHtml(id)}" data-field="${field}" value="${escapeHtml(value || "")}" />
+        </div>`;
+    }
+
+    function storageSelect(type, id, value) {
+      return `
+        <div>
+          <label>Conservación</label>
+          <select data-type="${type}" data-id="${escapeHtml(id)}" data-field="storageType">
+            ${Object.entries(storageLabels).map(([key, label]) => `<option value="${key}" ${value === key ? "selected" : ""}>${label}</option>`).join("")}
+          </select>
+        </div>`;
+    }
+
+    function renderEditableList(type, list, targetId) {
+      const target = document.getElementById(targetId);
+      target.innerHTML = "";
+      if (!list.length) {
+        target.innerHTML = '<div class="empty">No hay datos todavía.</div>';
+        return;
+      }
+
+      list.forEach((item, fallbackIndex) => {
+        if (!item.id) item.id = `${type}-${fallbackIndex}`;
+        const div = document.createElement("div");
+        div.className = "item";
+        const title = item.name || item.nombre || "Sin nombre";
+        const unit = item.unit || item.unidad || "";
+        div.innerHTML = `
+          <div class="item-top">
+            <div>
+              <strong>${escapeHtml(title)}</strong>
+              <div class="muted">${escapeHtml(item.qty ?? 0)} ${escapeHtml(unit)} · ${escapeHtml(storageLabels[item.storageType] || item.storageType || "")}</div>
+            </div>
+            ${item.expiryDate ? `<span class="badge">${escapeHtml(item.expiryDate)}</span>` : '<span class="badge">Sin fecha</span>'}
+          </div>
+          <div class="edit-grid">
+            ${dateInput(type, item.id, "expiryDate", item.expiryDate, "Caducidad / consumo preferente")}
+            ${type === "dish" ? dateInput(type, item.id, "preparedDate", item.preparedDate, "Preparado") : dateInput(type, item.id, "openedDate", item.openedDate, "Abierto")}
+            ${dateInput(type, item.id, "frozenDate", item.frozenDate, "Congelado")}
+            ${storageSelect(type, item.id, item.storageType)}
+          </div>`;
+        target.appendChild(div);
+      });
+    }
+
+    function renderWasteSelect() {
+      const select = document.getElementById("wasteItem");
+      const ingredientOptions = ingredients.map(item => `<option value="ingredient:${escapeHtml(item.id)}">Ingrediente · ${escapeHtml(item.name || item.nombre || "Sin nombre")}</option>`);
+      const dishOptions = dishes.map(item => `<option value="dish:${escapeHtml(item.id)}">Plato · ${escapeHtml(item.name || item.nombre || "Sin nombre")}</option>`);
+      select.innerHTML = [...ingredientOptions, ...dishOptions].join("") || '<option value="">No hay stock</option>';
+    }
+
+    function renderAll() {
+      renderScore();
+      renderAlerts();
+      renderEditableList("ingredient", ingredients, "ingredientsList");
+      renderEditableList("dish", dishes, "dishesList");
+      renderWasteSelect();
+    }
+
+    document.addEventListener("input", event => {
+      const input = event.target;
+      const type = input.dataset.type;
+      const id = input.dataset.id;
+      const field = input.dataset.field;
+      if (!type || !id || !field) return;
+      const item = findItem(type, id);
+      if (!item) return;
+      item[field] = input.value;
+      if (field === "frozenDate" && input.value) item.storageType = "freezer";
+      if (field === "storageType" && input.value !== "freezer" && !item.frozenDate) item.storageType = input.value;
+      renderScore();
+      renderAlerts();
+    });
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      ingredients = ingredients.map(StockLifecycle.normalizeIngredientStock);
+      dishes = dishes.map(StockLifecycle.normalizeDishStock);
+      saveData();
+      renderAll();
+      alert("Caducidades y desperdicio guardados.");
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", () => {
+      loadData();
+      renderAll();
+    });
+
+    document.getElementById("registerWasteBtn").addEventListener("click", () => {
+      const value = document.getElementById("wasteItem").value;
+      if (!value) return alert("Selecciona un producto o plato.");
+      const [type, id] = value.split(":");
+      const item = findItem(type, id);
+      if (!item) return alert("No encuentro ese elemento.");
+      const qty = Math.max(0, Number(document.getElementById("wasteQty").value) || 0);
+      if (qty <= 0) return alert("Indica una cantidad desperdiciada mayor que 0.");
+      item.discardedQty = Math.max(0, Number(item.discardedQty) || 0) + qty;
+      item.discardedDate = document.getElementById("wasteDate").value || todayString();
+      item.wasteReason = document.getElementById("wasteReason").value.trim();
+      item.qty = Math.max(0, Number(item.qty) - qty);
+      saveData();
+      document.getElementById("wasteQty").value = "";
+      document.getElementById("wasteReason").value = "";
+      renderAll();
+      alert("Desperdicio registrado y stock actualizado.");
+    });
+
+    loadData();
+    renderAll();
+  </script>
+</body>
+</html>
