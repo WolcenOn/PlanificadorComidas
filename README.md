@@ -18,8 +18,9 @@ Actualmente carga:
 2. `import-export.js`
 3. `stock-lifecycle.js`
 4. `meal-costing.js`
-5. `index-hardening.js`
-6. `pack-preview-fix.js`
+5. `shopping-planner.js`
+6. `index-hardening.js`
+7. `pack-preview-fix.js`
 
 ## Capa segura de datos
 
@@ -99,6 +100,27 @@ Funciones principales:
 - `MealCosting.calculateRecipeCost(dish, ingredients, servings)`
 - `MealCosting.summarizeLots(ingredients)`
 - `MealCosting.runSelfTests()`
+
+## Planificador de compra
+
+`shopping-planner.js` convierte el plan semanal en demanda de ingredientes, asignacion de stock y propuesta de compra por paquetes.
+
+Diferencia entre calculos:
+
+- La demanda de recetas se calcula por raciones planificadas.
+- El stock se descuenta usando lotes cuando existen.
+- La compra recomendada redondea a paquetes completos.
+- El sobrante esperado se calcula para poder reutilizarlo en otras comidas.
+
+Funciones principales:
+
+- `ShoppingPlanner.calculatePlannedServings(plan)`
+- `ShoppingPlanner.buildIngredientDemand(plan, dishes, ingredients)`
+- `ShoppingPlanner.allocateDemand(demand, ingredients)`
+- `ShoppingPlanner.choosePurchaseOption(ingredient, missingQty, missingUnit)`
+- `ShoppingPlanner.buildPurchasePlan(allocatedDemand)`
+- `ShoppingPlanner.calculateShoppingPlan({ plan, dishes, ingredients })`
+- `ShoppingPlanner.runSelfTests()`
 
 ## Caducidad, congelado y desperdicio
 
