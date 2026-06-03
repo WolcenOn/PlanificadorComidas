@@ -2,9 +2,12 @@
  * Robust remote pack preview for PlanificadorComidas.
  * Load after index.html main script. It intercepts clicks on "Vista previa"
  * buttons and builds its own pack list from packs/index.json or the GitHub API.
+ * It also lets users select individual recipes from each pack before import.
  */
 (function attachPackPreviewFix(global) {
   "use strict";
+
+  const recipeSelections = new Map();
 
   function byId(id) {
     return document.getElementById(id);
@@ -128,41 +131,78 @@
     return [];
   }
 
+  function setDishes(data, dishes) {
+    if (Array.isArray(data)) return dishes;
+    if (data && Array.isArray(data.dishes)) return { ...data, dishes };
+    if (data && Array.isArray(data.platos)) return { ...data, platos: dishes };
+    if (data && Array.isArray(data.recipes)) return { ...data, recipes: dishes };
+    if (data && Array.isArray(data.recetas)) return { ...data, recetas: dishes };
+    return { ...(data || {}), dishes };
+  }
+
   function dishIngredientsCount(dish) {
     const rows = dish && (dish.ingredients || dish.ingredientes || dish.recipe || dish.receta);
     return Array.isArray(rows) ? rows.length : 0;
+  }
+
+  function ensureSelection(pack, dishes) {
+    if (!recipeSelections.has(pack.url)) {
+      recipeSelections.set(pack.url, new Set(dishes.map((_, index) => index)));
+    }
+    return recipeSelections.get(pack.url);
+  }
+
+  function selectedCount(pack, dishes) {
+    return ensureSelection(pack, dishes).size;
+  }
+
+  function updateModalSelectedCount() {
+    const modal = document.querySelector(".pack-preview-modal");
+    if (!modal) return;
+    const count = modal.querySelectorAll(".pack-recipe-check:checked").length;
+    const total = modal.querySelectorAll(".pack-recipe-check").length;
+    const output = modal.querySelector("[data-selected-count]");
+    if (output) output.textContent = `${count}/${total} receta/s seleccionadas`;
   }
 
   function buildPreviewHtml(pack, data) {
     const dishes = extractDishes(data);
     const title = data.name || data.nombre || data.title || pack.name || "Pack";
     const description = data.description || data.descripcion || pack.description || "Sin descripcion";
-    const sample = dishes.slice(0, 8);
+    const selected = ensureSelection(pack, dishes);
 
     return `
       <div class="pack-preview-overlay" role="dialog" aria-modal="true">
-        <div class="pack-preview-modal">
+        <div class="pack-preview-modal" data-pack-url="${escapeHtml(pack.url)}">
           <div class="item-top">
             <div>
               <h2>${escapeHtml(title)}</h2>
               <p class="muted">${escapeHtml(description)}</p>
-              <p><strong>${dishes.length}</strong> plato/s encontrados · <span class="muted">${escapeHtml(pack.filename || pack.url)}</span></p>
+              <p><strong>${dishes.length}</strong> plato/s encontrados · <span data-selected-count>${selected.size}/${dishes.length} receta/s seleccionadas</span></p>
+              <p class="muted">${escapeHtml(pack.filename || pack.url)}</p>
             </div>
             <button type="button" class="ghost" data-pack-preview-close>Cerrar</button>
           </div>
+          <div class="actions" style="margin-bottom:12px">
+            <button type="button" class="ghost" data-pack-select-all>Seleccionar todas</button>
+            <button type="button" class="ghost" data-pack-select-none>Desmarcar todas</button>
+          </div>
           <div class="list">
-            ${sample.length ? sample.map(dish => `
-              <div class="item">
-                <div class="item-top">
-                  <div>
-                    <div class="item-name">${escapeHtml(dish.name || dish.nombre || "Plato")}</div>
-                    <div class="muted">${escapeHtml(dish.category || dish.categoria || "Sin categoria")} · ${escapeHtml(dish.prepTime || dish.tiempo || "Tiempo no indicado")} · ${escapeHtml(dish.difficulty || dish.dificultad || "Dificultad no indicada")}</div>
-                    <div class="muted">${dishIngredientsCount(dish)} ingrediente/s</div>
+            ${dishes.length ? dishes.map((dish, index) => `
+              <label class="item pack-recipe-row">
+                <input type="checkbox" class="pack-recipe-check" data-pack-url="${escapeHtml(pack.url)}" data-dish-index="${index}" ${selected.has(index) ? "checked" : ""} />
+                <div>
+                  <div class="item-top">
+                    <div>
+                      <div class="item-name">${escapeHtml(dish.name || dish.nombre || "Plato")}</div>
+                      <div class="muted">${escapeHtml(dish.category || dish.categoria || "Sin categoria")} · ${escapeHtml(dish.prepTime || dish.tiempo || "Tiempo no indicado")} · ${escapeHtml(dish.difficulty || dish.dificultad || "Dificultad no indicada")}</div>
+                      <div class="muted">${dishIngredientsCount(dish)} ingrediente/s</div>
+                    </div>
+                    <span class="badge favorite">Importar</span>
                   </div>
-                  <span class="badge favorite">Vista previa</span>
+                  ${dish.notes || dish.notas ? `<p class="muted">${escapeHtml(String(dish.notes || dish.notas).slice(0, 320))}${String(dish.notes || dish.notas).length > 320 ? "..." : ""}</p>` : ""}
                 </div>
-                ${dish.notes || dish.notas ? `<p class="muted">${escapeHtml(String(dish.notes || dish.notas).slice(0, 260))}${String(dish.notes || dish.notas).length > 260 ? "..." : ""}</p>` : ""}
-              </div>`).join("") : '<div class="empty">No se han encontrado platos en este pack.</div>'}
+              </label>`).join("") : '<div class="empty">No se han encontrado platos en este pack.</div>'}
           </div>
         </div>
       </div>`;
@@ -182,7 +222,7 @@
         overflow: auto;
       }
       .pack-preview-modal {
-        width: min(820px, 100%);
+        width: min(920px, 100%);
         margin: 40px auto;
         background: white;
         border: 1px solid var(--border, #cfe7df);
@@ -191,6 +231,17 @@
         box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
       }
       .pack-preview-modal h2 { margin: 0 0 8px; }
+      .pack-recipe-row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 12px;
+        cursor: pointer;
+      }
+      .pack-recipe-row input {
+        width: auto;
+        margin-top: 6px;
+        transform: scale(1.18);
+      }
     `;
     document.head.appendChild(style);
   }
@@ -211,6 +262,54 @@
     document.body.appendChild(wrapper.firstElementChild);
   }
 
+  function filterPackDataForSelection(pack, data) {
+    const dishes = extractDishes(data);
+    const selected = ensureSelection(pack, dishes);
+    const filtered = dishes.filter((_, index) => selected.has(index));
+    return setDishes(data, filtered);
+  }
+
+  async function importSelectedPacks() {
+    if (typeof global.importDishesData !== "function") {
+      throw new Error("La funcion de importacion de platos no esta disponible todavia.");
+    }
+
+    const selectedPackIndexes = Array.from(document.querySelectorAll(".remote-pack-check:checked"))
+      .map(input => Number(input.dataset.index))
+      .filter(index => Number.isInteger(index));
+
+    if (!selectedPackIndexes.length) {
+      alert("Marca al menos un pack para importar.");
+      return;
+    }
+
+    const packs = await loadPackList();
+    let added = 0;
+    let updated = 0;
+    let createdIngredients = 0;
+    let skipped = 0;
+
+    for (const index of selectedPackIndexes) {
+      const pack = packs[index];
+      if (!pack) continue;
+      const data = await fetchJson(pack.url);
+      const filtered = filterPackDataForSelection(pack, data);
+      const dishesToImport = extractDishes(filtered);
+      if (!dishesToImport.length) {
+        skipped += 1;
+        continue;
+      }
+      const result = global.importDishesData(filtered, true);
+      added += result.addedDishes || 0;
+      updated += result.updatedDishes || 0;
+      createdIngredients += result.addedIngredients || 0;
+    }
+
+    if (typeof global.renderAll === "function") global.renderAll();
+    if (typeof global.switchTab === "function") global.switchTab("dishes");
+    alert(`Packs importados. Platos añadidos: ${added}. Platos actualizados: ${updated}. Ingredientes creados: ${createdIngredients}.${skipped ? ` Packs sin recetas seleccionadas: ${skipped}.` : ""}`);
+  }
+
   function getPreviewIndexFromButton(button) {
     const onclick = button.getAttribute("onclick") || "";
     const match = onclick.match(/previewRemotePack\((\d+)\)/);
@@ -218,10 +317,55 @@
   }
 
   function installPreviewPatch() {
+    document.addEventListener("change", event => {
+      const check = event.target.closest(".pack-recipe-check");
+      if (!check) return;
+      const packUrl = check.dataset.packUrl;
+      const index = Number(check.dataset.dishIndex);
+      if (!packUrl || !Number.isInteger(index)) return;
+      const selected = recipeSelections.get(packUrl) || new Set();
+      if (check.checked) selected.add(index);
+      else selected.delete(index);
+      recipeSelections.set(packUrl, selected);
+      updateModalSelectedCount();
+    }, true);
+
     document.addEventListener("click", event => {
       const close = event.target.closest("[data-pack-preview-close]");
       if (close) {
         closePreview();
+        return;
+      }
+
+      const selectAll = event.target.closest("[data-pack-select-all]");
+      const selectNone = event.target.closest("[data-pack-select-none]");
+      if (selectAll || selectNone) {
+        const modal = event.target.closest(".pack-preview-modal");
+        const packUrl = modal?.dataset.packUrl;
+        const checks = Array.from(modal?.querySelectorAll(".pack-recipe-check") || []);
+        const selected = new Set();
+        checks.forEach(check => {
+          check.checked = Boolean(selectAll);
+          if (selectAll) selected.add(Number(check.dataset.dishIndex));
+        });
+        if (packUrl) recipeSelections.set(packUrl, selected);
+        updateModalSelectedCount();
+        return;
+      }
+
+      const importButton = event.target.closest("#importSelectedPacksBtn");
+      if (importButton) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        importButton.disabled = true;
+        const originalText = importButton.textContent;
+        importButton.textContent = "Importando...";
+        importSelectedPacks()
+          .catch(error => alert(`No se pudieron importar los packs: ${error.message}`))
+          .finally(() => {
+            importButton.disabled = false;
+            importButton.textContent = originalText;
+          });
         return;
       }
 
@@ -248,5 +392,11 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", installPreviewPatch);
   else installPreviewPatch();
 
-  global.PackPreviewFix = { loadPackList, previewPackByIndex };
+  global.PackPreviewFix = {
+    loadPackList,
+    previewPackByIndex,
+    filterPackDataForSelection,
+    importSelectedPacks,
+    recipeSelections
+  };
 })(typeof window !== "undefined" ? window : globalThis);
