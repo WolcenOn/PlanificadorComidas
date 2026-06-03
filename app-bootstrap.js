@@ -7,6 +7,7 @@
   "use strict";
 
   const modules = [
+    "data-store.js",
     "stock-lifecycle.js",
     "meal-costing.js",
     "index-hardening.js",
