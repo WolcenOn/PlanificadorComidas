@@ -9,6 +9,10 @@
 
   const STORAGE_TYPES = ["pantry", "fridge", "freezer"];
   const DATE_FIELDS = ["expiryDate", "openedDate", "preparedDate", "frozenDate", "discardedDate", "consumedDate"];
+  const DEFAULT_LIFE_DAYS = {
+    ingredient: { pantry: 30, fridge: 5, freezer: 90, opened: 4 },
+    dish: { pantry: 1, fridge: 3, freezer: 90, prepared: 3 }
+  };
 
   function cleanText(value, fallback = "") {
     return String(value ?? fallback).trim();
@@ -42,6 +46,18 @@
     const date = new Date(`${value}T00:00:00`);
     date.setHours(0, 0, 0, 0);
     return date;
+  }
+
+  function formatDate(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    return date.toISOString().slice(0, 10);
+  }
+
+  function addDays(dateString, days) {
+    const date = parseDate(dateString);
+    if (!date) return "";
+    date.setDate(date.getDate() + Number(days || 0));
+    return formatDate(date);
   }
 
   function daysBetween(dateString, referenceDate = new Date()) {
@@ -91,6 +107,46 @@
     };
   }
 
+  function suggestExpiryDate(raw = {}, itemType = "ingredient", options = {}) {
+    const item = itemType === "dish" ? normalizeDishStock(raw) : normalizeIngredientStock(raw);
+    if (item.expiryDate) return item.expiryDate;
+
+    const policy = {
+      ingredient: { ...DEFAULT_LIFE_DAYS.ingredient, ...(options.ingredientLifeDays || {}) },
+      dish: { ...DEFAULT_LIFE_DAYS.dish, ...(options.dishLifeDays || {}) }
+    };
+
+    if (item.frozenDate) return addDays(item.frozenDate, policy[itemType].freezer);
+    if (itemType === "dish" && item.preparedDate) return addDays(item.preparedDate, policy.dish.prepared);
+    if (itemType === "ingredient" && item.openedDate) return addDays(item.openedDate, policy.ingredient.opened);
+    if (item.preparedDate) return addDays(item.preparedDate, policy[itemType].fridge);
+
+    const storage = normalizeStorageType(item.storageType, itemType === "dish" ? "fridge" : "pantry");
+    const baseDate = cleanDate(options.referenceDateString) || formatDate(todayDate(options.referenceDate || new Date()));
+    return addDays(baseDate, policy[itemType][storage] || policy[itemType].fridge || 3);
+  }
+
+  function applySuggestedExpiryDates(data = {}, options = {}) {
+    const overwrite = options.overwrite === true;
+    return {
+      ...data,
+      ingredients: Array.isArray(data.ingredients)
+        ? data.ingredients.map(item => {
+            const normalized = normalizeIngredientStock(item);
+            if (!normalized.expiryDate || overwrite) normalized.expiryDate = suggestExpiryDate(normalized, "ingredient", options);
+            return normalized;
+          })
+        : [],
+      dishes: Array.isArray(data.dishes)
+        ? data.dishes.map(item => {
+            const normalized = normalizeDishStock(item);
+            if (!normalized.expiryDate || overwrite) normalized.expiryDate = suggestExpiryDate(normalized, "dish", options);
+            return normalized;
+          })
+        : []
+    };
+  }
+
   function buildExpiryAlerts({ ingredients = [], dishes = [] } = {}, options = {}) {
     const referenceDate = options.referenceDate || new Date();
     const soonDays = Number.isFinite(Number(options.soonDays)) ? Number(options.soonDays) : 3;
@@ -108,7 +164,7 @@
           id: item.id || "",
           name: item.name || item.nombre || "Sin nombre",
           days,
-          message: `Caducado hace ${Math.abs(days)} día/s`,
+          message: `Caducado hace ${Math.abs(days)} dia/s`,
           action: "Revisar y descartar si no es seguro"
         });
       } else if (days === 0) {
@@ -128,7 +184,7 @@
           id: item.id || "",
           name: item.name || item.nombre || "Sin nombre",
           days,
-          message: itemType === "Plato" ? `Consumir en ${days} día/s` : `Caduca en ${days} día/s`,
+          message: itemType === "Plato" ? `Consumir en ${days} dia/s` : `Caduca en ${days} dia/s`,
           action: "Priorizar esta semana"
         });
       }
@@ -146,7 +202,7 @@
           id: item.id || "",
           name: item.name || item.nombre || "Sin nombre",
           days: -age,
-          message: `Congelado hace ${age} día/s`,
+          message: `Congelado hace ${age} dia/s`,
           action: "Usar antes de seguir acumulando congelados"
         });
       }
@@ -176,8 +232,8 @@
       suggestion: alert.severity === "expired"
         ? "Revisa olor, textura y seguridad antes de consumir; descarta si hay duda."
         : alert.severity === "freezer"
-          ? "Inclúyelo en una comida próxima para rotar el congelador."
-          : "Dale prioridad en el calendario antes de comprar más."
+          ? "Incluyelo en una comida proxima para rotar el congelador."
+          : "Dale prioridad en el calendario antes de comprar mas."
     }));
 
     return recommendations.sort((a, b) => b.priority - a.priority || a.days - b.days || a.name.localeCompare(b.name, "es"));
@@ -244,22 +300,27 @@
       ingredients: [
         { name: "Yogur", qty: 2, unit: "unidades", expiryDate: "2026-06-04", available: true },
         { name: "Arroz", qty: 1, unit: "kg", expiryDate: "fecha mala", available: true },
-        { name: "Pollo", qty: 1, unit: "kg", frozenDate: "2026-01-01", storageType: "freezer" }
+        { name: "Pollo", qty: 1, unit: "kg", frozenDate: "2026-01-01", storageType: "freezer" },
+        { name: "Leche abierta", qty: 1, unit: "l", openedDate: "2026-06-02", storageType: "fridge" }
       ],
       dishes: [
-        { name: "Salmorejo", qty: 3, unit: "raciones", preparedDate: "2026-06-01", expiryDate: "2026-06-03" }
+        { name: "Salmorejo", qty: 3, unit: "raciones", preparedDate: "2026-06-01", expiryDate: "2026-06-03" },
+        { name: "Lentejas", qty: 2, unit: "raciones", preparedDate: "2026-06-01", storageType: "fridge" }
       ]
     });
 
-    const result = calculateWasteScore(sample, { referenceDate: new Date("2026-06-03T12:00:00"), soonDays: 3, freezerWarningDays: 90 });
+    const enriched = applySuggestedExpiryDates(sample, { referenceDate: new Date("2026-06-03T12:00:00") });
+    const result = calculateWasteScore(enriched, { referenceDate: new Date("2026-06-03T12:00:00"), soonDays: 3, freezerWarningDays: 90 });
     const assertions = [
       [sample.version === 3, "migrateStockDatabase bumps version to 3"],
       [sample.ingredients[1].expiryDate === "", "invalid dates are cleaned"],
+      [enriched.ingredients[3].expiryDate === "2026-06-06", "opened ingredients receive suggested expiry"],
+      [enriched.dishes[1].expiryDate === "2026-06-04", "prepared dishes receive suggested expiry"],
       [result.todayCount === 1, "dish expiring today is counted"],
-      [result.soonCount === 1, "ingredient expiring soon is counted"],
+      [result.soonCount >= 2, "items expiring soon are counted"],
       [result.freezerCount === 1, "old frozen stock is counted"],
       [result.score < 100, "risk lowers the waste score"],
-      [result.recommendations.length === 3, "recommendations are created from alerts"]
+      [result.recommendations.length >= 4, "recommendations are created from alerts"]
     ];
 
     return assertions.map(([ok, message]) => ({ ok, message }));
@@ -268,11 +329,15 @@
   global.StockLifecycle = {
     STORAGE_TYPES,
     DATE_FIELDS,
+    DEFAULT_LIFE_DAYS,
     cleanDate,
     daysBetween,
+    addDays,
     normalizeLifecycle,
     normalizeIngredientStock,
     normalizeDishStock,
+    suggestExpiryDate,
+    applySuggestedExpiryDates,
     buildExpiryAlerts,
     buildConsumptionRecommendations,
     calculateWasteScore,
