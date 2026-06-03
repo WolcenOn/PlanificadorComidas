@@ -43,7 +43,7 @@
       padding: 18px;
       box-shadow: var(--shadow);
     }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
     .metric { border: 1px solid var(--border); border-radius: 16px; padding: 14px; background: #f8fffd; }
     .metric span { display: block; color: var(--muted); font-size: 0.9rem; }
     .metric strong { display: block; font-size: 2rem; margin-top: 4px; }
@@ -78,20 +78,39 @@
     .badge.today { background: #fff4d7; color: #92400e; }
     .badge.soon { background: #e0f2fe; color: #0369a1; }
     .badge.freezer { background: #ede9fe; color: #5b21b6; }
-    .alert-list, .item-list { display: grid; gap: 10px; }
+    .badge.missing-date { background: #f1f5f9; color: #475569; }
+    .item-list { display: grid; gap: 10px; }
     .item { border: 1px solid var(--border); border-radius: 16px; padding: 12px; background: #ffffff; }
     .item-top { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
-    .edit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 8px; margin-top: 10px; }
+    .item strong { display: block; }
+    .item small { display: block; color: var(--muted); margin-top: 3px; }
+    .expiry-row {
+      display: grid;
+      grid-template-columns: minmax(170px, 1.4fr) repeat(5, minmax(105px, 1fr));
+      gap: 8px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: white;
+    }
+    .expiry-row.header { font-weight: 800; background: #f8fffd; color: var(--muted); }
+    .expiry-row input { padding: 7px 8px; }
+    .money { font-weight: 800; color: var(--danger); }
     .empty { border: 1px dashed var(--border); border-radius: 16px; padding: 14px; color: var(--muted); text-align: center; background: #f8fffd; }
     .two-columns { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr); gap: 18px; }
     code { background: #eefaf6; padding: 2px 5px; border-radius: 6px; }
+    @media (max-width: 920px) {
+      .expiry-row { grid-template-columns: 1fr; }
+      .expiry-row.header { display: none; }
+    }
     @media (max-width: 760px) { .two-columns { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <header>
     <h1>Caducidades y desperdicio</h1>
-    <p>Gestiona fechas de caducidad, preparacion y congelado usando los mismos datos locales del planificador.</p>
+    <p>Prioriza qué consumir, cuándo caduca y cuánto dinero podrías perder si se estropea.</p>
   </header>
 
   <main>
@@ -99,25 +118,37 @@
       <div class="actions">
         <a href="./"><button type="button" class="ghost">Volver al planificador</button></a>
         <button id="saveBtn" type="button">Guardar cambios</button>
-        <button id="suggestDatesBtn" type="button" class="secondary">Autocompletar fechas recomendadas</button>
+        <button id="suggestDatesBtn" type="button" class="secondary">Autocompletar fechas vacías</button>
         <button id="refreshBtn" type="button" class="ghost">Recalcular</button>
       </div>
-      <p class="muted">Los cambios se guardan en el navegador mediante las mismas claves <code>ingredients</code> y <code>dishes</code> que usa la app principal. El autocompletado solo rellena fechas vacias.</p>
+      <p class="muted">Esta vista usa las mismas claves locales <code>ingredients</code> y <code>dishes</code> que el planificador, y además fusiona las fechas guardadas en <code>planificadorLifecycleOverrides</code>.</p>
     </section>
 
     <section class="card">
-      <h2>Puntuacion de desperdicio</h2>
+      <h2>Resumen de riesgo</h2>
       <div id="scoreGrid" class="grid"></div>
     </section>
 
     <section class="card">
-      <h2>Recomendaciones</h2>
-      <div id="recommendations" class="alert-list"></div>
+      <h2>Prioridad de consumo</h2>
+      <p class="muted">Aquí solo aparecen alimentos con fecha relevante: caducados, que caducan hoy, próximos a caducar o congelados antiguos. Los productos sin fecha no se mezclan aquí para no ensuciar la prioridad.</p>
+      <div id="priorityList" class="item-list"></div>
     </section>
 
     <section class="card">
-      <h2>Prioridad de consumo</h2>
-      <div id="alerts" class="alert-list"></div>
+      <h2>Valor económico en riesgo</h2>
+      <div id="moneyRiskList" class="item-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>Fechas registradas</h2>
+      <p class="muted">Listado de stock con fecha. Puedes corregir la caducidad aquí y guardar. Los productos sin fecha quedan resumidos aparte.</p>
+      <div id="datedList" class="item-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>Datos incompletos</h2>
+      <div id="missingDateSummary" class="item-list"></div>
     </section>
 
     <section class="card">
@@ -144,27 +175,13 @@
         <button id="registerWasteBtn" type="button" class="danger">Registrar desperdicio</button>
       </div>
     </section>
-
-    <section class="two-columns">
-      <div class="card">
-        <h2>Ingredientes del stock</h2>
-        <div id="ingredientsList" class="item-list"></div>
-      </div>
-      <div class="card">
-        <h2>Platos preparados</h2>
-        <div id="dishesList" class="item-list"></div>
-      </div>
-    </section>
   </main>
 
-  <script src="stock-lifecycle.js"></script>
+  <script src="stock-lifecycle.js?v=20260603-4"></script>
+  <script src="lifecycle-persistence.js?v=20260603-4"></script>
   <script>
-    const storageLabels = {
-      pantry: "Despensa",
-      fridge: "Nevera",
-      freezer: "Congelador"
-    };
-
+    const storageLabels = { pantry: "Despensa", fridge: "Nevera", freezer: "Congelador" };
+    const severityLabels = { expired: "Caducado", today: "Hoy", soon: "Próximo", freezer: "Congelado antiguo", "missing-date": "Sin fecha" };
     let ingredients = [];
     let dishes = [];
 
@@ -190,7 +207,27 @@
         .replaceAll("'", "&#039;");
     }
 
+    function formatNumber(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return "0";
+      return number.toLocaleString("es-ES", { maximumFractionDigits: 2 });
+    }
+
+    function formatCurrency(value) {
+      const number = Number(value) || 0;
+      return number.toLocaleString("es-ES", { style: "currency", currency: "EUR" });
+    }
+
+    function cleanDate(value) {
+      return StockLifecycle.cleanDate ? StockLifecycle.cleanDate(value) : String(value || "").trim();
+    }
+
+    function normalizeName(value) {
+      return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+    }
+
     function loadData() {
+      if (window.LifecyclePersistence?.reconcileLocalStorage) window.LifecyclePersistence.reconcileLocalStorage();
       ingredients = parseArray("ingredients").map(StockLifecycle.normalizeIngredientStock);
       dishes = parseArray("dishes").map(StockLifecycle.normalizeDishStock);
       if (!document.getElementById("wasteDate").value) document.getElementById("wasteDate").value = todayString();
@@ -199,11 +236,84 @@
     function saveData() {
       localStorage.setItem("ingredients", JSON.stringify(ingredients));
       localStorage.setItem("dishes", JSON.stringify(dishes));
+      if (window.LifecyclePersistence?.reconcileLocalStorage) window.LifecyclePersistence.reconcileLocalStorage();
+    }
+
+    function writeOverride(type, item) {
+      if (!window.LifecyclePersistence?.upsertOverride) return;
+      window.LifecyclePersistence.upsertOverride(type, item, {
+        expiryDate: item.expiryDate || "",
+        openedDate: item.openedDate || "",
+        preparedDate: item.preparedDate || "",
+        frozenDate: item.frozenDate || "",
+        storageType: item.storageType || ""
+      });
     }
 
     function findItem(type, id) {
       const list = type === "ingredient" ? ingredients : dishes;
       return list.find(item => item.id === id);
+    }
+
+    function allStockItems() {
+      return [
+        ...ingredients.map(item => ({ ...item, type: "ingredient", itemType: "Ingrediente" })),
+        ...dishes.map(item => ({ ...item, type: "dish", itemType: "Plato" }))
+      ];
+    }
+
+    function daysToDate(date) {
+      const days = StockLifecycle.daysBetween(date);
+      return days === null ? null : days;
+    }
+
+    function hasDate(item) {
+      return Boolean(item.expiryDate || item.openedDate || item.preparedDate || item.frozenDate);
+    }
+
+    function currentQty(item) {
+      return Math.max(0, Number(item.qty ?? item.cantidad ?? item.stock ?? item.racionesPreparadas ?? 0) || 0);
+    }
+
+    function productUnitValue(ingredient) {
+      const products = Array.isArray(ingredient.products) ? ingredient.products : [];
+      const compatible = products
+        .filter(product => product.price > 0 && product.packageQty > 0 && String(product.packageUnit || "").trim().toLowerCase() === String(ingredient.unit || "").trim().toLowerCase())
+        .sort((a, b) => (a.price / a.packageQty) - (b.price / b.packageQty));
+      if (compatible.length) return compatible[0].price / compatible[0].packageQty;
+      return 0;
+    }
+
+    function valueAtRisk(item) {
+      const qty = currentQty(item);
+      if (item.type === "dish") return Math.max(0, Number(item.approxPrice || 0) || 0) * qty;
+      const unitValue = productUnitValue(item);
+      if (unitValue > 0) return unitValue * qty;
+      const approx = Math.max(0, Number(item.approxPrice || 0) || 0);
+      return approx;
+    }
+
+    function riskItems() {
+      const alerts = StockLifecycle.buildExpiryAlerts({ ingredients, dishes }).filter(alert => alert.severity !== "missing-date");
+      return alerts.map(alert => {
+        const type = alert.itemType === "Plato" ? "dish" : "ingredient";
+        const item = findItem(type, alert.id) || allStockItems().find(entry => normalizeName(entry.name || entry.nombre) === normalizeName(alert.name));
+        return { ...alert, type, item, value: item ? valueAtRisk({ ...item, type }) : 0 };
+      });
+    }
+
+    function missingDateItems() {
+      return allStockItems().filter(item => currentQty(item) > 0 || item.available === true).filter(item => !hasDate(item));
+    }
+
+    function datedItems() {
+      return allStockItems()
+        .filter(hasDate)
+        .sort((a, b) => {
+          const aDays = daysToDate(a.expiryDate) ?? 9999;
+          const bDays = daysToDate(b.expiryDate) ?? 9999;
+          return aDays - bDays || String(a.name || a.nombre).localeCompare(String(b.name || b.nombre), "es");
+        });
     }
 
     function scoreClass(score) {
@@ -215,114 +325,118 @@
 
     function renderScore() {
       const result = StockLifecycle.calculateWasteScore({ ingredients, dishes });
-      const grid = document.getElementById("scoreGrid");
-      grid.innerHTML = `
-        <div class="metric"><span>Indice</span><strong>${result.score}/100</strong><span class="badge ${scoreClass(result.score)}">${escapeHtml(result.label)}</span></div>
+      const risky = riskItems();
+      const moneyRisk = risky.reduce((sum, item) => sum + item.value, 0);
+      const missing = missingDateItems().length;
+      document.getElementById("scoreGrid").innerHTML = `
+        <div class="metric"><span>Índice</span><strong>${result.score}/100</strong><span class="badge ${scoreClass(result.score)}">${escapeHtml(result.label)}</span></div>
         <div class="metric"><span>Caducados</span><strong>${result.expiredCount}</strong></div>
         <div class="metric"><span>Caducan hoy</span><strong>${result.todayCount}</strong></div>
-        <div class="metric"><span>Proximos</span><strong>${result.soonCount}</strong></div>
-        <div class="metric"><span>Congelados antiguos</span><strong>${result.freezerCount}</strong></div>
-        <div class="metric"><span>Cantidad desperdiciada</span><strong>${result.discardedQty}</strong></div>
-      `;
+        <div class="metric"><span>Próximos</span><strong>${result.soonCount}</strong></div>
+        <div class="metric"><span>Dinero en riesgo</span><strong>${formatCurrency(moneyRisk)}</strong></div>
+        <div class="metric"><span>Sin fecha</span><strong>${missing}</strong></div>`;
     }
 
-    function renderRecommendations() {
-      const recommendations = StockLifecycle.buildConsumptionRecommendations({ ingredients, dishes });
-      const box = document.getElementById("recommendations");
+    function renderPriority() {
+      const box = document.getElementById("priorityList");
+      const items = riskItems();
       box.innerHTML = "";
-      if (!recommendations.length) {
-        box.innerHTML = '<div class="empty">No hay recomendaciones urgentes. Puedes autocompletar fechas si falta informacion.</div>';
+      if (!items.length) {
+        box.innerHTML = '<div class="empty">No hay alimentos con caducidad urgente o congelado antiguo.</div>';
         return;
       }
-      recommendations.slice(0, 8).forEach(item => {
-        const div = document.createElement("div");
-        div.className = "item";
-        div.innerHTML = `
-          <div class="item-top">
-            <div>
-              <strong>${escapeHtml(item.title)}</strong>
-              <div class="muted">${escapeHtml(item.suggestion)}</div>
-            </div>
-            <span class="badge ${escapeHtml(item.severity)}">Prioridad ${escapeHtml(item.priority)}</span>
-          </div>`;
-        box.appendChild(div);
-      });
-    }
-
-    function renderAlerts() {
-      const alerts = StockLifecycle.buildExpiryAlerts({ ingredients, dishes });
-      const box = document.getElementById("alerts");
-      box.innerHTML = "";
-      if (!alerts.length) {
-        box.innerHTML = '<div class="empty">No hay avisos de caducidad o congelado antiguo.</div>';
-        return;
-      }
-      alerts.forEach(alert => {
+      items.forEach(alert => {
+        const item = alert.item || {};
         const div = document.createElement("div");
         div.className = "item";
         div.innerHTML = `
           <div class="item-top">
             <div>
               <strong>${escapeHtml(alert.name)}</strong>
-              <div class="muted">${escapeHtml(alert.itemType)} · ${escapeHtml(alert.message)}</div>
-              <div class="muted">Accion recomendada: ${escapeHtml(alert.action)}</div>
+              <small>${escapeHtml(alert.itemType)} · ${escapeHtml(alert.message)}</small>
+              <small>Caducidad: ${escapeHtml(item.expiryDate || "no indicada")} · Stock: ${formatNumber(currentQty(item))} ${escapeHtml(item.unit || item.unidad || "")}</small>
+              <small>Acción: ${escapeHtml(alert.action)}</small>
+              ${alert.value ? `<small class="money">Valor en riesgo: ${formatCurrency(alert.value)}</small>` : '<small>Valor en riesgo: sin precio registrado</small>'}
             </div>
-            <span class="badge ${escapeHtml(alert.severity)}">${escapeHtml(alert.severity)}</span>
+            <span class="badge ${escapeHtml(alert.severity)}">${escapeHtml(severityLabels[alert.severity] || alert.severity)}</span>
           </div>`;
         box.appendChild(div);
       });
     }
 
-    function dateInput(type, id, field, value, label) {
-      return `
-        <div>
-          <label>${label}</label>
-          <input type="date" data-type="${type}" data-id="${escapeHtml(id)}" data-field="${field}" value="${escapeHtml(value || "")}" />
-        </div>`;
-    }
-
-    function storageSelect(type, id, value) {
-      return `
-        <div>
-          <label>Conservacion</label>
-          <select data-type="${type}" data-id="${escapeHtml(id)}" data-field="storageType">
-            ${Object.entries(storageLabels).map(([key, label]) => `<option value="${key}" ${value === key ? "selected" : ""}>${label}</option>`).join("")}
-          </select>
-        </div>`;
-    }
-
-    function renderEditableList(type, list, targetId) {
-      const target = document.getElementById(targetId);
-      target.innerHTML = "";
-      if (!list.length) {
-        target.innerHTML = '<div class="empty">No hay datos todavia.</div>';
+    function renderMoneyRisk() {
+      const box = document.getElementById("moneyRiskList");
+      const items = riskItems().filter(item => item.value > 0).sort((a, b) => b.value - a.value);
+      box.innerHTML = "";
+      if (!items.length) {
+        box.innerHTML = '<div class="empty">No hay dinero en riesgo calculable. Añade precios a los ingredientes o platos para estimarlo.</div>';
         return;
       }
-
-      list.forEach((item, fallbackIndex) => {
-        if (!item.id) item.id = `${type}-${fallbackIndex}`;
+      items.forEach(alert => {
+        const item = alert.item || {};
         const div = document.createElement("div");
         div.className = "item";
-        const title = item.name || item.nombre || "Sin nombre";
-        const unit = item.unit || item.unidad || "";
-        const suggestion = StockLifecycle.suggestExpiryDate(item, type);
         div.innerHTML = `
           <div class="item-top">
             <div>
-              <strong>${escapeHtml(title)}</strong>
-              <div class="muted">${escapeHtml(item.qty ?? 0)} ${escapeHtml(unit)} · ${escapeHtml(storageLabels[item.storageType] || item.storageType || "")}</div>
-              ${item.expiryDate ? "" : `<div class="muted">Sugerencia de consumo: ${escapeHtml(suggestion || "sin datos suficientes")}</div>`}
+              <strong>${escapeHtml(alert.name)}</strong>
+              <small>${escapeHtml(alert.message)} · ${escapeHtml(item.expiryDate || "sin fecha exacta")}</small>
+              <small>Stock afectado: ${formatNumber(currentQty(item))} ${escapeHtml(item.unit || item.unidad || "")}</small>
             </div>
-            ${item.expiryDate ? `<span class="badge">${escapeHtml(item.expiryDate)}</span>` : '<span class="badge">Sin fecha</span>'}
-          </div>
-          <div class="edit-grid">
-            ${dateInput(type, item.id, "expiryDate", item.expiryDate, "Caducidad / consumo preferente")}
-            ${type === "dish" ? dateInput(type, item.id, "preparedDate", item.preparedDate, "Preparado") : dateInput(type, item.id, "openedDate", item.openedDate, "Abierto")}
-            ${dateInput(type, item.id, "frozenDate", item.frozenDate, "Congelado")}
-            ${storageSelect(type, item.id, item.storageType)}
+            <span class="money">${formatCurrency(alert.value)}</span>
           </div>`;
-        target.appendChild(div);
+        box.appendChild(div);
       });
+    }
+
+    function renderDatedList() {
+      const box = document.getElementById("datedList");
+      const items = datedItems();
+      box.innerHTML = "";
+      if (!items.length) {
+        box.innerHTML = '<div class="empty">Todavía no hay alimentos con fecha registrada.</div>';
+        return;
+      }
+      const header = document.createElement("div");
+      header.className = "expiry-row header";
+      header.innerHTML = '<div>Alimento</div><div>Tipo</div><div>Caduca</div><div>Días</div><div>Stock</div><div>Valor</div>';
+      box.appendChild(header);
+      items.forEach(item => {
+        const days = item.expiryDate ? daysToDate(item.expiryDate) : null;
+        const div = document.createElement("div");
+        div.className = "expiry-row";
+        div.innerHTML = `
+          <div><strong>${escapeHtml(item.name || item.nombre || "Sin nombre")}</strong><small>${escapeHtml(storageLabels[item.storageType] || item.storageType || "")}</small></div>
+          <div>${escapeHtml(item.itemType)}</div>
+          <div><input type="date" data-type="${escapeHtml(item.type)}" data-id="${escapeHtml(item.id || "")}" data-field="expiryDate" value="${escapeHtml(item.expiryDate || "")}" /></div>
+          <div>${days === null ? "—" : days < 0 ? `hace ${Math.abs(days)} d` : `${days} d`}</div>
+          <div>${formatNumber(currentQty(item))} ${escapeHtml(item.unit || item.unidad || "")}</div>
+          <div>${valueAtRisk(item) ? formatCurrency(valueAtRisk(item)) : "—"}</div>`;
+        box.appendChild(div);
+      });
+    }
+
+    function renderMissingSummary() {
+      const box = document.getElementById("missingDateSummary");
+      const items = missingDateItems();
+      box.innerHTML = "";
+      if (!items.length) {
+        box.innerHTML = '<div class="empty">Todos los alimentos con stock tienen alguna fecha registrada.</div>';
+        return;
+      }
+      const value = items.reduce((sum, item) => sum + valueAtRisk(item), 0);
+      const sample = items.slice(0, 8).map(item => item.name || item.nombre || "Sin nombre").join(", ");
+      box.innerHTML = `
+        <div class="item">
+          <div class="item-top">
+            <div>
+              <strong>${items.length} alimento/s con stock sin fecha</strong>
+              <small>No aparecen en la prioridad porque no se puede calcular cuándo caducan.</small>
+              <small>${escapeHtml(sample)}${items.length > 8 ? "..." : ""}</small>
+            </div>
+            <span class="badge missing-date">${value ? formatCurrency(value) : "sin valoración"}</span>
+          </div>
+        </div>`;
     }
 
     function renderWasteSelect() {
@@ -334,10 +448,10 @@
 
     function renderAll() {
       renderScore();
-      renderRecommendations();
-      renderAlerts();
-      renderEditableList("ingredient", ingredients, "ingredientsList");
-      renderEditableList("dish", dishes, "dishesList");
+      renderPriority();
+      renderMoneyRisk();
+      renderDatedList();
+      renderMissingSummary();
       renderWasteSelect();
     }
 
@@ -349,29 +463,29 @@
       if (!type || !id || !field) return;
       const item = findItem(type, id);
       if (!item) return;
-      item[field] = input.value;
-      if (field === "frozenDate" && input.value) item.storageType = "freezer";
-      if (field === "storageType" && input.value !== "freezer" && !item.frozenDate) item.storageType = input.value;
-      renderScore();
-      renderRecommendations();
-      renderAlerts();
+      item[field] = cleanDate(input.value);
+      if (field === "expiryDate") writeOverride(type, item);
+      saveData();
+      loadData();
+      renderAll();
     });
+
+    function writeOverride(type, item) {
+      if (window.LifecyclePersistence?.upsertOverride) {
+        window.LifecyclePersistence.upsertOverride(type, item, {
+          expiryDate: item.expiryDate || "",
+          openedDate: item.openedDate || "",
+          preparedDate: item.preparedDate || "",
+          frozenDate: item.frozenDate || "",
+          storageType: item.storageType || ""
+        });
+      }
+    }
 
     document.getElementById("saveBtn").addEventListener("click", () => {
-      ingredients = ingredients.map(StockLifecycle.normalizeIngredientStock);
-      dishes = dishes.map(StockLifecycle.normalizeDishStock);
+      [...ingredients.map(item => ({ ...item, type: "ingredient" })), ...dishes.map(item => ({ ...item, type: "dish" }))].forEach(item => writeOverride(item.type, item));
       saveData();
-      renderAll();
-      alert("Caducidades y desperdicio guardados.");
-    });
-
-    document.getElementById("suggestDatesBtn").addEventListener("click", () => {
-      const result = StockLifecycle.applySuggestedExpiryDates({ ingredients, dishes });
-      ingredients = result.ingredients;
-      dishes = result.dishes;
-      saveData();
-      renderAll();
-      alert("Fechas recomendadas añadidas en los elementos que no tenian caducidad.");
+      alert("Cambios guardados.");
     });
 
     document.getElementById("refreshBtn").addEventListener("click", () => {
@@ -379,23 +493,27 @@
       renderAll();
     });
 
+    document.getElementById("suggestDatesBtn").addEventListener("click", () => {
+      const updated = StockLifecycle.applySuggestedExpiryDates({ ingredients, dishes });
+      ingredients = updated.ingredients;
+      dishes = updated.dishes;
+      [...ingredients.map(item => ({ ...item, type: "ingredient" })), ...dishes.map(item => ({ ...item, type: "dish" }))].forEach(item => writeOverride(item.type, item));
+      saveData();
+      renderAll();
+    });
+
     document.getElementById("registerWasteBtn").addEventListener("click", () => {
       const value = document.getElementById("wasteItem").value;
-      if (!value) return alert("Selecciona un producto o plato.");
       const [type, id] = value.split(":");
       const item = findItem(type, id);
-      if (!item) return alert("No encuentro ese elemento.");
-      const qty = Math.max(0, Number(document.getElementById("wasteQty").value) || 0);
-      if (qty <= 0) return alert("Indica una cantidad desperdiciada mayor que 0.");
-      item.discardedQty = Math.max(0, Number(item.discardedQty) || 0) + qty;
+      if (!item) return alert("Selecciona un elemento válido.");
+      item.discardedQty = (Number(item.discardedQty) || 0) + (Number(document.getElementById("wasteQty").value) || 0);
       item.discardedDate = document.getElementById("wasteDate").value || todayString();
       item.wasteReason = document.getElementById("wasteReason").value.trim();
-      item.qty = Math.max(0, Number(item.qty) - qty);
       saveData();
+      renderAll();
       document.getElementById("wasteQty").value = "";
       document.getElementById("wasteReason").value = "";
-      renderAll();
-      alert("Desperdicio registrado y stock actualizado.");
     });
 
     loadData();
