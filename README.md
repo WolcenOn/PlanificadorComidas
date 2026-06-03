@@ -4,13 +4,13 @@ Planificador de comidas semanal con control de stock.
 
 ## Caducidad, congelado y desperdicio
 
-El módulo `stock-lifecycle.js` añade una capa reutilizable para normalizar datos de stock y calcular avisos de consumo prioritario.
+El modulo `stock-lifecycle.js` normaliza datos de stock y calcula avisos de consumo prioritario.
 
-Campos nuevos soportados en ingredientes y platos:
+Campos soportados en ingredientes y platos:
 
-- `expiryDate`: fecha de caducidad o consumo preferente, en formato `YYYY-MM-DD`.
-- `openedDate`: fecha de apertura, útil para ingredientes empezados.
-- `preparedDate`: fecha de preparación/cocinado.
+- `expiryDate`: fecha en formato `YYYY-MM-DD`.
+- `openedDate`: fecha de apertura.
+- `preparedDate`: fecha de elaboracion.
 - `frozenDate`: fecha de congelado.
 - `storageType`: `pantry`, `fridge` o `freezer`.
 - `discardedDate`, `discardedQty` y `wasteReason`: datos opcionales para registrar desperdicio.
@@ -25,15 +25,14 @@ Funciones principales:
 - `StockLifecycle.calculateWasteScore(data, options)`
 - `StockLifecycle.runSelfTests()`
 
+## Campo notes en recetas
+
+El campo `notes` se debe usar para guardar tanto las notas generales como el procedimiento de elaboracion del plato. Esto mantiene la compatibilidad con el importador actual.
+
 ## Panel de caducidades
 
-`caducidades.html` es una página complementaria que usa el mismo `localStorage` que la app principal. Permite:
-
-- editar caducidad, fecha de apertura/preparación, congelado y conservación;
-- ver avisos de consumo prioritario;
-- consultar una puntuación de desperdicio de 0 a 100;
-- registrar cantidades desperdiciadas y descontarlas del stock.
+`caducidades.html` usa el mismo `localStorage` que la app principal y permite editar fechas, ver avisos, consultar la puntuacion de desperdicio y registrar cantidades desperdiciadas.
 
 ## Tests
 
-Abre `tests/stock-lifecycle.test.html` en el navegador para ejecutar los tests mínimos de normalización, caducidades, congelado, recomendaciones y puntuación de desperdicio.
+Abre `tests/stock-lifecycle.test.html` en el navegador para ejecutar los tests minimos.
