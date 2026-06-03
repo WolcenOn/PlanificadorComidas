@@ -8,6 +8,7 @@
 
   const STORAGE_TYPES = ["pantry", "fridge", "freezer"];
   const DATE_FIELDS = ["expiryDate", "openedDate", "preparedDate", "frozenDate", "discardedDate", "consumedDate"];
+  const OVERRIDE_STORE_KEY = "planificadorLifecycleOverrides";
   const DEFAULT_LIFE_DAYS = {
     ingredient: { pantry: 30, fridge: 5, freezer: 90, opened: 4 },
     dish: { pantry: 1, fridge: 3, freezer: 90, prepared: 3 }
@@ -71,6 +72,56 @@
     return STORAGE_TYPES.includes(clean) ? clean : fallback;
   }
 
+  function normalizeName(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  }
+
+  function readOverrideStore() {
+    try {
+      const parsed = JSON.parse(global.localStorage?.getItem(OVERRIDE_STORE_KEY) || "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? { ingredients: {}, dishes: {}, ...parsed }
+        : { ingredients: {}, dishes: {} };
+    } catch {
+      return { ingredients: {}, dishes: {} };
+    }
+  }
+
+  function overrideKeysFor(raw = {}) {
+    const keys = [];
+    if (raw.id) keys.push(`id:${raw.id}`);
+    const name = normalizeName(raw.name || raw.nombre);
+    if (name) keys.push(`name:${name}`);
+    return keys;
+  }
+
+  function cleanOverride(value = {}) {
+    return {
+      expiryDate: cleanDate(value.expiryDate),
+      openedDate: cleanDate(value.openedDate),
+      preparedDate: cleanDate(value.preparedDate),
+      frozenDate: cleanDate(value.frozenDate),
+      storageType: value.storageType ? normalizeStorageType(value.storageType) : "",
+      discardedDate: cleanDate(value.discardedDate),
+      discardedQty: value.discardedQty,
+      wasteReason: value.wasteReason
+    };
+  }
+
+  function mergeLifecycleOverride(raw = {}, itemType = "ingredient") {
+    const bucket = itemType === "dish" ? readOverrideStore().dishes : readOverrideStore().ingredients;
+    const overrides = overrideKeysFor(raw)
+      .map(key => bucket[key])
+      .filter(Boolean)
+      .map(cleanOverride)
+      .reduce((merged, item) => ({ ...merged, ...Object.fromEntries(Object.entries(item).filter(([, value]) => value !== "" && value !== undefined && value !== null)) }), {});
+    return { ...raw, ...overrides };
+  }
+
   function normalizeLifecycle(raw = {}, defaults = {}) {
     return {
       expiryDate: cleanDate(raw.expiryDate || raw.caducidad || raw.bestBeforeDate || raw.fechaCaducidad || defaults.expiryDate),
@@ -86,21 +137,23 @@
   }
 
   function normalizeIngredientStock(raw = {}) {
+    const merged = mergeLifecycleOverride(raw, "ingredient");
     return {
-      ...raw,
-      qty: Math.max(0, numberOrZero(raw.qty ?? raw.cantidad)),
-      unit: cleanText(raw.unit || raw.unidad || "unidades"),
-      available: raw.available !== false && raw.disponible !== false,
-      ...normalizeLifecycle(raw, { storageType: "pantry" })
+      ...merged,
+      qty: Math.max(0, numberOrZero(merged.qty ?? merged.cantidad)),
+      unit: cleanText(merged.unit || merged.unidad || "unidades"),
+      available: merged.available !== false && merged.disponible !== false,
+      ...normalizeLifecycle(merged, { storageType: "pantry" })
     };
   }
 
   function normalizeDishStock(raw = {}) {
+    const merged = mergeLifecycleOverride(raw, "dish");
     return {
-      ...raw,
-      qty: Math.max(0, numberOrZero(raw.qty ?? raw.racionesPreparadas ?? raw.stock)),
-      unit: cleanText(raw.unit || raw.unidad || "raciones"),
-      ...normalizeLifecycle(raw, { storageType: raw.frozenDate ? "freezer" : "fridge" })
+      ...merged,
+      qty: Math.max(0, numberOrZero(merged.qty ?? merged.racionesPreparadas ?? merged.stock)),
+      unit: cleanText(merged.unit || merged.unidad || "raciones"),
+      ...normalizeLifecycle(merged, { storageType: merged.frozenDate ? "freezer" : "fridge" })
     };
   }
 
@@ -196,35 +249,11 @@
       if (days === null) return;
 
       if (days < 0) {
-        alerts.push({
-          severity: "expired",
-          itemType,
-          id: item.id || "",
-          name: item.name || item.nombre || "Sin nombre",
-          days,
-          message: `Caducado hace ${Math.abs(days)} dia/s`,
-          action: "Revisar y descartar si no es seguro"
-        });
+        alerts.push({ severity: "expired", itemType, id: item.id || "", name: item.name || item.nombre || "Sin nombre", days, message: `Caducado hace ${Math.abs(days)} dia/s`, action: "Revisar y descartar si no es seguro" });
       } else if (days === 0) {
-        alerts.push({
-          severity: "today",
-          itemType,
-          id: item.id || "",
-          name: item.name || item.nombre || "Sin nombre",
-          days,
-          message: itemType === "Plato" ? "Consumir hoy" : "Caduca hoy",
-          action: "Planificar hoy"
-        });
+        alerts.push({ severity: "today", itemType, id: item.id || "", name: item.name || item.nombre || "Sin nombre", days, message: itemType === "Plato" ? "Consumir hoy" : "Caduca hoy", action: "Planificar hoy" });
       } else if (days <= soonDays) {
-        alerts.push({
-          severity: "soon",
-          itemType,
-          id: item.id || "",
-          name: item.name || item.nombre || "Sin nombre",
-          days,
-          message: itemType === "Plato" ? `Consumir en ${days} dia/s` : `Caduca en ${days} dia/s`,
-          action: "Priorizar esta semana"
-        });
+        alerts.push({ severity: "soon", itemType, id: item.id || "", name: item.name || item.nombre || "Sin nombre", days, message: itemType === "Plato" ? `Consumir en ${days} dia/s` : `Caduca en ${days} dia/s`, action: "Priorizar esta semana" });
       }
     }
 
@@ -234,15 +263,7 @@
       if (daysSinceFrozen === null) return;
       const age = Math.abs(Math.min(daysSinceFrozen, 0));
       if (age >= freezerWarningDays) {
-        alerts.push({
-          severity: "freezer",
-          itemType,
-          id: item.id || "",
-          name: item.name || item.nombre || "Sin nombre",
-          days: -age,
-          message: `Congelado hace ${age} dia/s`,
-          action: "Usar antes de seguir acumulando congelados"
-        });
+        alerts.push({ severity: "freezer", itemType, id: item.id || "", name: item.name || item.nombre || "Sin nombre", days: -age, message: `Congelado hace ${age} dia/s`, action: "Usar antes de seguir acumulando congelados" });
       }
     }
 
@@ -307,19 +328,7 @@
     else if (score < 70) label = "Mejorable";
     else if (score < 90) label = "Bueno";
 
-    return {
-      score,
-      label,
-      stockItems: possible,
-      expiredCount,
-      todayCount,
-      soonCount,
-      freezerCount,
-      missingDateCount,
-      discardedQty,
-      alerts,
-      recommendations: buildConsumptionRecommendations({ ingredients, dishes }, options)
-    };
+    return { score, label, stockItems: possible, expiredCount, todayCount, soonCount, freezerCount, missingDateCount, discardedQty, alerts, recommendations: buildConsumptionRecommendations({ ingredients, dishes }, options) };
   }
 
   function migrateStockDatabase(data = {}) {
@@ -370,7 +379,6 @@
       [result.score < 100, "risk lowers the waste score"],
       [result.recommendations.length >= 4, "recommendations are created from alerts"]
     ];
-
     return assertions.map(([ok, message]) => ({ ok, message }));
   }
 
@@ -378,12 +386,14 @@
     STORAGE_TYPES,
     DATE_FIELDS,
     DEFAULT_LIFE_DAYS,
+    OVERRIDE_STORE_KEY,
     cleanDate,
     daysBetween,
     addDays,
     normalizeLifecycle,
     normalizeIngredientStock,
     normalizeDishStock,
+    mergeLifecycleOverride,
     suggestExpiryDate,
     applySuggestedExpiryDates,
     buildMissingDateAlerts,
