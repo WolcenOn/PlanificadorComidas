@@ -84,13 +84,14 @@
     .edit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 8px; margin-top: 10px; }
     .empty { border: 1px dashed var(--border); border-radius: 16px; padding: 14px; color: var(--muted); text-align: center; background: #f8fffd; }
     .two-columns { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr); gap: 18px; }
+    code { background: #eefaf6; padding: 2px 5px; border-radius: 6px; }
     @media (max-width: 760px) { .two-columns { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <header>
     <h1>Caducidades y desperdicio</h1>
-    <p>Gestiona fechas de caducidad, preparación y congelado usando los mismos datos locales del planificador.</p>
+    <p>Gestiona fechas de caducidad, preparacion y congelado usando los mismos datos locales del planificador.</p>
   </header>
 
   <main>
@@ -98,14 +99,20 @@
       <div class="actions">
         <a href="./"><button type="button" class="ghost">Volver al planificador</button></a>
         <button id="saveBtn" type="button">Guardar cambios</button>
-        <button id="refreshBtn" type="button" class="secondary">Recalcular</button>
+        <button id="suggestDatesBtn" type="button" class="secondary">Autocompletar fechas recomendadas</button>
+        <button id="refreshBtn" type="button" class="ghost">Recalcular</button>
       </div>
-      <p class="muted">Los cambios se guardan en el navegador mediante las mismas claves <code>ingredients</code> y <code>dishes</code> que usa la app principal.</p>
+      <p class="muted">Los cambios se guardan en el navegador mediante las mismas claves <code>ingredients</code> y <code>dishes</code> que usa la app principal. El autocompletado solo rellena fechas vacias.</p>
     </section>
 
     <section class="card">
-      <h2>Puntuación de desperdicio</h2>
+      <h2>Puntuacion de desperdicio</h2>
       <div id="scoreGrid" class="grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Recomendaciones</h2>
+      <div id="recommendations" class="alert-list"></div>
     </section>
 
     <section class="card">
@@ -210,13 +217,36 @@
       const result = StockLifecycle.calculateWasteScore({ ingredients, dishes });
       const grid = document.getElementById("scoreGrid");
       grid.innerHTML = `
-        <div class="metric"><span>Índice</span><strong>${result.score}/100</strong><span class="badge ${scoreClass(result.score)}">${escapeHtml(result.label)}</span></div>
+        <div class="metric"><span>Indice</span><strong>${result.score}/100</strong><span class="badge ${scoreClass(result.score)}">${escapeHtml(result.label)}</span></div>
         <div class="metric"><span>Caducados</span><strong>${result.expiredCount}</strong></div>
         <div class="metric"><span>Caducan hoy</span><strong>${result.todayCount}</strong></div>
-        <div class="metric"><span>Próximos</span><strong>${result.soonCount}</strong></div>
+        <div class="metric"><span>Proximos</span><strong>${result.soonCount}</strong></div>
         <div class="metric"><span>Congelados antiguos</span><strong>${result.freezerCount}</strong></div>
         <div class="metric"><span>Cantidad desperdiciada</span><strong>${result.discardedQty}</strong></div>
       `;
+    }
+
+    function renderRecommendations() {
+      const recommendations = StockLifecycle.buildConsumptionRecommendations({ ingredients, dishes });
+      const box = document.getElementById("recommendations");
+      box.innerHTML = "";
+      if (!recommendations.length) {
+        box.innerHTML = '<div class="empty">No hay recomendaciones urgentes. Puedes autocompletar fechas si falta informacion.</div>';
+        return;
+      }
+      recommendations.slice(0, 8).forEach(item => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <div class="item-top">
+            <div>
+              <strong>${escapeHtml(item.title)}</strong>
+              <div class="muted">${escapeHtml(item.suggestion)}</div>
+            </div>
+            <span class="badge ${escapeHtml(item.severity)}">Prioridad ${escapeHtml(item.priority)}</span>
+          </div>`;
+        box.appendChild(div);
+      });
     }
 
     function renderAlerts() {
@@ -235,7 +265,7 @@
             <div>
               <strong>${escapeHtml(alert.name)}</strong>
               <div class="muted">${escapeHtml(alert.itemType)} · ${escapeHtml(alert.message)}</div>
-              <div class="muted">Acción recomendada: ${escapeHtml(alert.action)}</div>
+              <div class="muted">Accion recomendada: ${escapeHtml(alert.action)}</div>
             </div>
             <span class="badge ${escapeHtml(alert.severity)}">${escapeHtml(alert.severity)}</span>
           </div>`;
@@ -254,7 +284,7 @@
     function storageSelect(type, id, value) {
       return `
         <div>
-          <label>Conservación</label>
+          <label>Conservacion</label>
           <select data-type="${type}" data-id="${escapeHtml(id)}" data-field="storageType">
             ${Object.entries(storageLabels).map(([key, label]) => `<option value="${key}" ${value === key ? "selected" : ""}>${label}</option>`).join("")}
           </select>
@@ -265,7 +295,7 @@
       const target = document.getElementById(targetId);
       target.innerHTML = "";
       if (!list.length) {
-        target.innerHTML = '<div class="empty">No hay datos todavía.</div>';
+        target.innerHTML = '<div class="empty">No hay datos todavia.</div>';
         return;
       }
 
@@ -275,11 +305,13 @@
         div.className = "item";
         const title = item.name || item.nombre || "Sin nombre";
         const unit = item.unit || item.unidad || "";
+        const suggestion = StockLifecycle.suggestExpiryDate(item, type);
         div.innerHTML = `
           <div class="item-top">
             <div>
               <strong>${escapeHtml(title)}</strong>
               <div class="muted">${escapeHtml(item.qty ?? 0)} ${escapeHtml(unit)} · ${escapeHtml(storageLabels[item.storageType] || item.storageType || "")}</div>
+              ${item.expiryDate ? "" : `<div class="muted">Sugerencia de consumo: ${escapeHtml(suggestion || "sin datos suficientes")}</div>`}
             </div>
             ${item.expiryDate ? `<span class="badge">${escapeHtml(item.expiryDate)}</span>` : '<span class="badge">Sin fecha</span>'}
           </div>
@@ -302,6 +334,7 @@
 
     function renderAll() {
       renderScore();
+      renderRecommendations();
       renderAlerts();
       renderEditableList("ingredient", ingredients, "ingredientsList");
       renderEditableList("dish", dishes, "dishesList");
@@ -320,6 +353,7 @@
       if (field === "frozenDate" && input.value) item.storageType = "freezer";
       if (field === "storageType" && input.value !== "freezer" && !item.frozenDate) item.storageType = input.value;
       renderScore();
+      renderRecommendations();
       renderAlerts();
     });
 
@@ -329,6 +363,15 @@
       saveData();
       renderAll();
       alert("Caducidades y desperdicio guardados.");
+    });
+
+    document.getElementById("suggestDatesBtn").addEventListener("click", () => {
+      const result = StockLifecycle.applySuggestedExpiryDates({ ingredients, dishes });
+      ingredients = result.ingredients;
+      dishes = result.dishes;
+      saveData();
+      renderAll();
+      alert("Fechas recomendadas añadidas en los elementos que no tenian caducidad.");
     });
 
     document.getElementById("refreshBtn").addEventListener("click", () => {
