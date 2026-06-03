@@ -105,6 +105,7 @@
         alerts.push({
           severity: "expired",
           itemType,
+          id: item.id || "",
           name: item.name || item.nombre || "Sin nombre",
           days,
           message: `Caducado hace ${Math.abs(days)} día/s`,
@@ -114,6 +115,7 @@
         alerts.push({
           severity: "today",
           itemType,
+          id: item.id || "",
           name: item.name || item.nombre || "Sin nombre",
           days,
           message: itemType === "Plato" ? "Consumir hoy" : "Caduca hoy",
@@ -123,6 +125,7 @@
         alerts.push({
           severity: "soon",
           itemType,
+          id: item.id || "",
           name: item.name || item.nombre || "Sin nombre",
           days,
           message: itemType === "Plato" ? `Consumir en ${days} día/s` : `Caduca en ${days} día/s`,
@@ -140,6 +143,7 @@
         alerts.push({
           severity: "freezer",
           itemType,
+          id: item.id || "",
           name: item.name || item.nombre || "Sin nombre",
           days: -age,
           message: `Congelado hace ${age} día/s`,
@@ -160,6 +164,23 @@
 
     const severityWeight = { expired: 0, today: 1, soon: 2, freezer: 3 };
     return alerts.sort((a, b) => (severityWeight[a.severity] ?? 9) - (severityWeight[b.severity] ?? 9) || a.days - b.days || a.name.localeCompare(b.name, "es"));
+  }
+
+  function buildConsumptionRecommendations({ ingredients = [], dishes = [] } = {}, options = {}) {
+    const alerts = buildExpiryAlerts({ ingredients, dishes }, options);
+    const severityScore = { expired: 100, today: 80, soon: 60, freezer: 35 };
+    const recommendations = alerts.map(alert => ({
+      ...alert,
+      priority: severityScore[alert.severity] || 0,
+      title: `${alert.name}: ${alert.message}`,
+      suggestion: alert.severity === "expired"
+        ? "Revisa olor, textura y seguridad antes de consumir; descarta si hay duda."
+        : alert.severity === "freezer"
+          ? "Inclúyelo en una comida próxima para rotar el congelador."
+          : "Dale prioridad en el calendario antes de comprar más."
+    }));
+
+    return recommendations.sort((a, b) => b.priority - a.priority || a.days - b.days || a.name.localeCompare(b.name, "es"));
   }
 
   function calculateWasteScore({ ingredients = [], dishes = [] } = {}, options = {}) {
@@ -195,7 +216,8 @@
       soonCount,
       freezerCount,
       discardedQty,
-      alerts
+      alerts,
+      recommendations: buildConsumptionRecommendations({ ingredients, dishes }, options)
     };
   }
 
@@ -236,7 +258,8 @@
       [result.todayCount === 1, "dish expiring today is counted"],
       [result.soonCount === 1, "ingredient expiring soon is counted"],
       [result.freezerCount === 1, "old frozen stock is counted"],
-      [result.score < 100, "risk lowers the waste score"]
+      [result.score < 100, "risk lowers the waste score"],
+      [result.recommendations.length === 3, "recommendations are created from alerts"]
     ];
 
     return assertions.map(([ok, message]) => ({ ok, message }));
@@ -251,6 +274,7 @@
     normalizeIngredientStock,
     normalizeDishStock,
     buildExpiryAlerts,
+    buildConsumptionRecommendations,
     calculateWasteScore,
     migrateStockDatabase,
     runSelfTests
