@@ -21,6 +21,7 @@ Actualmente carga:
 5. `shopping-planner.js`
 6. `index-hardening.js`
 7. `pack-preview-fix.js`
+8. `shopping-ui-bridge.js`
 
 ## Capa segura de datos
 
@@ -121,6 +122,18 @@ Funciones principales:
 - `ShoppingPlanner.buildPurchasePlan(allocatedDemand)`
 - `ShoppingPlanner.calculateShoppingPlan({ plan, dishes, ingredients })`
 - `ShoppingPlanner.runSelfTests()`
+
+## Lista de compra mejorada
+
+`shopping-ui-bridge.js` mejora la seccion de compra sin modificar directamente `index.html`.
+
+Aporta:
+
+- coste real estimado por paquetes completos;
+- ajuste medio de compra;
+- sobrante previsto tras comprar;
+- detalle de lotes usados antes de comprar, incluyendo caducidad cuando exista;
+- refresco automatico cuando cambia el plan, ingredientes o stock.
 
 ## Caducidad, congelado y desperdicio
 
