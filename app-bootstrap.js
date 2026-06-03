@@ -13,7 +13,8 @@
     "meal-costing.js",
     "shopping-planner.js",
     "index-hardening.js",
-    "pack-preview-fix.js"
+    "pack-preview-fix.js",
+    "shopping-ui-bridge.js"
   ];
 
   function alreadyLoaded(src) {
