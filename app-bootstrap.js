@@ -11,6 +11,7 @@
     "import-export.js",
     "stock-lifecycle.js",
     "meal-costing.js",
+    "shopping-planner.js",
     "index-hardening.js",
     "pack-preview-fix.js"
   ];
