@@ -2,6 +2,22 @@
 
 Planificador de comidas semanal con control de stock.
 
+## Bootstrap de modulos
+
+`app-bootstrap.js` carga los modulos extraidos de forma ordenada. Es la opcion recomendada para actualizar `index.html` con el menor cambio posible.
+
+Incluir al final de `index.html`, despues del script principal actual y antes de `</body>`:
+
+```html
+<script src="app-bootstrap.js"></script>
+```
+
+Actualmente carga:
+
+1. `stock-lifecycle.js`
+2. `index-hardening.js`
+3. `pack-preview-fix.js`
+
 ## Caducidad, congelado y desperdicio
 
 El modulo `stock-lifecycle.js` normaliza datos de stock y calcula avisos de consumo prioritario.
@@ -27,17 +43,7 @@ Funciones principales:
 
 ## Hardening de index
 
-`index-hardening.js` es una integracion progresiva para `index.html`. Debe cargarse despues del script principal de la app y despues de `stock-lifecycle.js`.
-
-Uso recomendado antes de `</body>`:
-
-```html
-<script src="stock-lifecycle.js"></script>
-<script src="index-hardening.js"></script>
-<script src="pack-preview-fix.js"></script>
-```
-
-Aporta:
+`index-hardening.js` es una integracion progresiva para `index.html`. Aporta:
 
 - campo de caducidad y conservacion al crear o editar ingredientes;
 - saneamiento de JSON antes de importar copias completas, ingredientes o platos;
@@ -56,6 +62,10 @@ El campo `notes` se debe usar para guardar tanto las notas generales como el pro
 ## Panel de caducidades
 
 `caducidades.html` usa el mismo `localStorage` que la app principal y permite editar fechas, ver avisos, consultar la puntuacion de desperdicio y registrar cantidades desperdiciadas.
+
+## Refactorizacion
+
+Ver `docs/refactor-plan.md` para el plan de extraccion progresiva de `index.html`.
 
 ## Tests
 
