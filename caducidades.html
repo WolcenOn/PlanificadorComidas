@@ -11,35 +11,205 @@
     main{width:min(1180px,calc(100% - 28px));margin:-36px auto 48px;display:grid;gap:18px}.card{background:rgba(255,255,255,.96);border:1px solid var(--border);border-radius:22px;padding:18px;box-shadow:var(--shadow)}
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.metric{border:1px solid var(--border);border-radius:16px;padding:14px;background:#f8fffd}.metric span{display:block;color:var(--muted);font-size:.9rem}.metric strong{display:block;font-size:2rem;margin-top:4px}
     h2{margin:0 0 12px}button{font:inherit;border:0;border-radius:12px;padding:10px 13px;cursor:pointer;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:800}button.ghost{background:linear-gradient(135deg,#e4f7f1,#e6f3ff);color:var(--text);border:1px solid var(--border)}
-    .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.muted{color:var(--muted);font-size:.92rem}.badge{display:inline-block;padding:4px 8px;border-radius:99px;font-weight:800;font-size:.82rem;background:var(--soft)}.badge.expired{background:#fde4e4;color:#991b1b}.badge.today{background:#fff4d7;color:#92400e}.badge.soon{background:#e0f2fe;color:#0369a1}.badge.freezer{background:#ede9fe;color:#5b21b6}.badge.missing-date{background:#f1f5f9;color:#475569}
+    .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.muted{color:var(--muted);font-size:.92rem}.badge{display:inline-block;padding:4px 8px;border-radius:99px;font-weight:800;font-size:.82rem;background:var(--soft)}.badge.expired{background:#fde4e4;color:#991b1b}.badge.today{background:#fff4d7;color:#92400e}.badge.soon{background:#e0f2fe;color:#0369a1}.badge.missing-date{background:#f1f5f9;color:#475569}
     .alert-list,.item-list{display:grid;gap:10px}.item{border:1px solid var(--border);border-radius:16px;padding:12px;background:#fff}.item-top{display:flex;justify-content:space-between;gap:10px;align-items:start}.empty{border:1px dashed var(--border);border-radius:16px;padding:14px;color:var(--muted);text-align:center;background:#f8fffd}.two-columns{display:grid;grid-template-columns:minmax(280px,1fr) minmax(280px,1fr);gap:18px}code{background:#eefaf6;padding:2px 5px;border-radius:6px}@media(max-width:760px){.two-columns{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
-  <header><h1>Caducidades</h1><p>Panel de solo lectura. Las fechas se editan en Ingredientes y Platos.</p></header>
+  <header><h1>Caducidades</h1><p>Panel de solo lectura. Las fechas se editan únicamente en Ingredientes y Platos.</p></header>
   <main>
-    <section class="card"><div class="actions"><a href="./"><button type="button" class="ghost">Volver al planificador</button></a><button id="refreshBtn" type="button" class="ghost">Recalcular</button></div><p class="muted">Esta pantalla lee directamente <code>localStorage.ingredients</code> y <code>localStorage.dishes</code>. No edita fechas.</p></section>
-    <section class="card"><h2>Puntuación de desperdicio</h2><div id="scoreGrid" class="grid"></div></section>
+    <section class="card"><div class="actions"><a href="./"><button type="button" class="ghost">Volver al planificador</button></a><button id="refreshBtn" type="button" class="ghost">Recalcular</button></div><p class="muted">Esta pantalla no guarda ni modifica nada. Lee directamente <code>localStorage.ingredients</code> y <code>localStorage.dishes</code>.</p></section>
+    <section class="card"><h2>Resumen</h2><div id="scoreGrid" class="grid"></div></section>
     <section class="card"><h2>Prioridad de consumo</h2><div id="alerts" class="alert-list"></div></section>
-    <section class="card"><h2>Recomendaciones</h2><div id="recommendations" class="alert-list"></div></section>
     <section class="two-columns"><div class="card"><h2>Ingredientes</h2><div id="ingredientsList" class="item-list"></div></div><div class="card"><h2>Platos preparados</h2><div id="dishesList" class="item-list"></div></div></section>
   </main>
-  <script src="stock-lifecycle.js?v=20260604-4"></script>
   <script>
-    let ingredients=[];let dishes=[];
-    function parseArray(key){try{const value=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(value)?value:[]}catch{return[]}}
-    function escapeHtml(text){return String(text??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
-    function scoreClass(score){if(score<40)return"expired";if(score<70)return"today";if(score<90)return"soon";return"freezer"}
-    function loadData(){ingredients=parseArray("ingredients").map(item=>StockLifecycle.normalizeIngredientStock(item));dishes=parseArray("dishes").map(item=>StockLifecycle.normalizeDishStock(item))}
-    function renderScore(){const result=StockLifecycle.calculateWasteScore({ingredients,dishes},{soonDays:7});document.getElementById("scoreGrid").innerHTML=`<div class="metric"><span>Índice</span><strong>${result.score}/100</strong><span class="badge ${scoreClass(result.score)}">${escapeHtml(result.label)}</span></div><div class="metric"><span>Caducados</span><strong>${result.expiredCount}</strong></div><div class="metric"><span>Caducan hoy</span><strong>${result.todayCount}</strong></div><div class="metric"><span>Próximos 7 días</span><strong>${result.soonCount}</strong></div><div class="metric"><span>Sin fecha</span><strong>${result.missingDateCount||0}</strong></div><div class="metric"><span>Congelados antiguos</span><strong>${result.freezerCount}</strong></div>`}
-    function renderAlerts(){const alerts=StockLifecycle.buildExpiryAlerts({ingredients,dishes},{soonDays:7});const box=document.getElementById("alerts");box.innerHTML="";if(!alerts.length){box.innerHTML='<div class="empty">No hay avisos de caducidad.</div>';return}alerts.forEach(alert=>{const div=document.createElement("div");div.className="item";div.innerHTML=`<div class="item-top"><div><strong>${escapeHtml(alert.name)}</strong><div class="muted">${escapeHtml(alert.itemType)} · ${escapeHtml(alert.message)}</div><div class="muted">${escapeHtml(alert.action)}</div></div><span class="badge ${escapeHtml(alert.severity)}">${escapeHtml(alert.severity)}</span></div>`;box.appendChild(div)})}
-    function renderRecommendations(){const recommendations=StockLifecycle.buildConsumptionRecommendations({ingredients,dishes},{soonDays:7});const box=document.getElementById("recommendations");box.innerHTML="";if(!recommendations.length){box.innerHTML='<div class="empty">No hay recomendaciones.</div>';return}recommendations.slice(0,10).forEach(item=>{const div=document.createElement("div");div.className="item";div.innerHTML=`<div class="item-top"><div><strong>${escapeHtml(item.title)}</strong><div class="muted">${escapeHtml(item.suggestion)}</div></div><span class="badge ${escapeHtml(item.severity)}">Prioridad ${escapeHtml(item.priority)}</span></div>`;box.appendChild(div)})}
-    function renderIngredients(){const target=document.getElementById("ingredientsList");target.innerHTML="";if(!ingredients.length){target.innerHTML='<div class="empty">No hay ingredientes.</div>';return}ingredients.forEach(item=>{const expiry=item.expiryDate||"";const div=document.createElement("div");div.className="item";div.innerHTML=`<div class="item-top"><div><strong>${escapeHtml(item.name||item.nombre||"Sin nombre")}</strong><div class="muted">${escapeHtml(item.qty??0)} ${escapeHtml(item.unit||item.unidad||"")}</div>${expiry?`<div class="muted">Caducidad registrada: ${escapeHtml(expiry)}</div>`:'<div class="muted">Sin caducidad registrada</div>'}</div>${expiry?`<span class="badge">${escapeHtml(expiry)}</span>`:'<span class="badge missing-date">Sin fecha</span>'}</div>`;target.appendChild(div)})}
-    function renderDishes(){const target=document.getElementById("dishesList");target.innerHTML="";if(!dishes.length){target.innerHTML='<div class="empty">No hay platos preparados.</div>';return}dishes.forEach(item=>{const expiry=item.expiryDate||"";const div=document.createElement("div");div.className="item";div.innerHTML=`<div class="item-top"><div><strong>${escapeHtml(item.name||item.nombre||"Sin nombre")}</strong><div class="muted">${escapeHtml(item.qty??0)} ${escapeHtml(item.unit||item.unidad||"")}</div>${item.preparedDate?`<div class="muted">Preparado: ${escapeHtml(item.preparedDate)}</div>`:""}${expiry?`<div class="muted">Caducidad registrada: ${escapeHtml(expiry)}</div>`:'<div class="muted">Sin caducidad registrada</div>'}</div>${expiry?`<span class="badge">${escapeHtml(expiry)}</span>`:'<span class="badge missing-date">Sin fecha</span>'}</div>`;target.appendChild(div)})}
-    function renderAll(){renderScore();renderAlerts();renderRecommendations();renderIngredients();renderDishes()}
-    document.getElementById("refreshBtn").addEventListener("click",()=>{loadData();renderAll()});
-    window.addEventListener("storage",()=>{loadData();renderAll()});
-    loadData();renderAll();
+    const DAY_MS = 86400000;
+    let ingredients = [];
+    let dishes = [];
+
+    function parseArray(key) {
+      try {
+        const value = JSON.parse(localStorage.getItem(key) || "[]");
+        return Array.isArray(value) ? value : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function cleanDate(value) {
+      const text = String(value || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return "";
+      const date = new Date(`${text}T00:00:00`);
+      return Number.isNaN(date.getTime()) ? "" : text;
+    }
+
+    function daysUntil(dateText) {
+      const clean = cleanDate(dateText);
+      if (!clean) return null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(`${clean}T00:00:00`);
+      target.setHours(0, 0, 0, 0);
+      return Math.round((target.getTime() - today.getTime()) / DAY_MS);
+    }
+
+    function normalizeIngredient(item) {
+      return {
+        ...item,
+        id: item.id || item.name || item.nombre || Math.random().toString(16).slice(2),
+        name: item.name || item.nombre || "Sin nombre",
+        qty: Number(item.qty ?? item.cantidad ?? 0) || 0,
+        unit: item.unit || item.unidad || "",
+        available: item.available !== false && item.disponible !== false,
+        expiryDate: cleanDate(item.expiryDate || item.caducidad || item.bestBeforeDate || item.fechaCaducidad)
+      };
+    }
+
+    function normalizeDish(item) {
+      return {
+        ...item,
+        id: item.id || item.name || item.nombre || Math.random().toString(16).slice(2),
+        name: item.name || item.nombre || "Sin nombre",
+        qty: Number(item.qty ?? item.racionesPreparadas ?? item.stock ?? 0) || 0,
+        unit: item.unit || item.unidad || "raciones",
+        preparedDate: cleanDate(item.preparedDate || item.fechaPreparacion || item.cookedDate),
+        expiryDate: cleanDate(item.expiryDate || item.caducidad || item.bestBeforeDate || item.fechaCaducidad)
+      };
+    }
+
+    function hasStock(item) {
+      return item.available === true || Number(item.qty || 0) > 0;
+    }
+
+    function buildAlerts() {
+      const alerts = [];
+      for (const item of ingredients) {
+        if (!hasStock(item)) continue;
+        const days = daysUntil(item.expiryDate);
+        if (days === null) {
+          alerts.push({ severity: "missing-date", name: item.name, itemType: "Ingrediente", message: "Sin fecha de caducidad registrada", action: "Añade la fecha desde la pestaña Ingredientes", days: 9999 });
+        } else if (days < 0) {
+          alerts.push({ severity: "expired", name: item.name, itemType: "Ingrediente", message: `Caducado hace ${Math.abs(days)} día/s`, action: "Revisar antes de consumir", days });
+        } else if (days === 0) {
+          alerts.push({ severity: "today", name: item.name, itemType: "Ingrediente", message: "Caduca hoy", action: "Consumir hoy", days });
+        } else if (days <= 7) {
+          alerts.push({ severity: "soon", name: item.name, itemType: "Ingrediente", message: `Caduca en ${days} día/s`, action: "Priorizar esta semana", days });
+        }
+      }
+      for (const item of dishes) {
+        if (Number(item.qty || 0) <= 0) continue;
+        const days = daysUntil(item.expiryDate);
+        if (days === null) {
+          alerts.push({ severity: "missing-date", name: item.name, itemType: "Plato", message: "Sin fecha de caducidad registrada", action: "Añade la fecha desde la pestaña Platos", days: 9999 });
+        } else if (days < 0) {
+          alerts.push({ severity: "expired", name: item.name, itemType: "Plato", message: `Caducado hace ${Math.abs(days)} día/s`, action: "Revisar antes de consumir", days });
+        } else if (days === 0) {
+          alerts.push({ severity: "today", name: item.name, itemType: "Plato", message: "Consumir hoy", action: "Planificar hoy", days });
+        } else if (days <= 7) {
+          alerts.push({ severity: "soon", name: item.name, itemType: "Plato", message: `Consumir en ${days} día/s`, action: "Priorizar esta semana", days });
+        }
+      }
+      const weight = { expired: 0, today: 1, soon: 2, "missing-date": 3 };
+      return alerts.sort((a, b) => (weight[a.severity] ?? 9) - (weight[b.severity] ?? 9) || a.days - b.days || a.name.localeCompare(b.name, "es"));
+    }
+
+    function loadData() {
+      ingredients = parseArray("ingredients").map(normalizeIngredient);
+      dishes = parseArray("dishes").map(normalizeDish);
+    }
+
+    function renderSummary() {
+      const alerts = buildAlerts();
+      const expired = alerts.filter(item => item.severity === "expired").length;
+      const today = alerts.filter(item => item.severity === "today").length;
+      const soon = alerts.filter(item => item.severity === "soon").length;
+      const missing = alerts.filter(item => item.severity === "missing-date").length;
+      const datedIngredients = ingredients.filter(item => item.expiryDate).length;
+      document.getElementById("scoreGrid").innerHTML = `
+        <div class="metric"><span>Ingredientes con fecha</span><strong>${datedIngredients}</strong></div>
+        <div class="metric"><span>Caducados</span><strong>${expired}</strong></div>
+        <div class="metric"><span>Caducan hoy</span><strong>${today}</strong></div>
+        <div class="metric"><span>Próximos 7 días</span><strong>${soon}</strong></div>
+        <div class="metric"><span>Sin fecha</span><strong>${missing}</strong></div>`;
+    }
+
+    function renderAlerts() {
+      const alerts = buildAlerts();
+      const box = document.getElementById("alerts");
+      box.innerHTML = "";
+      if (!alerts.length) {
+        box.innerHTML = '<div class="empty">No hay avisos de caducidad.</div>';
+        return;
+      }
+      for (const alert of alerts) {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<div class="item-top"><div><strong>${escapeHtml(alert.name)}</strong><div class="muted">${escapeHtml(alert.itemType)} · ${escapeHtml(alert.message)}</div><div class="muted">${escapeHtml(alert.action)}</div></div><span class="badge ${escapeHtml(alert.severity)}">${escapeHtml(alert.severity)}</span></div>`;
+        box.appendChild(div);
+      }
+    }
+
+    function renderIngredients() {
+      const target = document.getElementById("ingredientsList");
+      target.innerHTML = "";
+      if (!ingredients.length) {
+        target.innerHTML = '<div class="empty">No hay ingredientes guardados.</div>';
+        return;
+      }
+      for (const item of ingredients) {
+        const div = document.createElement("div");
+        div.className = "item";
+        const dateText = item.expiryDate ? `Caducidad registrada: ${item.expiryDate}` : "Sin caducidad registrada";
+        div.innerHTML = `<div class="item-top"><div><strong>${escapeHtml(item.name)}</strong><div class="muted">${escapeHtml(item.qty)} ${escapeHtml(item.unit)}</div><div class="muted">${escapeHtml(dateText)}</div></div>${item.expiryDate ? `<span class="badge">${escapeHtml(item.expiryDate)}</span>` : '<span class="badge missing-date">Sin fecha</span>'}</div>`;
+        target.appendChild(div);
+      }
+    }
+
+    function renderDishes() {
+      const target = document.getElementById("dishesList");
+      target.innerHTML = "";
+      if (!dishes.length) {
+        target.innerHTML = '<div class="empty">No hay platos guardados.</div>';
+        return;
+      }
+      for (const item of dishes) {
+        const div = document.createElement("div");
+        div.className = "item";
+        const dateText = item.expiryDate ? `Caducidad registrada: ${item.expiryDate}` : "Sin caducidad registrada";
+        const prepText = item.preparedDate ? `<div class="muted">Preparado: ${escapeHtml(item.preparedDate)}</div>` : "";
+        div.innerHTML = `<div class="item-top"><div><strong>${escapeHtml(item.name)}</strong><div class="muted">${escapeHtml(item.qty)} ${escapeHtml(item.unit)}</div>${prepText}<div class="muted">${escapeHtml(dateText)}</div></div>${item.expiryDate ? `<span class="badge">${escapeHtml(item.expiryDate)}</span>` : '<span class="badge missing-date">Sin fecha</span>'}</div>`;
+        target.appendChild(div);
+      }
+    }
+
+    function renderAll() {
+      renderSummary();
+      renderAlerts();
+      renderIngredients();
+      renderDishes();
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", () => {
+      loadData();
+      renderAll();
+    });
+    window.addEventListener("storage", () => {
+      loadData();
+      renderAll();
+    });
+
+    loadData();
+    renderAll();
   </script>
 </body>
 </html>
