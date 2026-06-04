@@ -45,7 +45,6 @@
     const qty = qtyOverride === null ? numberOrZero(item.qty ?? item.cantidad ?? item.stock ?? item.racionesPreparadas) : numberOrZero(qtyOverride);
     const unit = normalizeUnit(item.unit || item.unidad);
     const unitWeightG = numberOrZero(item.unitWeightG ?? item.pesoUnidadG ?? item.weightPerUnitG);
-
     if (unit === "kg") return qty;
     if (unit === "g") return qty / 1000;
     if (unit === "l") return qty;
@@ -55,10 +54,9 @@
   }
 
   function unitCost(item = {}) {
-    const qty = numberOrZero(item.qty ?? item.cantidad ?? item.stock ?? item.racionesPreparadas);
+    const qty = numberOrZero(item.qty ?? item.cantidad ?? item.stock ?? item.racionesPreparadas) || numberOrZero(item.discardedQty ?? item.cantidadDesperdiciada);
     const approxPrice = numberOrZero(item.approxPrice ?? item.priceApprox ?? item.precioAproximado ?? item.price);
     if (approxPrice > 0 && qty > 0) return approxPrice / qty;
-
     const products = Array.isArray(item.products) ? item.products : [];
     const unit = normalizeUnit(item.unit || item.unidad);
     const compatible = products
@@ -70,17 +68,14 @@
       })
       .filter(product => product.price > 0 && product.packageQty > 0 && product.packageUnit === unit)
       .sort((a, b) => a.unitCost - b.unitCost);
-
     return compatible[0]?.unitCost || 0;
   }
 
   function wasteQty(item = {}) {
     const discarded = numberOrZero(item.discardedQty ?? item.cantidadDesperdiciada);
     if (discarded > 0) return discarded;
-
     const expiryDate = cleanDate(item.expiryDate || item.caducidad || item.bestBeforeDate || item.fechaCaducidad);
     if (!expiryDate) return 0;
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expiry = new Date(`${expiryDate}T00:00:00`);
@@ -123,44 +118,27 @@
 
   function calculateMetrics({ ingredients = [], dishes = [] } = {}) {
     const items = [
-      ...ingredients.map(normalizeIngredient).filter(item => item.available !== false || item.qty > 0),
-      ...dishes.map(normalizeDish).filter(item => item.qty > 0)
+      ...ingredients.map(normalizeIngredient).filter(item => item.available !== false || item.qty > 0 || item.discardedQty > 0),
+      ...dishes.map(normalizeDish).filter(item => item.qty > 0 || item.discardedQty > 0)
     ];
-
     const enriched = items.map(item => {
-      const totalKg = itemKg(item);
       const wastedQty = wasteQty(item);
+      const currentKg = itemKg(item);
       const wastedKg = itemKg(item, wastedQty);
+      const totalKg = Math.max(currentKg, wastedKg);
       const cost = wastedQty * unitCost(item);
-      return {
-        ...item,
-        totalKg,
-        wastedQty,
-        wastedKg,
-        wasteCost: cost,
-        co2Kg: wastedKg * CO2_PER_KG_WASTE
-      };
+      return { ...item, totalKg, wastedQty, wastedKg, wasteCost: cost, co2Kg: wastedKg * CO2_PER_KG_WASTE };
     });
-
     const totalKg = enriched.reduce((sum, item) => sum + item.totalKg, 0);
     const wastedKg = enriched.reduce((sum, item) => sum + item.wastedKg, 0);
     const wasteCost = enriched.reduce((sum, item) => sum + item.wasteCost, 0);
     const co2Kg = enriched.reduce((sum, item) => sum + item.co2Kg, 0);
     const wasteRatio = totalKg > 0 ? wastedKg / totalKg : 0;
     const score = Math.max(0, Math.min(100, Math.round(100 - wasteRatio * 100)));
-    const missingWeightCount = enriched.filter(item => isCountUnit(item.unit) && item.qty > 0 && !item.unitWeightG).length;
-
+    const missingWeightCount = enriched.filter(item => isCountUnit(item.unit) && (item.qty > 0 || item.discardedQty > 0) && !item.unitWeightG).length;
     return {
-      date: todayString(),
-      score,
-      totalKg,
-      wastedKg,
-      wasteRatio,
-      wastePercent: wasteRatio * 100,
-      wasteCost,
-      co2Kg,
-      missingWeightCount,
-      itemCount: enriched.length,
+      date: todayString(), score, totalKg, wastedKg, wasteRatio, wastePercent: wasteRatio * 100, wasteCost, co2Kg,
+      missingWeightCount, itemCount: enriched.length,
       items: enriched.sort((a, b) => b.wastedKg - a.wastedKg || b.co2Kg - a.co2Kg || b.wasteCost - a.wasteCost)
     };
   }
@@ -169,9 +147,7 @@
     try {
       const parsed = JSON.parse(global.localStorage?.getItem(HISTORY_KEY) || "[]");
       return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   }
 
   function saveHistory(history) {
@@ -182,16 +158,9 @@
     const history = loadHistory();
     const weekKey = label || metrics.weekId || metrics.date || todayString();
     const snapshot = {
-      id: `${weekKey}-${Date.now()}`,
-      weekKey,
-      date: todayString(),
-      score: metrics.score,
-      totalKg: metrics.totalKg,
-      wastedKg: metrics.wastedKg,
-      wastePercent: metrics.wastePercent,
-      wasteCost: metrics.wasteCost,
-      co2Kg: metrics.co2Kg,
-      missingWeightCount: metrics.missingWeightCount
+      id: `${weekKey}-${Date.now()}`, weekKey, date: todayString(), score: metrics.score,
+      totalKg: metrics.totalKg, wastedKg: metrics.wastedKg, wastePercent: metrics.wastePercent,
+      wasteCost: metrics.wasteCost, co2Kg: metrics.co2Kg, missingWeightCount: metrics.missingWeightCount
     };
     history.push(snapshot);
     saveHistory(history);
@@ -205,27 +174,8 @@
     const latest = sorted[sorted.length - 1];
     const deltaScore = latest.score - previous.score;
     const deltaWasteKg = latest.wastedKg - previous.wastedKg;
-    return {
-      direction: deltaScore > 0 ? "improving" : deltaScore < 0 ? "worsening" : "stable",
-      deltaScore,
-      deltaWasteKg,
-      previous,
-      latest
-    };
+    return { direction: deltaScore > 0 ? "improving" : deltaScore < 0 ? "worsening" : "stable", deltaScore, deltaWasteKg, previous, latest };
   }
 
-  global.WasteMetrics = {
-    HISTORY_KEY,
-    CO2_PER_KG_WASTE,
-    normalizeUnit,
-    isCountUnit,
-    itemKg,
-    unitCost,
-    wasteQty,
-    calculateMetrics,
-    loadHistory,
-    saveHistory,
-    saveSnapshot,
-    trend
-  };
+  global.WasteMetrics = { HISTORY_KEY, CO2_PER_KG_WASTE, normalizeUnit, isCountUnit, itemKg, unitCost, wasteQty, calculateMetrics, loadHistory, saveHistory, saveSnapshot, trend };
 })(typeof window !== "undefined" ? window : globalThis);
