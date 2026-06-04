@@ -12,6 +12,7 @@
     "meal-costing.js",
     "shopping-planner.js",
     "index-hardening.js",
+    "unit-normalization.js",
     "pack-preview-fix.js",
     "shopping-ui-bridge.js"
   ];
@@ -24,7 +25,7 @@
     return new Promise((resolve, reject) => {
       if (alreadyLoaded(src)) return resolve({ src, ok: true, skipped: true });
       const script = document.createElement("script");
-      script.src = `${src}?v=20260604-4`;
+      script.src = `${src}?v=20260604-7`;
       script.defer = false;
       script.onload = () => resolve({ src, ok: true });
       script.onerror = () => reject(new Error(`No se pudo cargar ${src}`));
