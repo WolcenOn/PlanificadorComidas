@@ -18,13 +18,16 @@
 <body>
   <header><h1>Caducidades</h1><p>Panel de solo lectura. Las fechas se editan únicamente en Ingredientes y Platos.</p></header>
   <main>
-    <section class="card"><div class="actions"><a href="./"><button type="button" class="ghost">Volver al planificador</button></a><button id="refreshBtn" type="button" class="ghost">Recalcular</button></div><p class="muted">Esta pantalla no guarda ni modifica nada. Lee directamente <code>localStorage.ingredients</code> y <code>localStorage.dishes</code>.</p></section>
+    <section class="card"><div class="actions"><a href="./"><button type="button" class="ghost">Volver al planificador</button></a><button id="refreshBtn" type="button" class="ghost">Recalcular</button></div><p class="muted">Esta pantalla no guarda ni modifica nada. Lee directamente <code>localStorage.ingredients</code> y <code>localStorage.dishes</code>. El CO₂ se estima con el criterio indicado: <code>1 kg desperdiciado = 2,5 kg CO₂e</code>.</p></section>
     <section class="card"><h2>Resumen</h2><div id="scoreGrid" class="grid"></div></section>
+    <section class="card"><h2>Impacto potencial del desperdicio</h2><div id="impactGrid" class="grid"></div><p class="muted">El impacto potencial usa los alimentos caducados o que caducan hoy. El coste se estima con precio aproximado o productos asociados cuando existen.</p></section>
+    <section class="card"><h2>Ranking de mayor impacto</h2><div id="wasteRanking" class="alert-list"></div></section>
     <section class="card"><h2>Prioridad de consumo</h2><div id="alerts" class="alert-list"></div></section>
     <section class="two-columns"><div class="card"><h2>Ingredientes</h2><div id="ingredientsList" class="item-list"></div></div><div class="card"><h2>Platos preparados</h2><div id="dishesList" class="item-list"></div></div></section>
   </main>
   <script>
     const DAY_MS = 86400000;
+    const CO2_PER_KG_WASTE = 2.5;
     let ingredients = [];
     let dishes = [];
 
@@ -63,14 +66,30 @@
       return Math.round((target.getTime() - today.getTime()) / DAY_MS);
     }
 
+    function numberOrZero(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function formatNumber(value, decimals = 2) {
+      return (Number(value) || 0).toLocaleString("es-ES", { maximumFractionDigits: decimals });
+    }
+
+    function formatCurrency(value) {
+      return (Number(value) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR" });
+    }
+
     function normalizeIngredient(item) {
       return {
         ...item,
         id: item.id || item.name || item.nombre || Math.random().toString(16).slice(2),
         name: item.name || item.nombre || "Sin nombre",
-        qty: Number(item.qty ?? item.cantidad ?? 0) || 0,
+        qty: numberOrZero(item.qty ?? item.cantidad),
         unit: item.unit || item.unidad || "",
         available: item.available !== false && item.disponible !== false,
+        approxPrice: numberOrZero(item.approxPrice ?? item.priceApprox ?? item.precioAproximado ?? item.price),
+        products: Array.isArray(item.products) ? item.products : [],
+        discardedQty: numberOrZero(item.discardedQty ?? item.cantidadDesperdiciada),
         expiryDate: cleanDate(item.expiryDate || item.caducidad || item.bestBeforeDate || item.fechaCaducidad)
       };
     }
@@ -80,15 +99,48 @@
         ...item,
         id: item.id || item.name || item.nombre || Math.random().toString(16).slice(2),
         name: item.name || item.nombre || "Sin nombre",
-        qty: Number(item.qty ?? item.racionesPreparadas ?? item.stock ?? 0) || 0,
+        qty: numberOrZero(item.qty ?? item.racionesPreparadas ?? item.stock),
         unit: item.unit || item.unidad || "raciones",
+        approxPrice: numberOrZero(item.approxPrice ?? item.priceApprox ?? item.precioAproximado ?? item.price),
+        discardedQty: numberOrZero(item.discardedQty ?? item.cantidadDesperdiciada),
         preparedDate: cleanDate(item.preparedDate || item.fechaPreparacion || item.cookedDate),
         expiryDate: cleanDate(item.expiryDate || item.caducidad || item.bestBeforeDate || item.fechaCaducidad)
       };
     }
 
     function hasStock(item) {
-      return item.available === true || Number(item.qty || 0) > 0;
+      return item.available === true || numberOrZero(item.qty) > 0;
+    }
+
+    function unitToKg(qty, unit) {
+      const clean = String(unit || "").trim().toLowerCase();
+      const value = numberOrZero(qty);
+      if (["kg", "kilo", "kilos"].includes(clean)) return value;
+      if (["g", "gr", "gramo", "gramos"].includes(clean)) return value / 1000;
+      if (["l", "litro", "litros"].includes(clean)) return value;
+      if (["ml", "mililitro", "mililitros"].includes(clean)) return value / 1000;
+      return 0;
+    }
+
+    function productUnitCost(item) {
+      const products = Array.isArray(item.products) ? item.products : [];
+      const compatible = products
+        .map(product => {
+          const packageQty = numberOrZero(product.packageQty ?? product.qty ?? product.quantity);
+          const price = numberOrZero(product.price);
+          const packageUnit = product.packageUnit || product.unit || item.unit;
+          return { packageQty, price, packageUnit, unitCost: packageQty > 0 ? price / packageQty : 0 };
+        })
+        .filter(product => product.price > 0 && product.packageQty > 0 && String(product.packageUnit || "").toLowerCase() === String(item.unit || "").toLowerCase())
+        .sort((a, b) => a.unitCost - b.unitCost);
+      return compatible[0]?.unitCost || 0;
+    }
+
+    function unitCost(item) {
+      const productCost = productUnitCost(item);
+      if (productCost > 0) return productCost;
+      if (item.approxPrice > 0 && item.qty > 0) return item.approxPrice / item.qty;
+      return 0;
     }
 
     function buildAlerts() {
@@ -107,7 +159,7 @@
         }
       }
       for (const item of dishes) {
-        if (Number(item.qty || 0) <= 0) continue;
+        if (numberOrZero(item.qty) <= 0) continue;
         const days = daysUntil(item.expiryDate);
         if (days === null) {
           alerts.push({ severity: "missing-date", name: item.name, itemType: "Plato", message: "Sin fecha de caducidad registrada", action: "Añade la fecha desde la pestaña Platos", days: 9999 });
@@ -123,6 +175,31 @@
       return alerts.sort((a, b) => (weight[a.severity] ?? 9) - (weight[b.severity] ?? 9) || a.days - b.days || a.name.localeCompare(b.name, "es"));
     }
 
+    function buildWasteImpactItems() {
+      const all = [
+        ...ingredients.map(item => ({ ...item, itemType: "Ingrediente" })),
+        ...dishes.map(item => ({ ...item, itemType: "Plato" }))
+      ];
+      return all.map(item => {
+        const days = daysUntil(item.expiryDate);
+        const expiredOrToday = days !== null && days <= 0;
+        const explicitWasteQty = numberOrZero(item.discardedQty);
+        const riskQty = explicitWasteQty > 0 ? explicitWasteQty : (expiredOrToday ? numberOrZero(item.qty) : 0);
+        const kg = unitToKg(riskQty, item.unit);
+        const cost = riskQty * unitCost(item);
+        return {
+          ...item,
+          days,
+          riskQty,
+          kg,
+          co2: kg * CO2_PER_KG_WASTE,
+          cost,
+          source: explicitWasteQty > 0 ? "registrado" : expiredOrToday ? "potencial" : "sin impacto"
+        };
+      }).filter(item => item.riskQty > 0 || item.co2 > 0 || item.cost > 0)
+        .sort((a, b) => (b.co2 + b.cost) - (a.co2 + a.cost));
+    }
+
     function loadData() {
       ingredients = parseArray("ingredients").map(normalizeIngredient);
       dishes = parseArray("dishes").map(normalizeDish);
@@ -130,17 +207,52 @@
 
     function renderSummary() {
       const alerts = buildAlerts();
+      const impact = buildWasteImpactItems();
       const expired = alerts.filter(item => item.severity === "expired").length;
       const today = alerts.filter(item => item.severity === "today").length;
       const soon = alerts.filter(item => item.severity === "soon").length;
       const missing = alerts.filter(item => item.severity === "missing-date").length;
       const datedIngredients = ingredients.filter(item => item.expiryDate).length;
+      const totalCo2 = impact.reduce((sum, item) => sum + item.co2, 0);
+      const totalCost = impact.reduce((sum, item) => sum + item.cost, 0);
+      const wasteScore = Math.max(0, Math.round(100 - expired * 18 - today * 10 - soon * 4 - missing * 1));
       document.getElementById("scoreGrid").innerHTML = `
+        <div class="metric"><span>Ranking antidesperdicio</span><strong>${wasteScore}/100</strong></div>
         <div class="metric"><span>Ingredientes con fecha</span><strong>${datedIngredients}</strong></div>
         <div class="metric"><span>Caducados</span><strong>${expired}</strong></div>
         <div class="metric"><span>Caducan hoy</span><strong>${today}</strong></div>
         <div class="metric"><span>Próximos 7 días</span><strong>${soon}</strong></div>
-        <div class="metric"><span>Sin fecha</span><strong>${missing}</strong></div>`;
+        <div class="metric"><span>Sin fecha</span><strong>${missing}</strong></div>
+        <div class="metric"><span>Dinero en riesgo</span><strong>${formatCurrency(totalCost)}</strong></div>
+        <div class="metric"><span>CO₂ en riesgo</span><strong>${formatNumber(totalCo2)} kg</strong></div>`;
+    }
+
+    function renderImpact() {
+      const impact = buildWasteImpactItems();
+      const totalKg = impact.reduce((sum, item) => sum + item.kg, 0);
+      const totalCo2 = impact.reduce((sum, item) => sum + item.co2, 0);
+      const totalCost = impact.reduce((sum, item) => sum + item.cost, 0);
+      document.getElementById("impactGrid").innerHTML = `
+        <div class="metric"><span>Kg potencialmente desperdiciados</span><strong>${formatNumber(totalKg)} kg</strong></div>
+        <div class="metric"><span>CO₂ equivalente</span><strong>${formatNumber(totalCo2)} kg</strong><span>Factor: 2,5 kg CO₂e/kg</span></div>
+        <div class="metric"><span>Coste estimado</span><strong>${formatCurrency(totalCost)}</strong></div>
+        <div class="metric"><span>Elementos con impacto</span><strong>${impact.length}</strong></div>`;
+    }
+
+    function renderWasteRanking() {
+      const ranking = buildWasteImpactItems();
+      const box = document.getElementById("wasteRanking");
+      box.innerHTML = "";
+      if (!ranking.length) {
+        box.innerHTML = '<div class="empty">No hay impacto económico o CO₂ calculable. Añade precios, cantidades en kg/g/l/ml o registra desperdicio.</div>';
+        return;
+      }
+      ranking.slice(0, 10).forEach((item, index) => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<div class="item-top"><div><strong>${index + 1}. ${escapeHtml(item.name)}</strong><div class="muted">${escapeHtml(item.itemType)} · ${formatNumber(item.riskQty)} ${escapeHtml(item.unit)} · ${escapeHtml(item.source)}</div><div class="muted">Coste estimado: ${formatCurrency(item.cost)} · CO₂: ${formatNumber(item.co2)} kg</div></div><span class="badge ${item.days !== null && item.days <= 0 ? "expired" : "soon"}">${formatNumber(item.co2)} kg CO₂</span></div>`;
+        box.appendChild(div);
+      });
     }
 
     function renderAlerts() {
@@ -170,7 +282,8 @@
         const div = document.createElement("div");
         div.className = "item";
         const dateText = item.expiryDate ? `Caducidad registrada: ${item.expiryDate}` : "Sin caducidad registrada";
-        div.innerHTML = `<div class="item-top"><div><strong>${escapeHtml(item.name)}</strong><div class="muted">${escapeHtml(item.qty)} ${escapeHtml(item.unit)}</div><div class="muted">${escapeHtml(dateText)}</div></div>${item.expiryDate ? `<span class="badge">${escapeHtml(item.expiryDate)}</span>` : '<span class="badge missing-date">Sin fecha</span>'}</div>`;
+        const priceText = item.approxPrice ? `Precio aprox.: ${formatCurrency(item.approxPrice)}` : "Sin precio aproximado";
+        div.innerHTML = `<div class="item-top"><div><strong>${escapeHtml(item.name)}</strong><div class="muted">${escapeHtml(item.qty)} ${escapeHtml(item.unit)} · ${escapeHtml(priceText)}</div><div class="muted">${escapeHtml(dateText)}</div></div>${item.expiryDate ? `<span class="badge">${escapeHtml(item.expiryDate)}</span>` : '<span class="badge missing-date">Sin fecha</span>'}</div>`;
         target.appendChild(div);
       }
     }
@@ -187,13 +300,16 @@
         div.className = "item";
         const dateText = item.expiryDate ? `Caducidad registrada: ${item.expiryDate}` : "Sin caducidad registrada";
         const prepText = item.preparedDate ? `<div class="muted">Preparado: ${escapeHtml(item.preparedDate)}</div>` : "";
-        div.innerHTML = `<div class="item-top"><div><strong>${escapeHtml(item.name)}</strong><div class="muted">${escapeHtml(item.qty)} ${escapeHtml(item.unit)}</div>${prepText}<div class="muted">${escapeHtml(dateText)}</div></div>${item.expiryDate ? `<span class="badge">${escapeHtml(item.expiryDate)}</span>` : '<span class="badge missing-date">Sin fecha</span>'}</div>`;
+        const priceText = item.approxPrice ? `Precio aprox.: ${formatCurrency(item.approxPrice)}` : "Sin precio aproximado";
+        div.innerHTML = `<div class="item-top"><div><strong>${escapeHtml(item.name)}</strong><div class="muted">${escapeHtml(item.qty)} ${escapeHtml(item.unit)} · ${escapeHtml(priceText)}</div>${prepText}<div class="muted">${escapeHtml(dateText)}</div></div>${item.expiryDate ? `<span class="badge">${escapeHtml(item.expiryDate)}</span>` : '<span class="badge missing-date">Sin fecha</span>'}</div>`;
         target.appendChild(div);
       }
     }
 
     function renderAll() {
       renderSummary();
+      renderImpact();
+      renderWasteRanking();
       renderAlerts();
       renderIngredients();
       renderDishes();
