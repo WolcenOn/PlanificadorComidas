@@ -15,7 +15,8 @@
     "index-hardening.js",
     "unit-normalization.js",
     "pack-preview-fix.js",
-    "shopping-ui-bridge.js"
+    "shopping-ui-bridge.js",
+    "ux-dashboard.js"
   ];
 
   function alreadyLoaded(src) {
@@ -26,7 +27,7 @@
     return new Promise((resolve, reject) => {
       if (alreadyLoaded(src)) return resolve({ src, ok: true, skipped: true });
       const script = document.createElement("script");
-      script.src = `${src}?v=20260604-8`;
+      script.src = `${src}?v=20260604-11`;
       script.defer = false;
       script.onload = () => resolve({ src, ok: true });
       script.onerror = () => reject(new Error(`No se pudo cargar ${src}`));
@@ -59,6 +60,7 @@
     const modules = [...criticalModules, ...optionalModules];
     document.dispatchEvent(new CustomEvent("planificador:modules-ready", { detail: { modules, optionalResults } }));
     if (window.UiSafetyNet && typeof window.UiSafetyNet.install === "function") window.UiSafetyNet.install();
+    if (window.UxDashboard && typeof window.UxDashboard.install === "function") window.UxDashboard.install();
   }
 
   loadAll().catch(error => {
