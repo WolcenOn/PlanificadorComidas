@@ -4,17 +4,14 @@
   const criticalModules = [
     "ui-safety-net.js",
     "data-store.js",
-    "stock-lifecycle.js",
-    "lifecycle-persistence.js"
+    "stock-lifecycle.js"
   ];
 
   const optionalModules = [
     "import-export.js",
-    "expiry-date-guard.js",
     "meal-costing.js",
     "shopping-planner.js",
     "index-hardening.js",
-    "lifecycle-form-bridge.js",
     "pack-preview-fix.js",
     "shopping-ui-bridge.js"
   ];
@@ -27,7 +24,7 @@
     return new Promise((resolve, reject) => {
       if (alreadyLoaded(src)) return resolve({ src, ok: true, skipped: true });
       const script = document.createElement("script");
-      script.src = `${src}?v=20260603-3`;
+      script.src = `${src}?v=20260604-4`;
       script.defer = false;
       script.onload = () => resolve({ src, ok: true });
       script.onerror = () => reject(new Error(`No se pudo cargar ${src}`));
@@ -60,7 +57,6 @@
     const modules = [...criticalModules, ...optionalModules];
     document.dispatchEvent(new CustomEvent("planificador:modules-ready", { detail: { modules, optionalResults } }));
     if (window.UiSafetyNet && typeof window.UiSafetyNet.install === "function") window.UiSafetyNet.install();
-    if (window.LifecyclePersistence && typeof window.LifecyclePersistence.reconcileLocalStorage === "function") window.LifecyclePersistence.reconcileLocalStorage();
   }
 
   loadAll().catch(error => {
