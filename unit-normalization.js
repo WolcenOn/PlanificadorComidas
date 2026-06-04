@@ -1,9 +1,38 @@
 /*
  * Unit normalization bridge for PlanificadorComidas.
- * Adds unitWeightG for ingredients measured by unit/piece so impact calculations can convert units to kg.
+ * Replaces the free-text ingredient unit field with a closed selector and only
+ * shows unitWeightG when the selected unit is "unidades".
  */
 (function attachUnitNormalization(global) {
   "use strict";
+
+  const ALLOWED_UNITS = [
+    { value: "g", label: "g" },
+    { value: "kg", label: "kg" },
+    { value: "ml", label: "ml" },
+    { value: "l", label: "l" },
+    { value: "unidades", label: "unidades" }
+  ];
+
+  const UNIT_ALIASES = {
+    gr: "g",
+    gramo: "g",
+    gramos: "g",
+    kilo: "kg",
+    kilos: "kg",
+    litro: "l",
+    litros: "l",
+    mililitro: "ml",
+    mililitros: "ml",
+    ud: "unidades",
+    uds: "unidades",
+    u: "unidades",
+    unidad: "unidades",
+    pieza: "unidades",
+    piezas: "unidades",
+    racion: "unidades",
+    raciones: "unidades"
+  };
 
   let pendingIngredientUnitWeight = null;
   let storagePatched = false;
@@ -25,15 +54,33 @@
       .toLowerCase();
   }
 
-  function isUnitBased(unit) {
+  function normalizeUnit(unit) {
     const clean = String(unit || "").trim().toLowerCase();
-    return ["ud", "uds", "u", "unidad", "unidades", "pieza", "piezas"].includes(clean);
+    const normalized = UNIT_ALIASES[clean] || clean;
+    return ALLOWED_UNITS.some(item => item.value === normalized) ? normalized : "unidades";
+  }
+
+  function isUnitBased(unit) {
+    return normalizeUnit(unit) === "unidades";
   }
 
   function insertAfter(reference, node) {
     if (!reference || !reference.parentElement || !node) return false;
     reference.parentElement.insertBefore(node, reference.nextSibling);
     return true;
+  }
+
+  function replaceUnitInputWithSelect() {
+    const current = byId("ingredientUnit");
+    if (!current || current.tagName === "SELECT") return;
+
+    const select = document.createElement("select");
+    select.id = "ingredientUnit";
+    select.innerHTML = ALLOWED_UNITS
+      .map(unit => `<option value="${unit.value}">${unit.label}</option>`)
+      .join("");
+    select.value = normalizeUnit(current.value || "unidades");
+    current.replaceWith(select);
   }
 
   function ensureUnitWeightField() {
@@ -45,17 +92,29 @@
     wrapper.innerHTML = `
       <label for="ingredientUnitWeightG">Peso por unidad (g)</label>
       <input id="ingredientUnitWeightG" type="number" min="0" step="1" placeholder="Ej. 180" />
-      <div class="help">Úsalo si la unidad es unidad/pieza. Ej.: 1 manzana = 180 g.</div>`;
+      <div class="help">Solo para unidad: 1 manzana = 180 g, 1 yogur = 125 g, 1 huevo = 60 g.</div>`;
     insertAfter(unitInput.closest(".row") || unitInput, wrapper);
   }
 
-  function readPendingIngredient() {
+  function updateUnitWeightVisibility() {
+    const wrapper = byId("ingredientUnitWeightGWrapper");
     const unit = byId("ingredientUnit")?.value || "";
+    if (!wrapper) return;
+    const visible = isUnitBased(unit);
+    wrapper.style.display = visible ? "block" : "none";
+    if (!visible) {
+      const field = byId("ingredientUnitWeightG");
+      if (field) field.value = "";
+    }
+  }
+
+  function readPendingIngredient() {
+    const unit = normalizeUnit(byId("ingredientUnit")?.value || "unidades");
     return {
       id: byId("editingIngredientId")?.value || "",
       name: byId("ingredientName")?.value || "",
       unit,
-      unitWeightG: numberOrZero(byId("ingredientUnitWeightG")?.value)
+      unitWeightG: isUnitBased(unit) ? numberOrZero(byId("ingredientUnitWeightG")?.value) : 0
     };
   }
 
@@ -75,11 +134,12 @@
   }
 
   function mergeUnitWeight(list, values) {
-    if (!values || !values.unitWeightG) return list;
+    if (!values) return list;
     const item = findTarget(list, values);
     if (!item) return list;
-    item.unitWeightG = values.unitWeightG;
-    if (values.unit) item.unit = values.unit;
+    item.unit = normalizeUnit(values.unit || item.unit || "unidades");
+    if (isUnitBased(item.unit)) item.unitWeightG = numberOrZero(values.unitWeightG || item.unitWeightG);
+    else delete item.unitWeightG;
     return list;
   }
 
@@ -87,7 +147,7 @@
     if (storagePatched || !global.localStorage) return;
     const originalSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function patchedSetItem(key, value) {
-      if (key === "ingredients" && pendingIngredientUnitWeight?.unitWeightG) {
+      if (key === "ingredients" && pendingIngredientUnitWeight) {
         try {
           const parsed = JSON.parse(String(value || "[]"));
           if (Array.isArray(parsed)) value = JSON.stringify(mergeUnitWeight(parsed, pendingIngredientUnitWeight));
@@ -103,7 +163,6 @@
   function persistCurrentUnitWeight() {
     const values = readPendingIngredient();
     pendingIngredientUnitWeight = values;
-    if (!values.unitWeightG) return;
     try {
       const list = JSON.parse(localStorage.getItem("ingredients") || "[]");
       if (!Array.isArray(list)) return;
@@ -119,24 +178,30 @@
     try {
       const list = JSON.parse(localStorage.getItem("ingredients") || "[]");
       const item = Array.isArray(list) ? list.find(entry => entry && entry.id === editingId) : null;
+      const unit = byId("ingredientUnit");
       const field = byId("ingredientUnitWeightG");
+      if (unit && item) unit.value = normalizeUnit(item.unit || "unidades");
+      updateUnitWeightVisibility();
       if (field && item) field.value = item.unitWeightG || "";
     } catch {
       // Ignore invalid local data.
     }
   }
 
-  function updateHintVisibility() {
-    const wrapper = byId("ingredientUnitWeightGWrapper");
-    const unit = byId("ingredientUnit")?.value || "";
-    if (!wrapper) return;
-    wrapper.style.opacity = isUnitBased(unit) ? "1" : "0.72";
-  }
-
   function install() {
+    replaceUnitInputWithSelect();
     ensureUnitWeightField();
     patchLocalStorageWrites();
-    updateHintVisibility();
+    updateUnitWeightVisibility();
+
+    const unitField = byId("ingredientUnit");
+    if (unitField && unitField.dataset.closedUnitSelector !== "true") {
+      unitField.dataset.closedUnitSelector = "true";
+      unitField.addEventListener("change", () => {
+        unitField.value = normalizeUnit(unitField.value);
+        updateUnitWeightVisibility();
+      });
+    }
 
     const saveButton = byId("saveIngredientBtn");
     if (saveButton && saveButton.dataset.unitNormalization !== "true") {
@@ -147,8 +212,6 @@
         setTimeout(persistCurrentUnitWeight, 200);
       }, true);
     }
-
-    byId("ingredientUnit")?.addEventListener("input", updateHintVisibility);
 
     document.addEventListener("click", event => {
       const button = event.target.closest("button");
@@ -163,6 +226,8 @@
   setTimeout(install, 500);
 
   global.UnitNormalization = {
+    ALLOWED_UNITS,
+    normalizeUnit,
     isUnitBased,
     mergeUnitWeight,
     persistCurrentUnitWeight,
